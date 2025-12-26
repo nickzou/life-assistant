@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import {
+  WrikeTasksResponse,
+  WrikeWorkflowsResponse,
+  WrikeFoldersResponse,
+} from './types/wrike-api.types';
 
 @Injectable()
 export class WrikeService {
@@ -23,10 +28,10 @@ export class WrikeService {
   /**
    * Fetch a specific task by ID
    */
-  async getTask(taskId: string): Promise<any> {
+  async getTask(taskId: string): Promise<WrikeTasksResponse> {
     try {
       this.logger.log(`Fetching Wrike task: ${taskId}`);
-      const response = await this.axiosInstance.get(`/tasks/${taskId}`);
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(`/tasks/${taskId}`);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch Wrike task ${taskId}:`, error.message);
@@ -37,10 +42,10 @@ export class WrikeService {
   /**
    * Fetch tasks from a specific folder
    */
-  async getTasksInFolder(folderId: string): Promise<any> {
+  async getTasksInFolder(folderId: string): Promise<WrikeTasksResponse> {
     try {
       this.logger.log(`Fetching tasks from Wrike folder: ${folderId}`);
-      const response = await this.axiosInstance.get(`/folders/${folderId}/tasks`);
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(`/folders/${folderId}/tasks`);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch tasks from folder ${folderId}:`, error.message);
@@ -81,10 +86,10 @@ export class WrikeService {
    * Get custom statuses for the account
    * This will help us understand the status structure
    */
-  async getCustomStatuses(): Promise<any> {
+  async getCustomStatuses(): Promise<WrikeWorkflowsResponse> {
     try {
       this.logger.log('Fetching Wrike custom statuses');
-      const response = await this.axiosInstance.get('/workflows');
+      const response = await this.axiosInstance.get<WrikeWorkflowsResponse>('/workflows');
       return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch Wrike custom statuses:', error.message);
@@ -95,10 +100,10 @@ export class WrikeService {
   /**
    * Get all folders
    */
-  async getAllFolders(): Promise<any> {
+  async getAllFolders(): Promise<WrikeFoldersResponse> {
     try {
       this.logger.log('Fetching all Wrike folders');
-      const response = await this.axiosInstance.get('/folders');
+      const response = await this.axiosInstance.get<WrikeFoldersResponse>('/folders');
       return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch folders:', error.message);
