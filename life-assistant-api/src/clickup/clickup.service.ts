@@ -91,6 +91,20 @@ export class ClickUpService {
   }
 
   /**
+   * Get a specific list by ID
+   */
+  async getList(listId: string): Promise<any> {
+    try {
+      this.logger.log(`Fetching ClickUp list: ${listId}`);
+      const response = await this.axiosInstance.get(`/list/${listId}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch list ${listId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Get all lists in a space
    */
   async getListsInSpace(spaceId: string): Promise<ClickUpListsResponse> {

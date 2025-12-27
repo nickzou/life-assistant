@@ -91,6 +91,28 @@ export class ClickUpController {
   }
 
   /**
+   * Test endpoint: Get a specific list with statuses
+   * GET /clickup/test/list/:listId
+   */
+  @Get('test/list/:listId')
+  async testList(@Param('listId') listId: string) {
+    try {
+      const list = await this.clickUpService.getList(listId);
+      this.logger.log(`Fetched list: ${list.name}`);
+      return {
+        success: true,
+        data: list,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch list ${listId}:`, error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Test endpoint: List all lists in a space
    * GET /clickup/test/lists/:spaceId
    */
