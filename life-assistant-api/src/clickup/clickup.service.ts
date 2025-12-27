@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import {
+  ClickUpTask,
+  ClickUpTasksResponse,
+  ClickUpSpacesResponse,
+  ClickUpListsResponse,
+} from './types/clickup-api.types';
 
 @Injectable()
 export class ClickUpService {
@@ -23,10 +29,10 @@ export class ClickUpService {
   /**
    * Fetch a specific task by ID
    */
-  async getTask(taskId: string): Promise<any> {
+  async getTask(taskId: string): Promise<ClickUpTask> {
     try {
       this.logger.log(`Fetching ClickUp task: ${taskId}`);
-      const response = await this.axiosInstance.get(`/task/${taskId}`);
+      const response = await this.axiosInstance.get<ClickUpTask>(`/task/${taskId}`);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch ClickUp task ${taskId}:`, error.message);
@@ -38,10 +44,10 @@ export class ClickUpService {
   /**
    * Fetch tasks from a specific list
    */
-  async getTasksInList(listId: string): Promise<any> {
+  async getTasksInList(listId: string): Promise<ClickUpTasksResponse> {
     try {
       this.logger.log(`Fetching tasks from ClickUp list: ${listId}`);
-      const response = await this.axiosInstance.get(`/list/${listId}/task`);
+      const response = await this.axiosInstance.get<ClickUpTasksResponse>(`/list/${listId}/task`);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch tasks from list ${listId}:`, error.message);
@@ -53,10 +59,13 @@ export class ClickUpService {
   /**
    * Create a new task in ClickUp
    */
-  async createTask(listId: string, taskData: any): Promise<any> {
+  async createTask(
+    listId: string,
+    taskData: { name: string; description?: string; status?: string; priority?: number },
+  ): Promise<ClickUpTask> {
     try {
       this.logger.log(`Creating task in ClickUp list: ${listId}`);
-      const response = await this.axiosInstance.post(`/list/${listId}/task`, taskData);
+      const response = await this.axiosInstance.post<ClickUpTask>(`/list/${listId}/task`, taskData);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to create ClickUp task:`, error.message);
@@ -67,10 +76,13 @@ export class ClickUpService {
   /**
    * Update an existing task
    */
-  async updateTask(taskId: string, taskData: any): Promise<any> {
+  async updateTask(
+    taskId: string,
+    taskData: { name?: string; description?: string; status?: string; priority?: number },
+  ): Promise<ClickUpTask> {
     try {
       this.logger.log(`Updating ClickUp task: ${taskId}`);
-      const response = await this.axiosInstance.put(`/task/${taskId}`, taskData);
+      const response = await this.axiosInstance.put<ClickUpTask>(`/task/${taskId}`, taskData);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to update ClickUp task ${taskId}:`, error.message);
@@ -81,10 +93,10 @@ export class ClickUpService {
   /**
    * Get all lists in a space
    */
-  async getListsInSpace(spaceId: string): Promise<any> {
+  async getListsInSpace(spaceId: string): Promise<ClickUpListsResponse> {
     try {
       this.logger.log(`Fetching lists from ClickUp space: ${spaceId}`);
-      const response = await this.axiosInstance.get(`/space/${spaceId}/list`);
+      const response = await this.axiosInstance.get<ClickUpListsResponse>(`/space/${spaceId}/list`);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch lists from space ${spaceId}:`, error.message);
@@ -95,10 +107,10 @@ export class ClickUpService {
   /**
    * Get spaces in workspace
    */
-  async getSpaces(workspaceId: string): Promise<any> {
+  async getSpaces(workspaceId: string): Promise<ClickUpSpacesResponse> {
     try {
       this.logger.log(`Fetching ClickUp spaces in workspace: ${workspaceId}`);
-      const response = await this.axiosInstance.get(`/team/${workspaceId}/space`);
+      const response = await this.axiosInstance.get<ClickUpSpacesResponse>(`/team/${workspaceId}/space`);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch spaces:`, error.message);

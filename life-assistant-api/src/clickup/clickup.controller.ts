@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Logger, Param } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
 
@@ -106,6 +106,36 @@ export class ClickUpController {
       };
     } catch (error) {
       this.logger.error(`Failed to fetch lists from space ${spaceId}:`, error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Test endpoint: Create a test task in the configured list
+   * POST /clickup/test/create-task
+   */
+  @Post('test/create-task')
+  async createTestTask(@Body() body: { name: string; description?: string }) {
+    try {
+      const listId = this.configService.get<string>('CLICKUP_LIST_ID');
+      if (!listId) {
+        throw new Error('CLICKUP_LIST_ID not configured in .env');
+      }
+
+      const task = await this.clickUpService.createTask(listId, {
+        name: body.name || 'Test Task',
+        description: body.description || 'Created via API test endpoint',
+      });
+      this.logger.log(`Created task: ${task.id}`);
+      return {
+        success: true,
+        data: task,
+      };
+    } catch (error) {
+      this.logger.error('Failed to create task:', error.message);
       return {
         success: false,
         error: error.message,
