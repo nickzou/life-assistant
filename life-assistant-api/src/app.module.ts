@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { WrikeModule } from './wrike/wrike.module';
+import { ClickUpModule } from './clickup/clickup.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { WrikeModule } from './wrike/wrike.module';
     }),
     DatabaseModule,
     WrikeModule,
+    ClickUpModule,
   ],
   controllers: [AppController],
   providers: [AppService],
