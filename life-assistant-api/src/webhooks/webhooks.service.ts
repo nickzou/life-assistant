@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { WrikeService } from '../wrike/wrike.service';
+import { SyncService } from '../sync/sync.service';
 
 @Injectable()
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
 
-  constructor(private readonly wrikeService: WrikeService) {}
+  constructor(
+    private readonly wrikeService: WrikeService,
+    private readonly syncService: SyncService,
+  ) {}
 
   /**
    * Process incoming Wrike webhook event
@@ -51,8 +55,8 @@ export class WebhooksService {
       this.logger.log(`Task ${taskId} is assigned to current user - proceeding with sync`);
       this.logger.debug(`Task details: ${task.title}`);
 
-      // TODO: Call SyncService to sync this task to ClickUp
-      // await this.syncService.syncWrikeToClickUp(task);
+      // Sync the task to ClickUp
+      await this.syncService.syncWrikeToClickUp(task);
 
     } catch (error) {
       this.logger.error(`Error processing Wrike webhook for task ${taskId}:`, error.message);
