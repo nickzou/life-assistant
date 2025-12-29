@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-**Last Updated:** December 26, 2025
+**Last Updated:** December 29, 2025
 
 **Current Phase:** Phase 1 - Backend Foundation (In Progress)
 
@@ -10,9 +10,9 @@
 |-----------|--------|-------|
 | **NestJS Backend** | ✅ Implemented | Modular architecture with ConfigModule |
 | **Database Module** | ✅ Implemented | TypeORM entities for TaskMapping, SyncLog, User |
-| **Wrike Module** | ✅ Implemented | API client with comprehensive types & test endpoints |
+| **Wrike Module** | ✅ Implemented | API client with comprehensive types, test endpoints & user ID caching |
 | **ClickUp Module** | ✅ Implemented | API client with comprehensive types & test endpoints |
-| **Webhooks Module** | 🟡 Partial | Basic structure & logging; sync logic TODO |
+| **Webhooks Module** | 🟡 Partial | Task assignment filtering implemented; sync logic TODO |
 | **Sync Module** | ❌ Not Started | Core sync orchestration logic |
 | **API Module** | ❌ Not Started | REST API for frontend |
 | **Auth Module** | ❌ Not Started | JWT authentication |
@@ -150,8 +150,12 @@ ClickUp ──Webhooks────> NestJS
 **Implementation Status: ✅ Completed**
 
 **WrikeService** (`wrike.service.ts`)
-- Injectable NestJS service
+- Injectable NestJS service implementing OnModuleInit
 - Wraps Wrike REST API v4
+- **User ID Caching:**
+  - Automatically fetches and caches current user ID on module initialization
+  - `getCurrentUser()` - Fetch authenticated user contact information
+  - `getCurrentUserId()` - Get cached user ID for task filtering
 - Methods implemented:
   - `getTask(taskId)` - Fetch specific task
   - `getTasksInFolder(folderId)` - List all tasks in folder
@@ -168,6 +172,7 @@ ClickUp ──Webhooks────> NestJS
   - `GET /wrike/test/tasks` - List tasks in configured folder
   - `GET /wrike/test/task/:taskId` - Get specific task
   - `GET /wrike/test/folders` - List all folders
+  - `GET /wrike/test/me` - Get current authenticated user info
 - **Note:** Webhook handling moved to WebhooksModule
 
 **WrikeModule** (`wrike.module.ts`)
@@ -329,7 +334,7 @@ export class User {
 
 ### 4. Webhooks Module (`src/webhooks/`)
 
-**Implementation Status: ✅ Completed (Basic Structure)**
+**Implementation Status: 🟡 Partial (Task Assignment Filtering Implemented)**
 
 **WebhooksController** (`webhooks.controller.ts`)
 - Centralized webhook endpoint handler
@@ -341,16 +346,23 @@ export class User {
 - Returns success/error responses
 
 **WebhooksService** (`webhooks.service.ts`)
-- Processes incoming webhook events
-- Methods:
-  - `handleWrikeWebhook(payload)` - TODO: Implement sync logic
-  - `handleClickUpWebhook(payload)` - TODO: Implement sync logic
-- Currently logs events (sync logic not yet implemented)
+- Processes incoming webhook events with task assignment filtering
+- **Wrike Webhook Processing (`handleWrikeWebhook`):**
+  - Extracts task ID from webhook payload
+  - Fetches full task details via WrikeService
+  - Checks if task is assigned to current user (via `responsibleIds`)
+  - Skips sync if task is not assigned to current user
+  - Logs filtering decisions for debugging
+  - TODO: Call SyncService to sync filtered tasks to ClickUp
+- **ClickUp Webhook Processing (`handleClickUpWebhook`):**
+  - Currently logs events (filtering logic TODO)
+  - TODO: Implement sync logic
 - Will integrate with SyncService when implemented
 
 **WebhooksModule** (`webhooks.module.ts`)
 - Exports WebhooksService
-- Imports WrikeModule and ClickUpModule (when sync is implemented)
+- Imports WrikeModule for task filtering and API access
+- TODO: Import ClickUpModule when sync is implemented
 
 **Design Decision:** Dedicated WebhooksModule
 - Separates webhook handling from integration modules
@@ -358,6 +370,12 @@ export class User {
 - WebhooksModule orchestrates sync operations
 - Easier to add webhook signature validation
 - Cleaner separation of concerns
+
+**Task Assignment Filtering:**
+- Prevents syncing entire team's tasks from Wrike
+- Only syncs tasks where current user is in `responsibleIds`
+- User ID automatically cached at service startup
+- Gracefully handles unassigned tasks and initialization errors
 
 ### 5. Sync Module (`src/sync/`)
 
@@ -496,7 +514,7 @@ NODE_ENV=development
 **Implementation Status: ✅ Partially Completed**
 
 **Currently Implemented:**
-- `src/wrike/types/wrike-api.types.ts` - Complete Wrike API response types
+- `src/wrike/types/wrike-api.types.ts` - Complete Wrike API response types (including WrikeContact for user info)
 - `src/clickup/types/clickup-api.types.ts` - Complete ClickUp API response types
 - `src/database/entities/*.entity.ts` - TypeORM entities with full type definitions
 
