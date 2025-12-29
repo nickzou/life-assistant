@@ -12,17 +12,17 @@
 | **Database Module** | ✅ Implemented | TypeORM entities for TaskMapping, SyncLog, User |
 | **Wrike Module** | ✅ Implemented | API client with comprehensive types, test endpoints & user ID caching |
 | **ClickUp Module** | ✅ Implemented | API client with comprehensive types & test endpoints |
-| **Webhooks Module** | 🟡 Partial | Task assignment filtering implemented; sync logic TODO |
-| **Sync Module** | ❌ Not Started | Core sync orchestration logic |
+| **Webhooks Module** | ✅ Implemented | Task filtering, sync integration, event processing |
+| **Sync Module** | 🟡 Partial | Wrike → ClickUp sync working; reverse sync TODO |
 | **API Module** | ❌ Not Started | REST API for frontend |
 | **Auth Module** | ❌ Not Started | JWT authentication |
 | **React Frontend** | ❌ Not Started | User interface |
 
 **Next Steps:**
-1. Implement SyncModule with sync orchestration logic
-2. Add webhook signature verification
-3. Implement DTO validation and type definitions for webhook payloads
-4. Build status mapping utilities
+1. Implement ClickUp → Wrike reverse sync
+2. Add status mapping utilities (Wrike ↔ ClickUp statuses)
+3. Add webhook signature verification
+4. Implement DTO validation and type definitions for webhook payloads
 5. Create API Module for frontend
 
 ## Overview
@@ -379,31 +379,51 @@ export class User {
 
 ### 5. Sync Module (`src/sync/`)
 
-**Implementation Status: ❌ Not Yet Implemented**
+**Implementation Status: 🟡 Partial (Wrike → ClickUp Working)**
 
 **SyncService** (`sync.service.ts`)
 - Injectable NestJS service
-- Orchestrates the sync logic
-- Methods: `syncWrikeToClickUp()`, `syncClickUpToWrike()`, `manualSync()`
-- Handles create vs update logic
-- Manages mapping storage via DatabaseService
-- Logs all sync operations to SyncLog table
+- Orchestrates the sync logic between platforms
+- **Implemented Methods:**
+  - `syncWrikeToClickUp(wrikeTask)` - ✅ Sync Wrike task to ClickUp
+  - `createClickUpTask(wrikeTask)` - ✅ Create new ClickUp task
+  - `updateClickUpTask(clickUpId, wrikeTask)` - ✅ Update existing ClickUp task
+  - `logSync(data)` - ✅ Log sync operations to database
+- **TODO Methods:**
+  - `syncClickUpToWrike()` - ❌ Reverse sync not yet implemented
+  - `manualSync()` - ❌ Manual trigger support
+- Handles create vs update logic based on existing mappings
+- Uses TypeORM repositories for TaskMapping and SyncLog entities
+- Comprehensive error handling and logging
 
-**Sync Flow:**
+**SyncModule** (`sync.module.ts`)
+- Imports WrikeModule, ClickUpModule for API access
+- Imports TypeORM entities (TaskMapping, SyncLog)
+- Exports SyncService for use by WebhooksModule
+- Integrated into WebhooksModule for automatic sync
 
-1. Receive task ID from webhook or manual trigger
-2. Fetch full task details from source API
-3. Check database for existing mapping
-4. If mapping exists → Update existing task
-5. If no mapping → Create new task and save mapping
-6. Log sync operation (success or failure)
-7. Return success/failure
+**Implemented Sync Flow:**
+
+1. ✅ Webhook receives Wrike task ID
+2. ✅ Webhook service fetches full task details
+3. ✅ Check database for existing Wrike → ClickUp mapping
+4. ✅ If mapping exists → Update existing ClickUp task
+5. ✅ If no mapping → Create new ClickUp task and save mapping
+6. ✅ Log sync operation (success or failure) to sync_logs table
+7. ✅ Return success/failure
+
+**Tested & Verified:**
+- ✅ Synced Wrike task "Test Task" (MAAAAAECoCvD) → ClickUp task (86dz0wcqk)
+- ✅ Mapping saved to task_mappings table
+- ✅ Sync logged to sync_logs table with timestamp and status
+- ✅ Task visible in ClickUp web UI
 
 **Design Decision:** Separate sync module
 - Isolates business logic from API and presentation layers
 - Injectable service can be used by webhooks and REST API
 - Easier to test in isolation
 - Can be reused across different integrations
+- Database-backed for reliability and auditability
 
 ### 6. API Module (`src/api/`)
 
