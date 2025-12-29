@@ -106,4 +106,27 @@ export class WrikeController {
       };
     }
   }
+
+  /**
+   * Test endpoint: Get current authenticated user
+   * GET /wrike/test/me
+   */
+  @Get('test/me')
+  async testCurrentUser() {
+    try {
+      const user = await this.wrikeService.getCurrentUser();
+      this.logger.log(`Fetched current user: ${user.data?.[0]?.id}`);
+      return {
+        success: true,
+        userId: user.data?.[0]?.id,
+        data: user,
+      };
+    } catch (error) {
+      this.logger.error('Failed to fetch current user:', error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

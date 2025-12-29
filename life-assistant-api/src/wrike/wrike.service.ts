@@ -5,6 +5,7 @@ import {
   WrikeTasksResponse,
   WrikeWorkflowsResponse,
   WrikeFoldersResponse,
+  WrikeContactsResponse,
 } from './types/wrike-api.types';
 
 @Injectable()
@@ -107,6 +108,23 @@ export class WrikeService {
       return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch folders:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current authenticated user's contact information
+   * This returns the user ID which can be used to filter tasks assigned to you
+   */
+  async getCurrentUser(): Promise<WrikeContactsResponse> {
+    try {
+      this.logger.log('Fetching current Wrike user information');
+      const response = await this.axiosInstance.get<WrikeContactsResponse>('/contacts', {
+        params: { me: true }
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to fetch current user:', error.message);
       throw error;
     }
   }
