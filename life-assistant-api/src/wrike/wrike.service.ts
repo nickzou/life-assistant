@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import {
@@ -9,10 +9,11 @@ import {
 } from './types/wrike-api.types';
 
 @Injectable()
-export class WrikeService {
+export class WrikeService implements OnModuleInit {
   private readonly logger = new Logger(WrikeService.name);
   private readonly axiosInstance: AxiosInstance;
   private readonly baseUrl = 'https://www.wrike.com/api/v4';
+  private currentUserId: string | null = null;
 
   constructor(private configService: ConfigService) {
     const token = this.configService.get<string>('WRIKE_TOKEN');
@@ -24,6 +25,33 @@ export class WrikeService {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  /**
+   * Lifecycle hook: Fetch and cache the current user ID when module initializes
+   */
+  async onModuleInit() {
+    try {
+      this.logger.log('Initializing Wrike service - fetching current user...');
+      const userResponse = await this.getCurrentUser();
+      if (userResponse.data && userResponse.data.length > 0) {
+        this.currentUserId = userResponse.data[0].id;
+        this.logger.log(`Wrike user ID cached: ${this.currentUserId} (${userResponse.data[0].firstName} ${userResponse.data[0].lastName})`);
+      } else {
+        this.logger.warn('No user data returned from Wrike API');
+      }
+    } catch (error) {
+      this.logger.error('Failed to fetch current user ID during initialization:', error.message);
+      this.logger.error('Task assignment filtering will not work until this is resolved');
+    }
+  }
+
+  /**
+   * Get the cached current user ID
+   * Returns null if not yet initialized or if initialization failed
+   */
+  getCurrentUserId(): string | null {
+    return this.currentUserId;
   }
 
   /**
