@@ -104,7 +104,7 @@ export class SyncService {
 
     const taskData: any = {
       name: wrikeTask.title,
-      description: wrikeTask.description || '',
+      description: `View in Wrike: ${wrikeTask.permalink}`,
     };
 
     // Add due date if present (convert ISO string to Unix timestamp in milliseconds)
@@ -144,7 +144,7 @@ export class SyncService {
 
     const taskData: any = {
       name: wrikeTask.title,
-      description: wrikeTask.description || '',
+      description: `View in Wrike: ${wrikeTask.permalink}`,
     };
 
     // Add due date if present
