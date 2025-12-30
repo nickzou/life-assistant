@@ -104,10 +104,12 @@ export class WrikeService implements OnModuleInit {
   async updateTask(taskId: string, taskData: any): Promise<any> {
     try {
       this.logger.log(`Updating Wrike task: ${taskId}`);
+      this.logger.log(`Task data: ${JSON.stringify(taskData, null, 2)}`);
       const response = await this.axiosInstance.put(`/tasks/${taskId}`, taskData);
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to update Wrike task ${taskId}:`, error.message);
+      this.logger.error(`Wrike API error details:`, JSON.stringify(error.response?.data, null, 2));
       throw error;
     }
   }
