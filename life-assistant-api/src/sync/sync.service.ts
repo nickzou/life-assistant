@@ -11,6 +11,8 @@ import { WrikeTask } from '../wrike/types/wrike-api.types';
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
+  private wrikeStatusMap: Map<string, string> = new Map(); // customStatusId -> status name
+  private clickUpStatusMap: Map<string, string> = new Map(); // lowercase status name -> actual status name
 
   constructor(
     private readonly wrikeService: WrikeService,
@@ -118,8 +120,11 @@ export class SyncService {
     }
 
     // Map Wrike status to ClickUp status
-    // TODO: Implement proper status mapping
-    // status: this.mapWrikeStatusToClickUp(wrikeTask.status),
+    const mappedStatus = await this.mapWrikeStatusToClickUp(wrikeTask);
+    if (mappedStatus) {
+      taskData.status = mappedStatus;
+      this.logger.log(`Setting status: ${mappedStatus}`);
+    }
 
     const response = await this.clickUpService.createTask(listId, taskData);
 
@@ -154,7 +159,12 @@ export class SyncService {
       this.logger.log(`Updating start date: ${wrikeTask.dates.start} -> ${taskData.start_date}`);
     }
 
-    // TODO: Map status, priority, etc.
+    // Map Wrike status to ClickUp status
+    const mappedStatus = await this.mapWrikeStatusToClickUp(wrikeTask);
+    if (mappedStatus) {
+      taskData.status = mappedStatus;
+      this.logger.log(`Updating status: ${mappedStatus}`);
+    }
 
     await this.clickUpService.updateTask(clickUpTaskId, taskData);
     this.logger.log(`Updated ClickUp task: ${clickUpTaskId}`);
@@ -226,5 +236,76 @@ export class SyncService {
   }): Promise<void> {
     const log = this.syncLogRepository.create(data);
     await this.syncLogRepository.save(log);
+  }
+
+  /**
+   * Load Wrike statuses into the map (customStatusId -> status name)
+   */
+  private async loadWrikeStatuses(): Promise<void> {
+    if (this.wrikeStatusMap.size > 0) {
+      return; // Already loaded
+    }
+
+    this.logger.log('Loading Wrike statuses...');
+    const workflows = await this.wrikeService.getCustomStatuses();
+
+    for (const workflow of workflows.data) {
+      for (const status of workflow.customStatuses) {
+        this.wrikeStatusMap.set(status.id, status.name);
+      }
+    }
+
+    this.logger.log(`Loaded ${this.wrikeStatusMap.size} Wrike statuses`);
+  }
+
+  /**
+   * Load ClickUp statuses into the map (lowercase name -> actual name)
+   */
+  private async loadClickUpStatuses(): Promise<void> {
+    if (this.clickUpStatusMap.size > 0) {
+      return; // Already loaded
+    }
+
+    const listId = this.configService.get<string>('CLICKUP_LIST_ID');
+    if (!listId) {
+      this.logger.warn('CLICKUP_LIST_ID not configured, cannot load statuses');
+      return;
+    }
+
+    this.logger.log('Loading ClickUp statuses...');
+    const list = await this.clickUpService.getList(listId);
+
+    if (list.statuses && Array.isArray(list.statuses)) {
+      for (const status of list.statuses) {
+        this.clickUpStatusMap.set(status.status.toLowerCase(), status.status);
+      }
+      this.logger.log(`Loaded ${this.clickUpStatusMap.size} ClickUp statuses`);
+    }
+  }
+
+  /**
+   * Map Wrike status to ClickUp status name
+   */
+  private async mapWrikeStatusToClickUp(wrikeTask: WrikeTask): Promise<string | undefined> {
+    // Load statuses if not already loaded
+    await this.loadWrikeStatuses();
+    await this.loadClickUpStatuses();
+
+    // Get Wrike status name from customStatusId
+    const wrikeStatusName = this.wrikeStatusMap.get(wrikeTask.customStatusId);
+    if (!wrikeStatusName) {
+      this.logger.warn(`Could not find Wrike status name for ID: ${wrikeTask.customStatusId}`);
+      return undefined;
+    }
+
+    // Find matching ClickUp status (case-insensitive)
+    const clickUpStatusName = this.clickUpStatusMap.get(wrikeStatusName.toLowerCase());
+    if (!clickUpStatusName) {
+      this.logger.warn(`No ClickUp status matches Wrike status: ${wrikeStatusName}`);
+      return undefined;
+    }
+
+    this.logger.log(`Mapped status: ${wrikeStatusName} (Wrike) -> ${clickUpStatusName} (ClickUp)`);
+    return clickUpStatusName;
   }
 }
