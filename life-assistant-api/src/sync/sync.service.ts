@@ -100,13 +100,26 @@ export class SyncService {
 
     this.logger.log(`Creating ClickUp task: ${wrikeTask.title}`);
 
-    const taskData = {
+    const taskData: any = {
       name: wrikeTask.title,
       description: wrikeTask.description || '',
-      // Map Wrike status to ClickUp status
-      // TODO: Implement proper status mapping
-      // status: this.mapWrikeStatusToClickUp(wrikeTask.status),
     };
+
+    // Add due date if present (convert ISO string to Unix timestamp in milliseconds)
+    if (wrikeTask.dates?.due) {
+      taskData.due_date = new Date(wrikeTask.dates.due).getTime().toString();
+      this.logger.log(`Setting due date: ${wrikeTask.dates.due} -> ${taskData.due_date}`);
+    }
+
+    // Add start date if present
+    if (wrikeTask.dates?.start) {
+      taskData.start_date = new Date(wrikeTask.dates.start).getTime().toString();
+      this.logger.log(`Setting start date: ${wrikeTask.dates.start} -> ${taskData.start_date}`);
+    }
+
+    // Map Wrike status to ClickUp status
+    // TODO: Implement proper status mapping
+    // status: this.mapWrikeStatusToClickUp(wrikeTask.status),
 
     const response = await this.clickUpService.createTask(listId, taskData);
 
@@ -124,11 +137,24 @@ export class SyncService {
   private async updateClickUpTask(clickUpTaskId: string, wrikeTask: WrikeTask): Promise<void> {
     this.logger.log(`Updating ClickUp task: ${clickUpTaskId}`);
 
-    const taskData = {
+    const taskData: any = {
       name: wrikeTask.title,
       description: wrikeTask.description || '',
-      // TODO: Map status, dates, priority, etc.
     };
+
+    // Add due date if present
+    if (wrikeTask.dates?.due) {
+      taskData.due_date = new Date(wrikeTask.dates.due).getTime().toString();
+      this.logger.log(`Updating due date: ${wrikeTask.dates.due} -> ${taskData.due_date}`);
+    }
+
+    // Add start date if present
+    if (wrikeTask.dates?.start) {
+      taskData.start_date = new Date(wrikeTask.dates.start).getTime().toString();
+      this.logger.log(`Updating start date: ${wrikeTask.dates.start} -> ${taskData.start_date}`);
+    }
+
+    // TODO: Map status, priority, etc.
 
     await this.clickUpService.updateTask(clickUpTaskId, taskData);
     this.logger.log(`Updated ClickUp task: ${clickUpTaskId}`);
