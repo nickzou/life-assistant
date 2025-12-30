@@ -3,6 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
+import { WrikeModule } from './wrike/wrike.module';
+import { ClickUpModule } from './clickup/clickup.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -11,6 +14,9 @@ import { DatabaseModule } from './database/database.module';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    WrikeModule,
+    ClickUpModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],
