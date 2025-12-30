@@ -224,6 +224,122 @@ export class SyncService {
   }
 
   /**
+   * Sync a ClickUp task to Wrike (reverse sync)
+   * - Checks if mapping exists
+   * - Updates existing Wrike task (no creation in reverse sync)
+   * - Logs sync operation
+   */
+  async syncClickUpToWrike(clickUpTask: any): Promise<void> {
+    this.logger.log(`Starting reverse sync: ClickUp task ${clickUpTask.id} -> Wrike`);
+
+    try {
+      // Check if mapping exists
+      const existingMapping = await this.taskMappingRepository.findOne({
+        where: { clickup_id: clickUpTask.id },
+      });
+
+      if (!existingMapping) {
+        this.logger.warn(`No mapping found for ClickUp task ${clickUpTask.id}, skipping reverse sync`);
+        return;
+      }
+
+      this.logger.log(`Found existing mapping: ClickUp ${clickUpTask.id} <-> Wrike ${existingMapping.wrike_id}`);
+
+      // Update existing Wrike task
+      await this.updateWrikeTask(existingMapping.wrike_id, clickUpTask);
+
+      // Log successful sync
+      await this.logSync({
+        source_platform: 'clickup',
+        target_platform: 'wrike',
+        source_task_id: clickUpTask.id,
+        target_task_id: existingMapping.wrike_id,
+        action: 'update',
+        status: 'success',
+      });
+
+      this.logger.log(`✅ Reverse sync completed successfully: ${clickUpTask.name}`);
+    } catch (error) {
+      this.logger.error(`❌ Reverse sync failed for ClickUp task ${clickUpTask.id}:`, error.message);
+
+      await this.logSync({
+        source_platform: 'clickup',
+        target_platform: 'wrike',
+        source_task_id: clickUpTask.id,
+        target_task_id: '',
+        action: 'update',
+        status: 'failed',
+        error_message: error.message,
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing Wrike task with data from ClickUp task
+   */
+  private async updateWrikeTask(wrikeTaskId: string, clickUpTask: any): Promise<void> {
+    this.logger.log(`Updating Wrike task: ${wrikeTaskId}`);
+
+    const taskData: any = {
+      title: clickUpTask.name,
+    };
+
+    // Add due date if present (convert Unix timestamp ms to ISO string)
+    if (clickUpTask.due_date) {
+      const dueDate = new Date(parseInt(clickUpTask.due_date));
+      taskData.dates = taskData.dates || {};
+      taskData.dates.due = dueDate.toISOString().slice(0, 19); // Remove 'Z' for Wrike format
+      this.logger.log(`Updating due date: ${clickUpTask.due_date} -> ${taskData.dates.due}`);
+    }
+
+    // Add start date if present
+    if (clickUpTask.start_date) {
+      const startDate = new Date(parseInt(clickUpTask.start_date));
+      taskData.dates = taskData.dates || {};
+      taskData.dates.start = startDate.toISOString().slice(0, 19);
+      this.logger.log(`Updating start date: ${clickUpTask.start_date} -> ${taskData.dates.start}`);
+    }
+
+    // Map ClickUp status to Wrike status
+    const mappedStatusId = await this.mapClickUpStatusToWrike(clickUpTask);
+    if (mappedStatusId) {
+      taskData.customStatusId = mappedStatusId;
+      this.logger.log(`Updating status: ${mappedStatusId}`);
+    }
+
+    await this.wrikeService.updateTask(wrikeTaskId, taskData);
+    this.logger.log(`Updated Wrike task: ${wrikeTaskId}`);
+  }
+
+  /**
+   * Map ClickUp status to Wrike customStatusId
+   */
+  private async mapClickUpStatusToWrike(clickUpTask: any): Promise<string | undefined> {
+    // Load statuses if not already loaded
+    await this.loadWrikeStatuses();
+    await this.loadClickUpStatuses();
+
+    const clickUpStatusName = clickUpTask.status?.status;
+    if (!clickUpStatusName) {
+      this.logger.warn(`ClickUp task has no status`);
+      return undefined;
+    }
+
+    // Find matching Wrike status by name (case-insensitive)
+    for (const [statusId, statusName] of this.wrikeStatusMap.entries()) {
+      if (statusName.toLowerCase() === clickUpStatusName.toLowerCase()) {
+        this.logger.log(`Mapped status: ${clickUpStatusName} (ClickUp) -> ${statusName} (Wrike) [${statusId}]`);
+        return statusId;
+      }
+    }
+
+    this.logger.warn(`No Wrike status matches ClickUp status: ${clickUpStatusName}`);
+    return undefined;
+  }
+
+  /**
    * Log a sync operation to the database
    */
   private async logSync(data: {

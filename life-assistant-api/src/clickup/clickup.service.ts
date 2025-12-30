@@ -142,4 +142,53 @@ export class ClickUpService {
       throw error;
     }
   }
+
+  /**
+   * List all webhooks for a team
+   */
+  async listWebhooks(teamId: string): Promise<any> {
+    try {
+      this.logger.log(`Listing ClickUp webhooks for team: ${teamId}`);
+      const response = await this.axiosInstance.get(`/team/${teamId}/webhook`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to list webhooks:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new webhook
+   */
+  async createWebhook(teamId: string, hookUrl: string): Promise<any> {
+    try {
+      this.logger.log(`Creating ClickUp webhook for team ${teamId}: ${hookUrl}`);
+      const response = await this.axiosInstance.post(`/team/${teamId}/webhook`, {
+        endpoint: hookUrl,
+        events: [
+          'taskUpdated',
+          'taskStatusUpdated',
+          'taskDueDateUpdated',
+        ],
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to create webhook:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a webhook
+   */
+  async deleteWebhook(webhookId: string): Promise<void> {
+    try {
+      this.logger.log(`Deleting ClickUp webhook: ${webhookId}`);
+      await this.axiosInstance.delete(`/webhook/${webhookId}`);
+      this.logger.log(`Successfully deleted ClickUp webhook: ${webhookId}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
+      throw error;
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { WrikeService } from '../wrike/wrike.service';
+import { ClickUpService } from '../clickup/clickup.service';
 import { SyncService } from '../sync/sync.service';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class WebhooksService {
 
   constructor(
     private readonly wrikeService: WrikeService,
+    private readonly clickUpService: ClickUpService,
     private readonly syncService: SyncService,
   ) {}
 
@@ -116,9 +118,38 @@ export class WebhooksService {
    */
   async handleClickUpWebhook(payload: any): Promise<void> {
     this.logger.log('Received ClickUp webhook event');
-    this.logger.debug('ClickUp webhook payload:', JSON.stringify(payload, null, 2));
+    this.logger.log('Full webhook payload:', JSON.stringify(payload, null, 2));
 
-    // TODO: Implement sync logic
-    // For now, just log the event
+    const { event, task_id } = payload;
+
+    // Event types we care about for reverse sync
+    const SYNC_EVENT_TYPES = [
+      'taskUpdated',
+      'taskStatusUpdated',
+      'taskDueDateUpdated',
+      'taskStartDateUpdated',
+    ];
+
+    this.logger.log(`Processing event: ${event} for task ${task_id}`);
+
+    // Skip events we don't care about
+    if (!SYNC_EVENT_TYPES.includes(event)) {
+      this.logger.log(`Skipping event type: ${event}`);
+      return;
+    }
+
+    try {
+      // Fetch full task details from ClickUp API
+      this.logger.log(`Fetching task details for: ${task_id}`);
+      const clickUpTask = await this.clickUpService.getTask(task_id);
+
+      this.logger.log(`Syncing task ${task_id}: ${clickUpTask.name}`);
+
+      // Sync the task to Wrike (reverse sync)
+      await this.syncService.syncClickUpToWrike(clickUpTask);
+
+    } catch (error) {
+      this.logger.error(`Error processing event ${event} for task ${task_id}:`, error.message);
+    }
   }
 }
