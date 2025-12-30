@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-**Last Updated:** December 29, 2025
+**Last Updated:** December 30, 2025
 
 **Current Phase:** Phase 1 - Backend Foundation (In Progress)
 
@@ -13,17 +13,17 @@
 | **Wrike Module** | ✅ Implemented | API client with comprehensive types, test endpoints & user ID caching |
 | **ClickUp Module** | ✅ Implemented | API client with comprehensive types & test endpoints |
 | **Webhooks Module** | ✅ Implemented | Task filtering, sync integration, event processing |
-| **Sync Module** | 🟡 Partial | Wrike → ClickUp sync working; reverse sync TODO |
+| **Sync Module** | ✅ Implemented | Wrike → ClickUp with dates, status, tags; reverse sync TODO |
 | **API Module** | ❌ Not Started | REST API for frontend |
 | **Auth Module** | ❌ Not Started | JWT authentication |
 | **React Frontend** | ❌ Not Started | User interface |
 
 **Next Steps:**
 1. Implement ClickUp → Wrike reverse sync
-2. Add status mapping utilities (Wrike ↔ ClickUp statuses)
-3. Add webhook signature verification
-4. Implement DTO validation and type definitions for webhook payloads
-5. Create API Module for frontend
+2. Add webhook signature verification
+3. Implement DTO validation and type definitions for webhook payloads
+4. Create API Module for frontend
+5. Add React frontend for task management
 
 ## Overview
 
@@ -399,7 +399,7 @@ export class User {
 
 ### 5. Sync Module (`src/sync/`)
 
-**Implementation Status: 🟡 Partial (Wrike → ClickUp Working)**
+**Implementation Status: ✅ Implemented (Wrike → ClickUp Complete)**
 
 **SyncService** (`sync.service.ts`)
 - Injectable NestJS service
@@ -410,12 +410,45 @@ export class User {
   - `updateClickUpTask(clickUpId, wrikeTask)` - ✅ Update existing ClickUp task
   - `deleteTaskFromClickUp(wrikeTaskId)` - ✅ Delete ClickUp task and mapping
   - `logSync(data)` - ✅ Log sync operations to database
+  - `loadWrikeStatuses()` - ✅ Cache Wrike workflow statuses
+  - `loadClickUpStatuses()` - ✅ Cache ClickUp list statuses
+  - `mapWrikeStatusToClickUp()` - ✅ Name-based status mapping
 - **TODO Methods:**
   - `syncClickUpToWrike()` - ❌ Reverse sync not yet implemented
   - `manualSync()` - ❌ Manual trigger support
 - Handles create, update, and delete operations based on webhook events
 - Uses TypeORM repositories for TaskMapping and SyncLog entities
 - Comprehensive error handling and logging
+
+**Synced Fields (Wrike → ClickUp):**
+- ✅ **Task Name** - Wrike title → ClickUp name
+- ✅ **Description** - Wrike permalink → ClickUp description ("View in Wrike: [URL]")
+- ✅ **Due Date** - Wrike dates.due (ISO) → ClickUp due_date (Unix timestamp ms)
+- ✅ **Start Date** - Wrike dates.start (ISO) → ClickUp start_date (Unix timestamp ms)
+- ✅ **Status** - Name-based mapping (case-insensitive)
+  - In Progress → in progress
+  - Completed → completed
+  - On Hold → on hold
+  - Cancelled → cancelled
+  - etc.
+- ✅ **Tags** - Auto-tagged with "touchbistro" and "from wrike"
+- ❌ **Comments** - Not synced (future enhancement)
+- ❌ **Attachments** - Not synced (future enhancement)
+- ❌ **Priority** - Not synced (not used by org)
+- ❌ **Custom Fields** - Not synced (not used by org)
+
+**Status Mapping Strategy:**
+- Caches Wrike workflows on first sync (customStatusId → status name)
+- Caches ClickUp list statuses on first sync (lowercase name → actual name)
+- Maps Wrike customStatusId to status name, then matches to ClickUp (case-insensitive)
+- Falls back gracefully if no match found (task still syncs without status)
+- Logs all status mappings for debugging
+
+**Design Philosophy:**
+- ClickUp as personal workload tracker (not full Wrike replication)
+- Wrike remains source of truth for project details
+- Permalink enables quick navigation to full context
+- Tags enable flexible filtering in ClickUp
 
 **SyncModule** (`sync.module.ts`)
 - Imports WrikeModule, ClickUpModule for API access
@@ -498,26 +531,31 @@ PUT    /api/user/tokens           // Update API tokens
 - Can add rate limiting per user
 - OpenAPI/Swagger documentation auto-generated
 
-### 7. Status Mapping (`src/common/utils/`)
+### 7. Status Mapping
 
-**Implementation Status: ❌ Not Yet Implemented**
+**Implementation Status: ✅ Implemented (in SyncService)**
 
 **Challenge:** Different status systems
-- Wrike: Active, Completed, Deferred, Cancelled
-- ClickUp: User-defined statuses (to do, in progress, complete, etc.)
+- Wrike: Custom workflows with unique status IDs and names
+- ClickUp: User-defined statuses per list
 
-**Solution:** Mapping functions
-```typescript
-mapWrikeStatusToClickUp(wrikeStatus) → clickupStatus
-mapClickUpStatusToWrike(clickupStatus) → wrikeStatus
-```
+**Solution:** Name-based mapping with caching
+- Maps Wrike customStatusId → status name → ClickUp status (case-insensitive)
+- Caches both Wrike workflows and ClickUp list statuses on first use
+- Graceful fallback if no match found
 
-**Mapping Strategy:**
-- Active → "in progress"
-- Completed → "complete"
-- Deferred → "blocked"
-- Cancelled → "closed"
-- Reverse mapping uses string matching (includes 'complete', 'progress', etc.)
+**Implementation:**
+- `loadWrikeStatuses()` - Caches all Wrike workflow statuses
+- `loadClickUpStatuses()` - Caches all ClickUp list statuses
+- `mapWrikeStatusToClickUp()` - Performs name-based matching
+
+**Mapping Examples:**
+- "In Progress" (Wrike) → "in progress" (ClickUp)
+- "Completed" (Wrike) → "completed" (ClickUp)
+- "On Hold" (Wrike) → "on hold" (ClickUp)
+- "Cancelled" (Wrike) → "cancelled" (ClickUp)
+
+**Note:** Requires ClickUp statuses to match Wrike Default Workflow names
 
 ### 8. Configuration Module (`src/config/`)
 

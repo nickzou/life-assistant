@@ -74,23 +74,6 @@ export class ClickUpService {
   }
 
   /**
-   * Update an existing task
-   */
-  async updateTask(
-    taskId: string,
-    taskData: { name?: string; description?: string; status?: string; priority?: number },
-  ): Promise<ClickUpTask> {
-    try {
-      this.logger.log(`Updating ClickUp task: ${taskId}`);
-      const response = await this.axiosInstance.put<ClickUpTask>(`/task/${taskId}`, taskData);
-      return response.data;
-    } catch (error) {
-      this.logger.error(`Failed to update ClickUp task ${taskId}:`, error.message);
-      throw error;
-    }
-  }
-
-  /**
    * Get a specific list by ID
    */
   async getList(listId: string): Promise<any> {
