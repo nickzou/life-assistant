@@ -302,14 +302,13 @@ export class SyncService {
       this.logger.log(`Updating start date: ${clickUpTask.start_date} -> ${taskData.dates.start}`);
     }
 
-    // TODO: Wrike API doesn't accept customStatusId in PUT /tasks/{taskId} requests
-    // Need to research proper way to update task status in Wrike
-    // For now, skipping status updates in reverse sync
-    // const mappedStatusId = await this.mapClickUpStatusToWrike(clickUpTask);
-    // if (mappedStatusId) {
-    //   taskData.customStatusId = mappedStatusId;
-    //   this.logger.log(`Updating status: ${mappedStatusId}`);
-    // }
+    // Map ClickUp status to Wrike status
+    // Note: Parameter name is 'customStatus' (not 'customStatusId')
+    const mappedStatusId = await this.mapClickUpStatusToWrike(clickUpTask);
+    if (mappedStatusId) {
+      taskData.customStatus = mappedStatusId;
+      this.logger.log(`Updating status: ${mappedStatusId}`);
+    }
 
     await this.wrikeService.updateTask(wrikeTaskId, taskData);
     this.logger.log(`Updated Wrike task: ${wrikeTaskId}`);
