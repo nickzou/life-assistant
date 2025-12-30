@@ -86,3 +86,47 @@ export interface WrikeFoldersResponse {
   kind: 'folderTree';
   data: WrikeFolder[];
 }
+
+export interface WrikeContact {
+  id: string;
+  firstName: string;
+  lastName: string;
+  type: 'Person' | 'Group';
+  profiles: Array<{
+    accountId: string;
+    email: string;
+    role: string;
+    external: boolean;
+    admin: boolean;
+    owner: boolean;
+  }>;
+  avatarUrl?: string;
+  timezone?: string;
+  locale?: string;
+  deleted?: boolean;
+  me?: boolean;
+  memberIds?: string[];
+  metadata?: any[];
+  myTeam?: boolean;
+  title?: string;
+  companyName?: string;
+  phone?: string;
+  location?: string;
+}
+
+export interface WrikeContactsResponse extends WrikeApiResponse<WrikeContact> {
+  kind: 'contacts';
+}
+
+export interface WrikeWebhook {
+  id: string;
+  accountId: string;
+  hookUrl: string;
+  folderId?: string;
+  spaceId?: string;
+  status: 'Active' | 'Suspended';
+}
+
+export interface WrikeWebhooksResponse extends WrikeApiResponse<WrikeWebhook> {
+  kind: 'webhooks';
+}

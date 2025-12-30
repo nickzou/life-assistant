@@ -1,5 +1,30 @@
 # Life Assistant - Design Documentation
 
+## Implementation Status
+
+**Last Updated:** December 29, 2025
+
+**Current Phase:** Phase 1 - Backend Foundation (In Progress)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **NestJS Backend** | ✅ Implemented | Modular architecture with ConfigModule |
+| **Database Module** | ✅ Implemented | TypeORM entities for TaskMapping, SyncLog, User |
+| **Wrike Module** | ✅ Implemented | API client with comprehensive types, test endpoints & user ID caching |
+| **ClickUp Module** | ✅ Implemented | API client with comprehensive types & test endpoints |
+| **Webhooks Module** | ✅ Implemented | Task filtering, sync integration, event processing |
+| **Sync Module** | 🟡 Partial | Wrike → ClickUp sync working; reverse sync TODO |
+| **API Module** | ❌ Not Started | REST API for frontend |
+| **Auth Module** | ❌ Not Started | JWT authentication |
+| **React Frontend** | ❌ Not Started | User interface |
+
+**Next Steps:**
+1. Implement ClickUp → Wrike reverse sync
+2. Add status mapping utilities (Wrike ↔ ClickUp statuses)
+3. Add webhook signature verification
+4. Implement DTO validation and type definitions for webhook payloads
+5. Create API Module for frontend
+
 ## Overview
 
 A unified task management platform that integrates multiple productivity tools (starting with Wrike ↔ ClickUp sync) with a custom frontend for simplified task management. Built with TypeScript, NestJS, PostgreSQL, and React for scalable multi-service deployment on a VPS.
@@ -31,18 +56,19 @@ A unified task management platform that integrates multiple productivity tools (
 ┌─────────────────────────────────────────────────────────────┐
 │                    NestJS Backend                           │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │                    API Module                        │   │
-│  │  - Authentication (JWT)                              │   │
-│  │  - REST endpoints for frontend                       │   │
-│  │  - Task queries & manual operations                  │   │
+│  │                 Webhooks Module                      │   │
+│  │  - POST /webhooks/wrike                              │   │
+│  │  - POST /webhooks/clickup                            │   │
+│  │  - Event payload logging                             │   │
+│  │  - Webhook signature validation (TODO)               │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │   Wrike      │  │   ClickUp    │  │   Future     │      │
 │  │   Module     │  │   Module     │  │   Modules    │      │
 │  │              │  │              │  │   (Jira,     │      │
-│  │ - Webhooks   │  │ - Webhooks   │  │   Asana...)  │      │
-│  │ - API Client │  │ - API Client │  │              │      │
-│  │ - Sync Logic │  │ - Sync Logic │  │              │      │
+│  │ - API Client │  │ - API Client │  │   Asana...)  │      │
+│  │ - Test       │  │ - Test       │  │              │      │
+│  │   Endpoints  │  │   Endpoints  │  │              │      │
 │  └──────┬───────┘  └──────┬───────┘  └──────────────┘      │
 │         └──────────────────┴─────────────┐                  │
 │                                           ↓                  │
@@ -121,39 +147,79 @@ ClickUp ──Webhooks────> NestJS
 
 ### 1. Wrike Module (`src/wrike/`)
 
+**Implementation Status: ✅ Completed**
+
 **WrikeService** (`wrike.service.ts`)
-- Injectable NestJS service
+- Injectable NestJS service implementing OnModuleInit
 - Wraps Wrike REST API v4
-- Methods: `getTask()`, `createTask()`, `updateTask()`
+- **User ID Caching:**
+  - Automatically fetches and caches current user ID on module initialization
+  - `getCurrentUser()` - Fetch authenticated user contact information
+  - `getCurrentUserId()` - Get cached user ID for task filtering
+- **Task Methods:**
+  - `getTask(taskId)` - Fetch specific task
+  - `getTasksInFolder(folderId)` - List all tasks in folder
+  - `getAllFolders()` - List all folders
+  - `getCustomStatuses()` - Fetch custom workflow statuses
+  - `createTask()`, `updateTask()` - (TODO: To be implemented)
+- **Webhook Management:**
+  - `createWebhook(hookUrl)` - Register a new webhook with Wrike
+  - `listWebhooks()` - List all registered webhooks
+  - `deleteWebhook(webhookId)` - Remove a webhook registration
 - Handles authentication via Bearer token
-- Returns typed responses
+- Returns typed responses using `WrikeApiResponse<T>` types
 
 **WrikeController** (`wrike.controller.ts`)
-- Handles webhook endpoints: `POST /webhooks/wrike`
-- Validates webhook signatures
-- Delegates to WrikeService and SyncService
+- **Purpose:** Test/exploration and webhook management endpoints
+- **Test Endpoints:**
+  - `GET /wrike/test/statuses` - Fetch custom statuses
+  - `GET /wrike/test/tasks` - List tasks in configured folder
+  - `GET /wrike/test/task/:taskId` - Get specific task
+  - `GET /wrike/test/folders` - List all folders
+  - `GET /wrike/test/me` - Get current authenticated user info
+- **Webhook Management Endpoints:**
+  - `POST /wrike/webhooks/setup` - Auto-register webhook for current environment (supports ngrok)
+  - `GET /wrike/webhooks` - List all registered webhooks
+  - `DELETE /wrike/webhooks/:webhookId` - Delete a webhook
+- Perfect for preview deployments and multi-environment setups
 
 **WrikeModule** (`wrike.module.ts`)
 - Exports WrikeService for use by other modules
-- Imports DatabaseModule for task mappings
+- Imports ConfigModule for environment variables
 
 ### 2. ClickUp Module (`src/clickup/`)
+
+**Implementation Status: ✅ Completed**
 
 **ClickUpService** (`clickup.service.ts`)
 - Injectable NestJS service
 - Wraps ClickUp API v2
-- Methods: `getTask()`, `createTask()`, `updateTask()`
+- Methods implemented:
+  - `getTask(taskId)` - Fetch specific task
+  - `getTasksInList(listId)` - List all tasks in list
+  - `getSpaces(workspaceId)` - List all spaces
+  - `getList(listId)` - Get list details with statuses
+  - `getListsInSpace(spaceId)` - List all lists in space
+  - `createTask(listId, data)` - Create new task
+  - `updateTask(taskId, data)` - Update existing task
+  - `deleteTask(taskId)` - Delete a task
 - Handles authentication via API token
-- Returns typed responses
+- Returns typed responses using ClickUp API types
 
 **ClickUpController** (`clickup.controller.ts`)
-- Handles webhook endpoints: `POST /webhooks/clickup`
-- Validates webhook signatures
-- Delegates to ClickUpService and SyncService
+- **Purpose:** Test/exploration endpoints for ClickUp API
+- Test endpoints implemented:
+  - `GET /clickup/test/tasks` - List tasks in configured list
+  - `GET /clickup/test/task/:taskId` - Get specific task
+  - `GET /clickup/test/spaces` - List all spaces
+  - `GET /clickup/test/list/:listId` - Get list details
+  - `GET /clickup/test/lists/:spaceId` - List all lists in space
+  - `POST /clickup/test/create-task` - Create test task
+- **Note:** Webhook handling moved to WebhooksModule
 
 **ClickUpModule** (`clickup.module.ts`)
 - Exports ClickUpService for use by other modules
-- Imports DatabaseModule for task mappings
+- Imports ConfigModule for environment variables
 
 **Design Decision:** Each integration as a separate NestJS module
 - Clear module boundaries
@@ -162,6 +228,8 @@ ClickUp ──Webhooks────> NestJS
 - Services are injectable and mockable
 
 ### 3. Database Module (`src/database/`)
+
+**Implementation Status: ✅ Completed**
 
 **Entities (TypeORM):**
 
@@ -273,33 +341,126 @@ export class User {
 - Can scale beyond single server if needed
 - Free and open-source
 
-### 4. Sync Module (`src/sync/`)
+### 4. Webhooks Module (`src/webhooks/`)
+
+**Implementation Status: ✅ Implemented (Event Filtering & Sync Integration Complete)**
+
+**WebhooksController** (`webhooks.controller.ts`)
+- Centralized webhook endpoint handler
+- Endpoints:
+  - `POST /webhooks/wrike` - Receives Wrike webhook events
+  - `POST /webhooks/clickup` - Receives ClickUp webhook events
+- Logs all incoming webhook payloads and headers for debugging
+- Delegates event processing to WebhooksService
+- Returns success/error responses
+
+**WebhooksService** (`webhooks.service.ts`)
+- Processes incoming webhook events with intelligent event filtering
+- **Wrike Webhook Processing (`handleWrikeWebhook`):**
+  - Handles array of webhook events from Wrike
+  - **Event Type Filtering** - Only processes:
+    - `TaskResponsiblesAdded` - When user is assigned
+    - `TaskResponsiblesRemoved` - When user is unassigned
+    - `TaskStatusChanged` - Status updates
+    - `TaskTitleChanged` - Title changes
+    - `TaskDescriptionChanged` - Description updates
+    - `TaskDatesChanged` - Due date changes
+    - `TaskDeleted` - Task deletion
+  - **Smart Assignment Filtering:**
+    - For `TaskResponsiblesAdded`: Only syncs if current user in `addedResponsibles`
+    - For `TaskResponsiblesRemoved`: Deletes from ClickUp if current user in `removedResponsibles`
+    - For other events: Verifies task is still assigned to current user
+  - **Deletion Handling:**
+    - `TaskResponsiblesRemoved` → Deletes ClickUp task when unassigned
+    - `TaskDeleted` → Deletes ClickUp task and mapping
+  - Fully integrated with SyncService
+- **ClickUp Webhook Processing (`handleClickUpWebhook`):**
+  - Currently logs events (reverse sync TODO)
+  - TODO: Implement ClickUp → Wrike sync logic
+
+**WebhooksModule** (`webhooks.module.ts`)
+- Exports WebhooksService
+- Imports WrikeModule and SyncModule for full integration
+- TODO: Import ClickUpModule when reverse sync is implemented
+
+**Design Decision:** Dedicated WebhooksModule
+- Separates webhook handling from integration modules
+- Wrike/ClickUp modules focus on API client logic
+- WebhooksModule orchestrates sync operations
+- Event-driven architecture with intelligent filtering
+- Cleaner separation of concerns
+
+**Event Filtering Strategy:**
+- Prevents syncing irrelevant events (TaskCreated with null assignments)
+- Only syncs when current user is actually assigned
+- Handles deletion events for cleanup
+- Avoids unnecessary API calls and database operations
+- Solves timing issue with Wrike GUI (create → assign workflow)
+
+### 5. Sync Module (`src/sync/`)
+
+**Implementation Status: 🟡 Partial (Wrike → ClickUp Working)**
 
 **SyncService** (`sync.service.ts`)
 - Injectable NestJS service
-- Orchestrates the sync logic
-- Methods: `syncWrikeToClickUp()`, `syncClickUpToWrike()`, `manualSync()`
-- Handles create vs update logic
-- Manages mapping storage via DatabaseService
-- Logs all sync operations to SyncLog table
+- Orchestrates the sync logic between platforms
+- **Implemented Methods:**
+  - `syncWrikeToClickUp(wrikeTask)` - ✅ Sync Wrike task to ClickUp
+  - `createClickUpTask(wrikeTask)` - ✅ Create new ClickUp task
+  - `updateClickUpTask(clickUpId, wrikeTask)` - ✅ Update existing ClickUp task
+  - `deleteTaskFromClickUp(wrikeTaskId)` - ✅ Delete ClickUp task and mapping
+  - `logSync(data)` - ✅ Log sync operations to database
+- **TODO Methods:**
+  - `syncClickUpToWrike()` - ❌ Reverse sync not yet implemented
+  - `manualSync()` - ❌ Manual trigger support
+- Handles create, update, and delete operations based on webhook events
+- Uses TypeORM repositories for TaskMapping and SyncLog entities
+- Comprehensive error handling and logging
 
-**Sync Flow:**
+**SyncModule** (`sync.module.ts`)
+- Imports WrikeModule, ClickUpModule for API access
+- Imports TypeORM entities (TaskMapping, SyncLog)
+- Exports SyncService for use by WebhooksModule
+- Integrated into WebhooksModule for automatic sync
 
-1. Receive task ID from webhook or manual trigger
-2. Fetch full task details from source API
-3. Check database for existing mapping
-4. If mapping exists → Update existing task
-5. If no mapping → Create new task and save mapping
-6. Log sync operation (success or failure)
-7. Return success/failure
+**Implemented Sync Flows:**
+
+**Create/Update Flow:**
+1. ✅ Webhook receives Wrike event (TaskResponsiblesAdded, TaskStatusChanged, etc.)
+2. ✅ Webhook service fetches full task details
+3. ✅ Check database for existing Wrike → ClickUp mapping
+4. ✅ If mapping exists → Update existing ClickUp task
+5. ✅ If no mapping → Create new ClickUp task and save mapping
+6. ✅ Log sync operation (success or failure) to sync_logs table
+7. ✅ Return success/failure
+
+**Deletion Flow:**
+1. ✅ Webhook receives TaskResponsiblesRemoved or TaskDeleted event
+2. ✅ For TaskResponsiblesRemoved: Check if current user was removed
+3. ✅ Look up mapping to find ClickUp task ID
+4. ✅ Delete ClickUp task via API
+5. ✅ Remove mapping from task_mappings table
+6. ✅ Log deletion operation to sync_logs table
+7. ✅ Task removed from ClickUp
+
+**Tested & Verified:**
+- ✅ Create: Wrike task "Test Task" (MAAAAAECoCvD) → ClickUp task (86dz0wcqk)
+- ✅ Mapping saved to task_mappings table
+- ✅ Sync logged to sync_logs table with timestamp and status
+- ✅ Task visible in ClickUp web UI
+- ✅ Event filtering working (TaskResponsiblesAdded triggers sync)
+- ✅ Deletion flow functional (unassign/delete in Wrike → removes from ClickUp)
 
 **Design Decision:** Separate sync module
 - Isolates business logic from API and presentation layers
 - Injectable service can be used by webhooks and REST API
 - Easier to test in isolation
 - Can be reused across different integrations
+- Database-backed for reliability and auditability
 
-### 5. API Module (`src/api/`)
+### 6. API Module (`src/api/`)
+
+**Implementation Status: ❌ Not Yet Implemented**
 
 **Purpose:** REST API for the React frontend
 
@@ -337,7 +498,9 @@ PUT    /api/user/tokens           // Update API tokens
 - Can add rate limiting per user
 - OpenAPI/Swagger documentation auto-generated
 
-### 6. Status Mapping (`src/common/utils/`)
+### 7. Status Mapping (`src/common/utils/`)
+
+**Implementation Status: ❌ Not Yet Implemented**
 
 **Challenge:** Different status systems
 - Wrike: Active, Completed, Deferred, Cancelled
@@ -356,7 +519,9 @@ mapClickUpStatusToWrike(clickupStatus) → wrikeStatus
 - Cancelled → "closed"
 - Reverse mapping uses string matching (includes 'complete', 'progress', etc.)
 
-### 7. Configuration Module (`src/config/`)
+### 8. Configuration Module (`src/config/`)
+
+**Implementation Status: ✅ Completed**
 
 **Environment Variables:**
 ```bash
@@ -377,6 +542,7 @@ WRIKE_FOLDER_ID=folder_id_to_sync
 
 # ClickUp Integration
 CLICKUP_TOKEN=your_clickup_token
+CLICKUP_WORKSPACE_ID=your_workspace_id_here
 CLICKUP_LIST_ID=list_id_to_sync
 
 # Server
@@ -396,21 +562,28 @@ NODE_ENV=development
 - Easy to test with different configs
 - Supports multiple environments (dev, staging, prod)
 
-### 8. Type Definitions (`src/common/types/`)
+### 9. Type Definitions (`src/*/types/`)
 
-**Shared types between backend and frontend:**
-- `task.types.ts` - Task entities and DTOs
-- `sync.types.ts` - Sync log types
+**Implementation Status: ✅ Partially Completed**
+
+**Currently Implemented:**
+- `src/wrike/types/wrike-api.types.ts` - Complete Wrike API response types (including WrikeContact for user info)
+- `src/clickup/types/clickup-api.types.ts` - Complete ClickUp API response types
+- `src/database/entities/*.entity.ts` - TypeORM entities with full type definitions
+
+**Not Yet Implemented:**
+- `task.types.ts` - Unified task DTOs
+- `sync.types.ts` - Sync log DTOs
 - `api.types.ts` - API request/response types
-- `integration.types.ts` - Integration-specific types
+- `webhook.types.ts` - Webhook event payload types
 
-**Complete type coverage for:**
-- Wrike API responses
-- ClickUp API responses
-- Webhook event payloads
-- Database entities
-- REST API endpoints (auto-generated DTOs)
-- Configuration
+**Current Type Coverage:**
+- ✅ Wrike API responses (comprehensive)
+- ✅ ClickUp API responses (comprehensive)
+- ✅ Database entities (TypeORM)
+- ❌ Webhook event payloads (using `any` currently)
+- ❌ REST API endpoints
+- ✅ Configuration (via NestJS ConfigModule)
 
 **Design Decision:** Centralized types + DTOs
 - Single source of truth
@@ -421,21 +594,40 @@ NODE_ENV=development
 
 ## Webhook Flow
 
+**Current Implementation:** Basic webhook reception with logging
+
 ### Wrike Webhook (`POST /webhooks/wrike`)
 
 ```typescript
 @Controller('webhooks')
-export class WrikeController {
+export class WebhooksController {
   @Post('wrike')
-  async handleWrikeWebhook(@Body() payload: WrikeWebhookDto) {
-    // 1. Validate webhook signature
-    // 2. Extract taskId and eventType
-    // 3. Filter for relevant events:
-    //    - TaskCreated, TaskStatusChanged, TaskTitleChanged, TaskDescriptionChanged
-    // 4. Check if event was triggered by sync bot (prevent loops)
-    // 5. Call syncService.syncWrikeToClickUp(taskId)
-    // 6. Return success response
+  @HttpCode(200)
+  async wrikeWebhook(@Body() body: any, @Headers() headers: any) {
+    this.logger.log('Wrike webhook received');
+    this.logger.debug('Headers:', JSON.stringify(headers, null, 2));
+
+    try {
+      await this.webhooksService.handleWrikeWebhook(body);
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Error processing Wrike webhook:', error.message);
+      throw error;
+    }
   }
+}
+```
+
+**TODO: Full Implementation Plan**
+```typescript
+async handleWrikeWebhook(payload: WrikeWebhookDto) {
+  // 1. Validate webhook signature
+  // 2. Extract taskId and eventType
+  // 3. Filter for relevant events:
+  //    - TaskCreated, TaskStatusChanged, TaskTitleChanged, TaskDescriptionChanged
+  // 4. Check if event was triggered by sync bot (prevent loops)
+  // 5. Call syncService.syncWrikeToClickUp(taskId)
+  // 6. Return success response
 }
 ```
 
@@ -443,17 +635,34 @@ export class WrikeController {
 
 ```typescript
 @Controller('webhooks')
-export class ClickUpController {
+export class WebhooksController {
   @Post('clickup')
-  async handleClickUpWebhook(@Body() payload: ClickUpWebhookDto) {
-    // 1. Validate webhook signature
-    // 2. Extract task_id and event type
-    // 3. Filter for relevant events:
-    //    - taskCreated, taskUpdated, taskStatusUpdated
-    // 4. Check if event was triggered by sync bot (prevent loops)
-    // 5. Call syncService.syncClickUpToWrike(taskId)
-    // 6. Return success response
+  @HttpCode(200)
+  async clickUpWebhook(@Body() body: any, @Headers() headers: any) {
+    this.logger.log('ClickUp webhook received');
+    this.logger.debug('Headers:', JSON.stringify(headers, null, 2));
+
+    try {
+      await this.webhooksService.handleClickUpWebhook(body);
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Error processing ClickUp webhook:', error.message);
+      throw error;
+    }
   }
+}
+```
+
+**TODO: Full Implementation Plan**
+```typescript
+async handleClickUpWebhook(payload: ClickUpWebhookDto) {
+  // 1. Validate webhook signature
+  // 2. Extract task_id and event type
+  // 3. Filter for relevant events:
+  //    - taskCreated, taskUpdated, taskStatusUpdated
+  // 4. Check if event was triggered by sync bot (prevent loops)
+  // 5. Call syncService.syncClickUpToWrike(taskId)
+  // 6. Return success response
 }
 ```
 
@@ -679,13 +888,29 @@ Nginx Reverse Proxy
 ## Future Enhancements
 
 ### Phase 1: Core Features (Current Focus)
+
+**Backend Infrastructure:**
 - ✅ NestJS architecture with modular design
 - ✅ PostgreSQL database with TypeORM
-- ✅ REST API for frontend
-- ✅ JWT authentication
-- 🔨 React frontend for task management
-- 🔨 Webhook signature verification
-- 🔨 Basic sync logging and monitoring
+- ✅ Docker Compose setup for development
+- ✅ ConfigModule for environment variables
+- ✅ Database entities (TaskMapping, SyncLog, User)
+
+**Integration Modules:**
+- ✅ Wrike Module (API client + test endpoints)
+- ✅ ClickUp Module (API client + test endpoints)
+- ✅ Comprehensive TypeScript type definitions for both APIs
+- ✅ WebhooksModule (basic structure with logging)
+
+**Not Yet Implemented:**
+- ❌ SyncModule (sync orchestration logic)
+- ❌ API Module (REST API for frontend)
+- ❌ Auth Module (JWT authentication)
+- ❌ Webhook signature verification
+- ❌ Sync logic implementation
+- ❌ React frontend
+- ❌ Status mapping utilities
+- ❌ DTO validation
 
 ### Phase 2: Enhanced Sync Features
 - Retry logic for failed API calls with exponential backoff
@@ -716,54 +941,63 @@ Nginx Reverse Proxy
 
 ## Project Structure
 
+**Current Implementation:**
+
 ```
 life-assistant/
-├── backend/                    # NestJS application
+├── life-assistant-api/         # NestJS application (✅ Implemented)
 │   ├── src/
-│   │   ├── wrike/             # Wrike integration module
+│   │   ├── wrike/             # ✅ Wrike integration module
 │   │   │   ├── wrike.service.ts
-│   │   │   ├── wrike.controller.ts
+│   │   │   ├── wrike.controller.ts (test endpoints)
 │   │   │   ├── wrike.module.ts
-│   │   │   └── dto/
-│   │   ├── clickup/           # ClickUp integration module
+│   │   │   ├── dto/           # (empty - to be implemented)
+│   │   │   └── types/
+│   │   │       └── wrike-api.types.ts
+│   │   ├── clickup/           # ✅ ClickUp integration module
 │   │   │   ├── clickup.service.ts
-│   │   │   ├── clickup.controller.ts
+│   │   │   ├── clickup.controller.ts (test endpoints)
 │   │   │   ├── clickup.module.ts
-│   │   │   └── dto/
-│   │   ├── sync/              # Sync orchestration
-│   │   │   ├── sync.service.ts
-│   │   │   └── sync.module.ts
-│   │   ├── database/          # Database entities & module
+│   │   │   └── types/
+│   │   │       └── clickup-api.types.ts
+│   │   ├── webhooks/          # ✅ Webhooks module (NEW!)
+│   │   │   ├── webhooks.controller.ts
+│   │   │   ├── webhooks.service.ts
+│   │   │   ├── webhooks.module.ts
+│   │   │   └── dto/           # (empty - to be implemented)
+│   │   ├── database/          # ✅ Database entities & module
 │   │   │   ├── entities/
 │   │   │   │   ├── task-mapping.entity.ts
 │   │   │   │   ├── sync-log.entity.ts
 │   │   │   │   └── user.entity.ts
 │   │   │   ├── database.service.ts
 │   │   │   └── database.module.ts
-│   │   ├── api/               # REST API for frontend
+│   │   ├── sync/              # ❌ NOT YET IMPLEMENTED
+│   │   │   ├── sync.service.ts
+│   │   │   └── sync.module.ts
+│   │   ├── api/               # ❌ NOT YET IMPLEMENTED
 │   │   │   ├── api.controller.ts
 │   │   │   ├── api.service.ts
 │   │   │   ├── api.module.ts
 │   │   │   └── dto/
-│   │   ├── auth/              # Authentication
+│   │   ├── auth/              # ❌ NOT YET IMPLEMENTED
 │   │   │   ├── auth.service.ts
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── auth.module.ts
 │   │   │   ├── guards/
 │   │   │   └── strategies/
-│   │   ├── common/            # Shared utilities
-│   │   │   ├── types/
-│   │   │   ├── utils/
-│   │   │   └── decorators/
-│   │   ├── config/            # Configuration
-│   │   │   └── config.module.ts
+│   │   ├── app.controller.ts
+│   │   ├── app.service.ts
 │   │   ├── app.module.ts
 │   │   └── main.ts
 │   ├── test/
+│   │   └── app.e2e-spec.ts
+│   ├── .env.example
+│   ├── Dockerfile
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── frontend/                   # React application
+├── frontend/                   # ❌ NOT YET IMPLEMENTED
 │   ├── src/
 │   │   ├── components/
 │   │   ├── pages/
@@ -776,13 +1010,17 @@ life-assistant/
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── shared/                     # Shared types (optional)
-│   └── types/
-│
-├── docs/
-├── .env.example
+├── design.md                   # Architecture documentation
+├── docker-compose.yml          # ✅ PostgreSQL setup
 └── README.md
 ```
+
+**Key Differences from Original Design:**
+1. **WebhooksModule added** - Centralized webhook handling (not in original design)
+2. **Test endpoints** - Wrike/ClickUp controllers have test endpoints for API exploration
+3. **Type organization** - Types are in module-specific folders (`wrike/types/`, `clickup/types/`)
+4. **No common/types yet** - Will be added when implementing sync logic
+5. **No frontend yet** - Backend-first implementation approach
 
 ## Testing Strategy
 
@@ -893,6 +1131,8 @@ life-assistant/
 | **VPS** over Serverless | Cost-effective ($6-12 vs $30-50/mo), no cold starts, full control |
 | **Webhooks** over Polling | Real-time, efficient, event-driven architecture |
 | **Modular architecture** | Each integration is a module, easy to add new platforms |
+| **Dedicated WebhooksModule** | Separates webhook handling from integration logic (implemented) |
+| **Test endpoints** | Integration modules have test endpoints for API exploration |
 | **PM2** over systemd | Easier management, built-in logging and monitoring |
 | **Nginx** reverse proxy | SSL termination, static file serving, rate limiting |
 | **Monorepo structure** | Shared types, unified versioning, simpler deployment |
@@ -910,6 +1150,13 @@ This design prioritizes:
 
 The architecture starts with a solid foundation (NestJS + PostgreSQL) that can scale from a single integration to a full-featured task management platform with multiple integrations, users, and advanced features.
 
+**Implementation Progress (as of December 26, 2025):**
+- ✅ Backend foundation complete (NestJS, PostgreSQL, TypeORM)
+- ✅ Integration modules implemented (Wrike, ClickUp with comprehensive API clients)
+- ✅ Webhooks infrastructure ready (receiving and logging events)
+- 🔨 Sync logic in progress (next major milestone)
+- 📋 Frontend and API module planned (after sync is working)
+
 **Key advantages over initial Express + SQLite design:**
 - ✅ Multi-service support (frontend can query database)
 - ✅ Better scalability (PostgreSQL handles concurrent connections)
@@ -917,6 +1164,12 @@ The architecture starts with a solid foundation (NestJS + PostgreSQL) that can s
 - ✅ Faster development (NestJS CLI, decorators, auto-validation)
 - ✅ Better developer experience (IntelliSense, type safety everywhere)
 - ✅ Production-ready from day one (authentication, proper logging)
+
+**Architectural Refinements During Implementation:**
+- ✅ Separated webhook handling into dedicated WebhooksModule
+- ✅ Added test endpoints to integration modules for API exploration
+- ✅ Organized types within module directories for better encapsulation
+- ✅ Used comprehensive TypeScript types for external APIs (Wrike, ClickUp)
 
 **When to scale:**
 - Add read replicas if database becomes bottleneck (>1000 users)
