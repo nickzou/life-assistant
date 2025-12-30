@@ -105,6 +105,7 @@ export class SyncService {
     const taskData: any = {
       name: wrikeTask.title,
       description: `View in Wrike: ${wrikeTask.permalink}`,
+      tags: ['touchbistro', 'from wrike'],
     };
 
     // Add due date if present (convert ISO string to Unix timestamp in milliseconds)
