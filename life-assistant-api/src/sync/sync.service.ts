@@ -135,6 +135,58 @@ export class SyncService {
   }
 
   /**
+   * Delete a ClickUp task when Wrike task is deleted or user is unassigned
+   */
+  async deleteTaskFromClickUp(wrikeTaskId: string): Promise<void> {
+    this.logger.log(`Looking up mapping for Wrike task: ${wrikeTaskId}`);
+
+    try {
+      // Find the mapping
+      const mapping = await this.taskMappingRepository.findOne({
+        where: { wrike_id: wrikeTaskId },
+      });
+
+      if (!mapping) {
+        this.logger.warn(`No mapping found for Wrike task ${wrikeTaskId}, nothing to delete`);
+        return;
+      }
+
+      const clickUpTaskId = mapping.clickup_id;
+      this.logger.log(`Found ClickUp task ${clickUpTaskId}, deleting...`);
+
+      // Delete the ClickUp task
+      await this.clickUpService.deleteTask(clickUpTaskId);
+
+      // Delete the mapping
+      await this.taskMappingRepository.remove(mapping);
+
+      // Log the deletion
+      await this.logSync({
+        source_platform: 'wrike',
+        target_platform: 'clickup',
+        source_task_id: wrikeTaskId,
+        target_task_id: clickUpTaskId,
+        action: 'delete',
+        status: 'success',
+      });
+
+      this.logger.log(`✅ Successfully deleted ClickUp task ${clickUpTaskId} and mapping`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to delete task for Wrike ${wrikeTaskId}:`, error.message);
+
+      await this.logSync({
+        source_platform: 'wrike',
+        target_platform: 'clickup',
+        source_task_id: wrikeTaskId,
+        target_task_id: '',
+        action: 'delete',
+        status: 'failed',
+        error_message: error.message,
+      });
+    }
+  }
+
+  /**
    * Log a sync operation to the database
    */
   private async logSync(data: {

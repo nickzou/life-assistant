@@ -156,24 +156,32 @@ ClickUp ──Webhooks────> NestJS
   - Automatically fetches and caches current user ID on module initialization
   - `getCurrentUser()` - Fetch authenticated user contact information
   - `getCurrentUserId()` - Get cached user ID for task filtering
-- Methods implemented:
+- **Task Methods:**
   - `getTask(taskId)` - Fetch specific task
   - `getTasksInFolder(folderId)` - List all tasks in folder
   - `getAllFolders()` - List all folders
   - `getCustomStatuses()` - Fetch custom workflow statuses
   - `createTask()`, `updateTask()` - (TODO: To be implemented)
+- **Webhook Management:**
+  - `createWebhook(hookUrl)` - Register a new webhook with Wrike
+  - `listWebhooks()` - List all registered webhooks
+  - `deleteWebhook(webhookId)` - Remove a webhook registration
 - Handles authentication via Bearer token
 - Returns typed responses using `WrikeApiResponse<T>` types
 
 **WrikeController** (`wrike.controller.ts`)
-- **Purpose:** Test/exploration endpoints for Wrike API
-- Test endpoints implemented:
+- **Purpose:** Test/exploration and webhook management endpoints
+- **Test Endpoints:**
   - `GET /wrike/test/statuses` - Fetch custom statuses
   - `GET /wrike/test/tasks` - List tasks in configured folder
   - `GET /wrike/test/task/:taskId` - Get specific task
   - `GET /wrike/test/folders` - List all folders
   - `GET /wrike/test/me` - Get current authenticated user info
-- **Note:** Webhook handling moved to WebhooksModule
+- **Webhook Management Endpoints:**
+  - `POST /wrike/webhooks/setup` - Auto-register webhook for current environment (supports ngrok)
+  - `GET /wrike/webhooks` - List all registered webhooks
+  - `DELETE /wrike/webhooks/:webhookId` - Delete a webhook
+- Perfect for preview deployments and multi-environment setups
 
 **WrikeModule** (`wrike.module.ts`)
 - Exports WrikeService for use by other modules
@@ -193,7 +201,8 @@ ClickUp ──Webhooks────> NestJS
   - `getList(listId)` - Get list details with statuses
   - `getListsInSpace(spaceId)` - List all lists in space
   - `createTask(listId, data)` - Create new task
-  - `updateTask()` - (TODO: To be implemented)
+  - `updateTask(taskId, data)` - Update existing task
+  - `deleteTask(taskId)` - Delete a task
 - Handles authentication via API token
 - Returns typed responses using ClickUp API types
 
@@ -334,7 +343,7 @@ export class User {
 
 ### 4. Webhooks Module (`src/webhooks/`)
 
-**Implementation Status: 🟡 Partial (Task Assignment Filtering Implemented)**
+**Implementation Status: ✅ Implemented (Event Filtering & Sync Integration Complete)**
 
 **WebhooksController** (`webhooks.controller.ts`)
 - Centralized webhook endpoint handler
@@ -346,36 +355,47 @@ export class User {
 - Returns success/error responses
 
 **WebhooksService** (`webhooks.service.ts`)
-- Processes incoming webhook events with task assignment filtering
+- Processes incoming webhook events with intelligent event filtering
 - **Wrike Webhook Processing (`handleWrikeWebhook`):**
-  - Extracts task ID from webhook payload
-  - Fetches full task details via WrikeService
-  - Checks if task is assigned to current user (via `responsibleIds`)
-  - Skips sync if task is not assigned to current user
-  - Logs filtering decisions for debugging
-  - TODO: Call SyncService to sync filtered tasks to ClickUp
+  - Handles array of webhook events from Wrike
+  - **Event Type Filtering** - Only processes:
+    - `TaskResponsiblesAdded` - When user is assigned
+    - `TaskResponsiblesRemoved` - When user is unassigned
+    - `TaskStatusChanged` - Status updates
+    - `TaskTitleChanged` - Title changes
+    - `TaskDescriptionChanged` - Description updates
+    - `TaskDatesChanged` - Due date changes
+    - `TaskDeleted` - Task deletion
+  - **Smart Assignment Filtering:**
+    - For `TaskResponsiblesAdded`: Only syncs if current user in `addedResponsibles`
+    - For `TaskResponsiblesRemoved`: Deletes from ClickUp if current user in `removedResponsibles`
+    - For other events: Verifies task is still assigned to current user
+  - **Deletion Handling:**
+    - `TaskResponsiblesRemoved` → Deletes ClickUp task when unassigned
+    - `TaskDeleted` → Deletes ClickUp task and mapping
+  - Fully integrated with SyncService
 - **ClickUp Webhook Processing (`handleClickUpWebhook`):**
-  - Currently logs events (filtering logic TODO)
-  - TODO: Implement sync logic
-- Will integrate with SyncService when implemented
+  - Currently logs events (reverse sync TODO)
+  - TODO: Implement ClickUp → Wrike sync logic
 
 **WebhooksModule** (`webhooks.module.ts`)
 - Exports WebhooksService
-- Imports WrikeModule for task filtering and API access
-- TODO: Import ClickUpModule when sync is implemented
+- Imports WrikeModule and SyncModule for full integration
+- TODO: Import ClickUpModule when reverse sync is implemented
 
 **Design Decision:** Dedicated WebhooksModule
 - Separates webhook handling from integration modules
 - Wrike/ClickUp modules focus on API client logic
 - WebhooksModule orchestrates sync operations
-- Easier to add webhook signature validation
+- Event-driven architecture with intelligent filtering
 - Cleaner separation of concerns
 
-**Task Assignment Filtering:**
-- Prevents syncing entire team's tasks from Wrike
-- Only syncs tasks where current user is in `responsibleIds`
-- User ID automatically cached at service startup
-- Gracefully handles unassigned tasks and initialization errors
+**Event Filtering Strategy:**
+- Prevents syncing irrelevant events (TaskCreated with null assignments)
+- Only syncs when current user is actually assigned
+- Handles deletion events for cleanup
+- Avoids unnecessary API calls and database operations
+- Solves timing issue with Wrike GUI (create → assign workflow)
 
 ### 5. Sync Module (`src/sync/`)
 
@@ -388,11 +408,12 @@ export class User {
   - `syncWrikeToClickUp(wrikeTask)` - ✅ Sync Wrike task to ClickUp
   - `createClickUpTask(wrikeTask)` - ✅ Create new ClickUp task
   - `updateClickUpTask(clickUpId, wrikeTask)` - ✅ Update existing ClickUp task
+  - `deleteTaskFromClickUp(wrikeTaskId)` - ✅ Delete ClickUp task and mapping
   - `logSync(data)` - ✅ Log sync operations to database
 - **TODO Methods:**
   - `syncClickUpToWrike()` - ❌ Reverse sync not yet implemented
   - `manualSync()` - ❌ Manual trigger support
-- Handles create vs update logic based on existing mappings
+- Handles create, update, and delete operations based on webhook events
 - Uses TypeORM repositories for TaskMapping and SyncLog entities
 - Comprehensive error handling and logging
 
@@ -402,9 +423,10 @@ export class User {
 - Exports SyncService for use by WebhooksModule
 - Integrated into WebhooksModule for automatic sync
 
-**Implemented Sync Flow:**
+**Implemented Sync Flows:**
 
-1. ✅ Webhook receives Wrike task ID
+**Create/Update Flow:**
+1. ✅ Webhook receives Wrike event (TaskResponsiblesAdded, TaskStatusChanged, etc.)
 2. ✅ Webhook service fetches full task details
 3. ✅ Check database for existing Wrike → ClickUp mapping
 4. ✅ If mapping exists → Update existing ClickUp task
@@ -412,11 +434,22 @@ export class User {
 6. ✅ Log sync operation (success or failure) to sync_logs table
 7. ✅ Return success/failure
 
+**Deletion Flow:**
+1. ✅ Webhook receives TaskResponsiblesRemoved or TaskDeleted event
+2. ✅ For TaskResponsiblesRemoved: Check if current user was removed
+3. ✅ Look up mapping to find ClickUp task ID
+4. ✅ Delete ClickUp task via API
+5. ✅ Remove mapping from task_mappings table
+6. ✅ Log deletion operation to sync_logs table
+7. ✅ Task removed from ClickUp
+
 **Tested & Verified:**
-- ✅ Synced Wrike task "Test Task" (MAAAAAECoCvD) → ClickUp task (86dz0wcqk)
+- ✅ Create: Wrike task "Test Task" (MAAAAAECoCvD) → ClickUp task (86dz0wcqk)
 - ✅ Mapping saved to task_mappings table
 - ✅ Sync logged to sync_logs table with timestamp and status
 - ✅ Task visible in ClickUp web UI
+- ✅ Event filtering working (TaskResponsiblesAdded triggers sync)
+- ✅ Deletion flow functional (unassign/delete in Wrike → removes from ClickUp)
 
 **Design Decision:** Separate sync module
 - Isolates business logic from API and presentation layers

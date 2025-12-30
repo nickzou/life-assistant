@@ -6,6 +6,7 @@ import {
   WrikeWorkflowsResponse,
   WrikeFoldersResponse,
   WrikeContactsResponse,
+  WrikeWebhooksResponse,
 } from './types/wrike-api.types';
 
 @Injectable()
@@ -153,6 +154,55 @@ export class WrikeService implements OnModuleInit {
       return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch current user:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new webhook
+   * @param hookUrl - The public URL where Wrike will send webhook events
+   */
+  async createWebhook(hookUrl: string): Promise<WrikeWebhooksResponse> {
+    try {
+      this.logger.log(`Creating Wrike webhook for URL: ${hookUrl}`);
+
+      const response = await this.axiosInstance.post<WrikeWebhooksResponse>('/webhooks', null, {
+        params: { hookUrl },
+      });
+
+      this.logger.log(`Webhook created successfully: ${response.data.data[0]?.id}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to create webhook:', error.message);
+      this.logger.error('Error details:', error.response?.data);
+      throw error;
+    }
+  }
+
+  /**
+   * List all webhooks
+   */
+  async listWebhooks(): Promise<WrikeWebhooksResponse> {
+    try {
+      this.logger.log('Fetching all webhooks');
+      const response = await this.axiosInstance.get<WrikeWebhooksResponse>('/webhooks');
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to fetch webhooks:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a webhook by ID
+   */
+  async deleteWebhook(webhookId: string): Promise<void> {
+    try {
+      this.logger.log(`Deleting webhook: ${webhookId}`);
+      await this.axiosInstance.delete(`/webhooks/${webhookId}`);
+      this.logger.log(`Webhook deleted: ${webhookId}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
       throw error;
     }
   }

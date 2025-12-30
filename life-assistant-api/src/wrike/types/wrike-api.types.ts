@@ -117,3 +117,16 @@ export interface WrikeContact {
 export interface WrikeContactsResponse extends WrikeApiResponse<WrikeContact> {
   kind: 'contacts';
 }
+
+export interface WrikeWebhook {
+  id: string;
+  accountId: string;
+  hookUrl: string;
+  folderId?: string;
+  spaceId?: string;
+  status: 'Active' | 'Suspended';
+}
+
+export interface WrikeWebhooksResponse extends WrikeApiResponse<WrikeWebhook> {
+  kind: 'webhooks';
+}

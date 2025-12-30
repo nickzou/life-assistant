@@ -131,4 +131,32 @@ export class ClickUpService {
       throw error;
     }
   }
+
+  /**
+   * Update an existing task
+   */
+  async updateTask(taskId: string, taskData: any): Promise<any> {
+    try {
+      this.logger.log(`Updating ClickUp task: ${taskId}`);
+      const response = await this.axiosInstance.put(`/task/${taskId}`, taskData);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to update task ${taskId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a task
+   */
+  async deleteTask(taskId: string): Promise<void> {
+    try {
+      this.logger.log(`Deleting ClickUp task: ${taskId}`);
+      await this.axiosInstance.delete(`/task/${taskId}`);
+      this.logger.log(`Successfully deleted ClickUp task: ${taskId}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete task ${taskId}:`, error.message);
+      throw error;
+    }
+  }
 }
