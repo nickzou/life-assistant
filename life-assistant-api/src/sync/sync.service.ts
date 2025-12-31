@@ -108,6 +108,13 @@ export class SyncService {
       tags: ['touchbistro', 'from wrike'],
     };
 
+    // Auto-assign to current user
+    const assigneeId = this.clickUpService.getCurrentUserId();
+    if (assigneeId) {
+      taskData.assignees = [assigneeId];
+      this.logger.log(`Auto-assigning to user: ${assigneeId}`);
+    }
+
     // Add due date if present (convert ISO string to Unix timestamp in milliseconds)
     if (wrikeTask.dates?.due) {
       taskData.due_date = new Date(wrikeTask.dates.due).getTime().toString();
@@ -147,6 +154,13 @@ export class SyncService {
       name: wrikeTask.title,
       description: `View in Wrike: ${wrikeTask.permalink}`,
     };
+
+    // Auto-assign to current user
+    const assigneeId = this.clickUpService.getCurrentUserId();
+    if (assigneeId) {
+      taskData.assignees = [assigneeId];
+      this.logger.log(`Auto-assigning to user: ${assigneeId}`);
+    }
 
     // Add due date if present
     if (wrikeTask.dates?.due) {

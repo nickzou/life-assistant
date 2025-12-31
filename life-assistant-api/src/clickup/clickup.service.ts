@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import {
@@ -9,10 +9,11 @@ import {
 } from './types/clickup-api.types';
 
 @Injectable()
-export class ClickUpService {
+export class ClickUpService implements OnModuleInit {
   private readonly logger = new Logger(ClickUpService.name);
   private readonly axiosInstance: AxiosInstance;
   private readonly baseUrl = 'https://api.clickup.com/api/v2';
+  private currentUserId: number | null = null;
 
   constructor(private configService: ConfigService) {
     const token = this.configService.get<string>('CLICKUP_TOKEN');
@@ -24,6 +25,48 @@ export class ClickUpService {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  /**
+   * Lifecycle hook: Fetch and cache the current user ID when module initializes
+   */
+  async onModuleInit() {
+    try {
+      this.logger.log('Initializing ClickUp service - fetching current user...');
+      const userResponse = await this.getAuthorizedUser();
+      if (userResponse.user) {
+        this.currentUserId = userResponse.user.id;
+        this.logger.log(`ClickUp user ID cached: ${this.currentUserId} (${userResponse.user.username})`);
+      } else {
+        this.logger.warn('No user data returned from ClickUp API');
+      }
+    } catch (error) {
+      this.logger.error('Failed to fetch current user ID during initialization:', error.message);
+      this.logger.error('Auto-assignment will not work until this is resolved');
+    }
+  }
+
+  /**
+   * Get the cached current user ID
+   * Returns null if not yet initialized or if initialization failed
+   */
+  getCurrentUserId(): number | null {
+    return this.currentUserId;
+  }
+
+  /**
+   * Get authorized user information
+   * Returns the authenticated user's ClickUp account details
+   */
+  async getAuthorizedUser(): Promise<any> {
+    try {
+      this.logger.log('Fetching authorized ClickUp user');
+      const response = await this.axiosInstance.get('/user');
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to fetch authorized user:', error.message);
+      throw error;
+    }
   }
 
   /**
