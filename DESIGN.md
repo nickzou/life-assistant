@@ -45,51 +45,48 @@ A unified task management platform that integrates multiple productivity tools (
 
 ### High-Level Design
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Browser                              │
-│                     (React Frontend)                        │
-└────────────────────────┬────────────────────────────────────┘
-                         │ REST API
-                         │ (JWT Auth)
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    NestJS Backend                           │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │                 Webhooks Module                      │   │
-│  │  - POST /webhooks/wrike                              │   │
-│  │  - POST /webhooks/clickup                            │   │
-│  │  - Event payload logging                             │   │
-│  │  - Webhook signature validation (TODO)               │   │
-│  └──────────────────────────────────────────────────────┘   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Wrike      │  │   ClickUp    │  │   Future     │      │
-│  │   Module     │  │   Module     │  │   Modules    │      │
-│  │              │  │              │  │   (Jira,     │      │
-│  │ - API Client │  │ - API Client │  │   Asana...)  │      │
-│  │ - Test       │  │ - Test       │  │              │      │
-│  │   Endpoints  │  │   Endpoints  │  │              │      │
-│  └──────┬───────┘  └──────┬───────┘  └──────────────┘      │
-│         └──────────────────┴─────────────┐                  │
-│                                           ↓                  │
-│         ┌─────────────────────────────────────────┐         │
-│         │         Database Module                 │         │
-│         │    - Task Mappings                      │         │
-│         │    - Sync History                       │         │
-│         │    - User Settings                      │         │
-│         └─────────────────┬───────────────────────┘         │
-└───────────────────────────┼─────────────────────────────────┘
-                            ↓
-                  ┌───────────────────┐
-                  │   PostgreSQL      │
-                  │   - task_mappings │
-                  │   - sync_logs     │
-                  │   - users         │
-                  └───────────────────┘
+```mermaid
+graph TB
+    Browser[Browser<br/>React Frontend]
 
-External APIs:
-Wrike ────Webhooks────> NestJS
-ClickUp ──Webhooks────> NestJS
+    subgraph NestJS["NestJS Backend"]
+        Webhooks[Webhooks Module<br/>- POST /webhooks/wrike<br/>- POST /webhooks/clickup<br/>- Event payload logging<br/>- Webhook signature validation TODO]
+
+        Wrike[Wrike Module<br/>- API Client<br/>- Test Endpoints]
+        ClickUp[ClickUp Module<br/>- API Client<br/>- Test Endpoints]
+        Future[Future Modules<br/>Jira, Asana...]
+
+        Sync[Sync Module<br/>- Bidirectional Sync<br/>- Status Mapping<br/>- Auto-Assignment]
+
+        DbModule[Database Module<br/>- Task Mappings<br/>- Sync History<br/>- User Settings]
+    end
+
+    DB[(PostgreSQL<br/>- task_mappings<br/>- sync_logs<br/>- users)]
+
+    WrikeAPI[Wrike API]
+    ClickUpAPI[ClickUp API]
+
+    Browser -->|REST API<br/>JWT Auth| Webhooks
+    Browser -->|REST API<br/>JWT Auth| Sync
+
+    WrikeAPI -.->|Webhooks| Webhooks
+    ClickUpAPI -.->|Webhooks| Webhooks
+
+    Webhooks --> Sync
+    Wrike --> Sync
+    ClickUp --> Sync
+
+    Sync --> DbModule
+    Wrike -.->|API Calls| WrikeAPI
+    ClickUp -.->|API Calls| ClickUpAPI
+
+    DbModule --> DB
+
+    style Browser fill:#e1f5ff
+    style NestJS fill:#fff4e1
+    style DB fill:#e8f5e9
+    style WrikeAPI fill:#f3e5f5
+    style ClickUpAPI fill:#f3e5f5
 ```
 
 ### Tech Stack Rationale
@@ -773,25 +770,53 @@ async handleClickUpWebhook(payload: ClickUpWebhookDto) {
 
 ### Creating a Task (Wrike → ClickUp)
 
-```
-1. User creates task in Wrike
-2. Wrike sends webhook to /webhook/wrike
-3. Server fetches full task details from Wrike API
-4. Server checks database for existing mapping → None found
-5. Server creates new task in ClickUp via API
-6. Server saves mapping: wrike_id → clickup_id
-7. Done! Future updates will modify existing task
+```mermaid
+sequenceDiagram
+    actor User
+    participant Wrike as Wrike API
+    participant Webhook as NestJS Webhook
+    participant Sync as Sync Service
+    participant DB as PostgreSQL
+    participant ClickUp as ClickUp API
+
+    User->>Wrike: Create/assign task
+    Wrike->>Webhook: POST /webhooks/wrike<br/>TaskResponsiblesAdded
+    Webhook->>Wrike: Fetch full task details
+    Wrike-->>Webhook: Task data
+    Webhook->>Sync: syncWrikeToClickUp(task)
+    Sync->>DB: Check for existing mapping
+    DB-->>Sync: No mapping found
+    Sync->>ClickUp: Create task (with auto-assignment)
+    ClickUp-->>Sync: Task created (ID)
+    Sync->>DB: Save mapping (wrike_id ↔ clickup_id)
+    Sync->>DB: Log sync operation
+    Sync-->>Webhook: Success
+    Webhook-->>Wrike: 200 OK
 ```
 
 ### Updating a Task (ClickUp → Wrike)
 
-```
-1. User updates task in ClickUp
-2. ClickUp sends webhook to /webhook/clickup
-3. Server fetches full task details from ClickUp API
-4. Server checks database for existing mapping → Found!
-5. Server updates existing Wrike task via API
-6. Done! Mapping already exists
+```mermaid
+sequenceDiagram
+    actor User
+    participant ClickUp as ClickUp API
+    participant Webhook as NestJS Webhook
+    participant Sync as Sync Service
+    participant DB as PostgreSQL
+    participant Wrike as Wrike API
+
+    User->>ClickUp: Update task (title/dates/status)
+    ClickUp->>Webhook: POST /webhooks/clickup<br/>taskUpdated
+    Webhook->>ClickUp: Fetch full task details
+    ClickUp-->>Webhook: Task data
+    Webhook->>Sync: syncClickUpToWrike(task)
+    Sync->>DB: Check for existing mapping
+    DB-->>Sync: Mapping found (wrike_id)
+    Sync->>Wrike: Update task (customStatus, dates, title)
+    Wrike-->>Sync: Task updated
+    Sync->>DB: Log sync operation
+    Sync-->>Webhook: Success
+    Webhook-->>ClickUp: 200 OK
 ```
 
 ## Avoiding Sync Loops
@@ -830,50 +855,34 @@ async handleClickUpWebhook(payload: ClickUpWebhookDto) {
 
 ## Deployment Architecture
 
-```
-Internet
-   │
-   ├─── HTTPS (Port 443)
-   │
-Nginx Reverse Proxy
-   │
-   ├─── /api/* ──────> HTTP (Port 3000) ──> NestJS Backend
-   │                                          ├─── Webhooks
-   │                                          ├─── REST API
-   │                                          └─── Integrations
-   │
-   ├─── /* ──────────> HTTP (Port 3001) ──> React Frontend (dev)
-   │                   Static Files (prod)
-   │
-   └─── PostgreSQL (Port 5432, internal)
-        ├─── task_mappings
-        ├─── sync_logs
-        └─── users
-```
+```mermaid
+graph TB
+    Internet([Internet])
 
-**Production Setup:**
+    subgraph VPS["VPS Server"]
+        Nginx[Nginx Reverse Proxy<br/>Port 80/443<br/>- SSL termination Let's Encrypt<br/>- Rate limiting]
 
-```
-┌─────────────────────────────────────────────────┐
-│                    VPS Server                    │
-│                                                  │
-│  ┌────────────────────────────────────────────┐ │
-│  │  Nginx (Port 80/443)                       │ │
-│  │  - SSL termination (Let's Encrypt)         │ │
-│  │  - Reverse proxy                           │ │
-│  │  - Static file serving (React build)       │ │
-│  │  - Rate limiting                            │ │
-│  └──────────┬─────────────────────────────────┘ │
-│             │                                    │
-│  ┌──────────┴───────────────┬─────────────────┐ │
-│  │                          │                 │ │
-│  │  PM2 (Backend)           │  PostgreSQL     │ │
-│  │  ├─ NestJS (Port 3000)   │  (Port 5432)    │ │
-│  │  ├─ Auto-restart         │  - Persistence  │ │
-│  │  └─ Log rotation         │  - Backups      │ │
-│  │                          │                 │ │
-│  └──────────────────────────┴─────────────────┘ │
-└─────────────────────────────────────────────────┘
+        subgraph PM2["PM2 Process Manager"]
+            NestJS[NestJS Backend<br/>Port 3000<br/>- Webhooks<br/>- REST API<br/>- Integrations<br/>- Auto-restart<br/>- Log rotation]
+        end
+
+        Frontend[React Frontend<br/>Port 3001 dev<br/>Static files prod]
+
+        DB[(PostgreSQL<br/>Port 5432 internal<br/>- task_mappings<br/>- sync_logs<br/>- users)]
+    end
+
+    Internet -->|HTTPS :443| Nginx
+    Nginx -->|/api/*| NestJS
+    Nginx -->|/*| Frontend
+    NestJS --> DB
+
+    style Internet fill:#e3f2fd
+    style VPS fill:#fff3e0
+    style Nginx fill:#f3e5f5
+    style PM2 fill:#e8f5e9
+    style NestJS fill:#c8e6c9
+    style Frontend fill:#e1f5ff
+    style DB fill:#fff9c4
 ```
 
 **Components:**
