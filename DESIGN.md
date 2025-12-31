@@ -2,28 +2,28 @@
 
 ## Implementation Status
 
-**Last Updated:** December 30, 2025
+**Last Updated:** December 31, 2025
 
-**Current Phase:** Phase 1 - Backend Foundation (In Progress)
+**Current Phase:** Phase 1 - Backend Foundation (Complete)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | **NestJS Backend** | ✅ Implemented | Modular architecture with ConfigModule |
 | **Database Module** | ✅ Implemented | TypeORM entities for TaskMapping, SyncLog, User |
 | **Wrike Module** | ✅ Implemented | API client with comprehensive types, test endpoints & user ID caching |
-| **ClickUp Module** | ✅ Implemented | API client with comprehensive types & test endpoints |
-| **Webhooks Module** | ✅ Implemented | Task filtering, sync integration, event processing |
-| **Sync Module** | ✅ Implemented | Wrike → ClickUp with dates, status, tags; reverse sync TODO |
+| **ClickUp Module** | ✅ Implemented | API client with comprehensive types, test endpoints & user ID caching |
+| **Webhooks Module** | ✅ Implemented | Task filtering, sync integration, event processing for both platforms |
+| **Sync Module** | ✅ Implemented | **Bidirectional sync complete**: Wrike ↔ ClickUp with dates, status, auto-assignment |
 | **API Module** | ❌ Not Started | REST API for frontend |
 | **Auth Module** | ❌ Not Started | JWT authentication |
 | **React Frontend** | ❌ Not Started | User interface |
 
 **Next Steps:**
-1. Implement ClickUp → Wrike reverse sync
-2. Add webhook signature verification
-3. Implement DTO validation and type definitions for webhook payloads
-4. Create API Module for frontend
-5. Add React frontend for task management
+1. Add webhook signature verification
+2. Implement DTO validation and type definitions for webhook payloads
+3. Create API Module for frontend
+4. Add React frontend for task management
+5. Multi-user support with user-specific integrations
 
 ## Overview
 
@@ -192,9 +192,13 @@ ClickUp ──Webhooks────> NestJS
 **Implementation Status: ✅ Completed**
 
 **ClickUpService** (`clickup.service.ts`)
-- Injectable NestJS service
+- Injectable NestJS service implementing OnModuleInit
 - Wraps ClickUp API v2
-- Methods implemented:
+- **User ID Caching:**
+  - Automatically fetches and caches current user ID on module initialization
+  - `getAuthorizedUser()` - Fetch authenticated user information
+  - `getCurrentUserId()` - Get cached user ID for auto-assignment
+- **Task Methods:**
   - `getTask(taskId)` - Fetch specific task
   - `getTasksInList(listId)` - List all tasks in list
   - `getSpaces(workspaceId)` - List all spaces
@@ -203,19 +207,27 @@ ClickUp ──Webhooks────> NestJS
   - `createTask(listId, data)` - Create new task
   - `updateTask(taskId, data)` - Update existing task
   - `deleteTask(taskId)` - Delete a task
+- **Webhook Management:**
+  - `createWebhook(teamId, hookUrl)` - Register a new webhook with ClickUp
+  - `listWebhooks(teamId)` - List all registered webhooks for a team
+  - `deleteWebhook(webhookId)` - Remove a webhook registration
 - Handles authentication via API token
 - Returns typed responses using ClickUp API types
 
 **ClickUpController** (`clickup.controller.ts`)
-- **Purpose:** Test/exploration endpoints for ClickUp API
-- Test endpoints implemented:
+- **Purpose:** Test/exploration and webhook management endpoints
+- **Test Endpoints:**
   - `GET /clickup/test/tasks` - List tasks in configured list
   - `GET /clickup/test/task/:taskId` - Get specific task
   - `GET /clickup/test/spaces` - List all spaces
   - `GET /clickup/test/list/:listId` - Get list details
   - `GET /clickup/test/lists/:spaceId` - List all lists in space
   - `POST /clickup/test/create-task` - Create test task
-- **Note:** Webhook handling moved to WebhooksModule
+- **Webhook Management Endpoints:**
+  - `POST /clickup/webhooks/:teamId/setup` - Auto-register webhook for current environment
+  - `GET /clickup/webhooks/:teamId` - List all registered webhooks for team
+  - `DELETE /clickup/webhooks/:webhookId` - Delete a webhook
+- **Note:** Webhook event processing handled by WebhooksModule
 
 **ClickUpModule** (`clickup.module.ts`)
 - Exports ClickUpService for use by other modules
@@ -375,13 +387,19 @@ export class User {
     - `TaskDeleted` → Deletes ClickUp task and mapping
   - Fully integrated with SyncService
 - **ClickUp Webhook Processing (`handleClickUpWebhook`):**
-  - Currently logs events (reverse sync TODO)
-  - TODO: Implement ClickUp → Wrike sync logic
+  - Handles ClickUp webhook events for reverse sync
+  - **Event Type Filtering** - Only processes:
+    - `taskUpdated` - General task updates
+    - `taskStatusUpdated` - Status changes
+    - `taskDueDateUpdated` - Due date changes
+    - `taskStartDateUpdated` - Start date changes
+  - Fetches full task details from ClickUp API
+  - Calls `syncService.syncClickUpToWrike()` for reverse sync
+  - Fully integrated with SyncService
 
 **WebhooksModule** (`webhooks.module.ts`)
 - Exports WebhooksService
-- Imports WrikeModule and SyncModule for full integration
-- TODO: Import ClickUpModule when reverse sync is implemented
+- Imports WrikeModule, ClickUpModule, and SyncModule for full bidirectional integration
 
 **Design Decision:** Dedicated WebhooksModule
 - Separates webhook handling from integration modules
@@ -399,23 +417,28 @@ export class User {
 
 ### 5. Sync Module (`src/sync/`)
 
-**Implementation Status: ✅ Implemented (Wrike → ClickUp Complete)**
+**Implementation Status: ✅ Fully Implemented (Bidirectional Sync Complete)**
 
 **SyncService** (`sync.service.ts`)
 - Injectable NestJS service
-- Orchestrates the sync logic between platforms
-- **Implemented Methods:**
+- Orchestrates bidirectional sync logic between platforms
+- **Forward Sync Methods (Wrike → ClickUp):**
   - `syncWrikeToClickUp(wrikeTask)` - ✅ Sync Wrike task to ClickUp
-  - `createClickUpTask(wrikeTask)` - ✅ Create new ClickUp task
-  - `updateClickUpTask(clickUpId, wrikeTask)` - ✅ Update existing ClickUp task
+  - `createClickUpTask(wrikeTask)` - ✅ Create new ClickUp task with auto-assignment
+  - `updateClickUpTask(clickUpId, wrikeTask)` - ✅ Update existing ClickUp task with auto-assignment
   - `deleteTaskFromClickUp(wrikeTaskId)` - ✅ Delete ClickUp task and mapping
-  - `logSync(data)` - ✅ Log sync operations to database
+- **Reverse Sync Methods (ClickUp → Wrike):**
+  - `syncClickUpToWrike(clickUpTask)` - ✅ Sync ClickUp task to Wrike
+  - `updateWrikeTask(wrikeTaskId, clickUpTask)` - ✅ Update existing Wrike task
+- **Status Mapping:**
   - `loadWrikeStatuses()` - ✅ Cache Wrike workflow statuses
   - `loadClickUpStatuses()` - ✅ Cache ClickUp list statuses
-  - `mapWrikeStatusToClickUp()` - ✅ Name-based status mapping
-- **TODO Methods:**
-  - `syncClickUpToWrike()` - ❌ Reverse sync not yet implemented
-  - `manualSync()` - ❌ Manual trigger support
+  - `mapWrikeStatusToClickUp(wrikeTask)` - ✅ Name-based status mapping (Wrike → ClickUp)
+  - `mapClickUpStatusToWrike(clickUpTask)` - ✅ Name-based status mapping (ClickUp → Wrike)
+- **Utility Methods:**
+  - `logSync(data)` - ✅ Log sync operations to database
+- **Future Enhancements:**
+  - `manualSync()` - ❌ Manual trigger support (planned)
 - Handles create, update, and delete operations based on webhook events
 - Uses TypeORM repositories for TaskMapping and SyncLog entities
 - Comprehensive error handling and logging
@@ -431,18 +454,44 @@ export class User {
   - On Hold → on hold
   - Cancelled → cancelled
   - etc.
+- ✅ **Assignees** - Auto-assigned to authenticated ClickUp user (cached from `/user` endpoint)
 - ✅ **Tags** - Auto-tagged with "touchbistro" and "from wrike"
 - ❌ **Comments** - Not synced (future enhancement)
 - ❌ **Attachments** - Not synced (future enhancement)
 - ❌ **Priority** - Not synced (not used by org)
 - ❌ **Custom Fields** - Not synced (not used by org)
 
+**Synced Fields (ClickUp → Wrike):**
+- ✅ **Task Name** - ClickUp name → Wrike title
+- ✅ **Due Date** - ClickUp due_date (Unix timestamp ms) → Wrike dates.due (ISO)
+- ✅ **Start Date** - ClickUp start_date (Unix timestamp ms) → Wrike dates.start (ISO)
+- ✅ **Status** - Name-based reverse mapping (case-insensitive)
+  - in progress → In Progress
+  - completed → Completed
+  - on hold → On Hold
+  - etc.
+  - **Note:** Uses `customStatus` parameter (not `customStatusId`)
+- ❌ **Description** - Not synced (Wrike permalink is source of truth)
+- ❌ **Assignees** - Not synced (Wrike task already assigned to user)
+- ❌ **Tags** - Not synced (ClickUp-specific)
+- ❌ **Comments** - Not synced (future enhancement)
+- ❌ **Attachments** - Not synced (future enhancement)
+
 **Status Mapping Strategy:**
 - Caches Wrike workflows on first sync (customStatusId → status name)
 - Caches ClickUp list statuses on first sync (lowercase name → actual name)
-- Maps Wrike customStatusId to status name, then matches to ClickUp (case-insensitive)
+- **Forward (Wrike → ClickUp):** Maps Wrike customStatusId to status name, then matches to ClickUp (case-insensitive)
+- **Reverse (ClickUp → Wrike):** Maps ClickUp status name to Wrike customStatusId (case-insensitive)
 - Falls back gracefully if no match found (task still syncs without status)
 - Logs all status mappings for debugging
+
+**Important Technical Note - Wrike Status Parameter:**
+- Wrike API uses `customStatus` (not `customStatusId`) for updating task status
+- The parameter value is the custom status ID string
+- Example: `{ customStatus: "IEAB4KN6JMALBIQW" }`
+- Using the wrong parameter name (`customStatusId`) results in 400 error
+
+**Requirement:** ClickUp statuses must match Wrike workflow names for mapping to work
 
 **Design Philosophy:**
 - ClickUp as personal workload tracker (not full Wrike replication)
@@ -458,16 +507,16 @@ export class User {
 
 **Implemented Sync Flows:**
 
-**Create/Update Flow:**
+**Forward Sync - Create/Update Flow (Wrike → ClickUp):**
 1. ✅ Webhook receives Wrike event (TaskResponsiblesAdded, TaskStatusChanged, etc.)
-2. ✅ Webhook service fetches full task details
+2. ✅ Webhook service fetches full task details from Wrike API
 3. ✅ Check database for existing Wrike → ClickUp mapping
-4. ✅ If mapping exists → Update existing ClickUp task
-5. ✅ If no mapping → Create new ClickUp task and save mapping
+4. ✅ If mapping exists → Update existing ClickUp task (with auto-assignment)
+5. ✅ If no mapping → Create new ClickUp task, auto-assign to user, and save mapping
 6. ✅ Log sync operation (success or failure) to sync_logs table
 7. ✅ Return success/failure
 
-**Deletion Flow:**
+**Forward Sync - Deletion Flow (Wrike → ClickUp):**
 1. ✅ Webhook receives TaskResponsiblesRemoved or TaskDeleted event
 2. ✅ For TaskResponsiblesRemoved: Check if current user was removed
 3. ✅ Look up mapping to find ClickUp task ID
@@ -476,13 +525,29 @@ export class User {
 6. ✅ Log deletion operation to sync_logs table
 7. ✅ Task removed from ClickUp
 
+**Reverse Sync - Update Flow (ClickUp → Wrike):**
+1. ✅ Webhook receives ClickUp event (taskUpdated, taskStatusUpdated, etc.)
+2. ✅ Webhook service fetches full task details from ClickUp API
+3. ✅ Check database for existing ClickUp → Wrike mapping
+4. ✅ If mapping exists → Update existing Wrike task with new data
+5. ✅ If no mapping → Skip (reverse sync only updates, doesn't create)
+6. ✅ Log sync operation (success or failure) to sync_logs table
+7. ✅ Return success/failure
+
 **Tested & Verified:**
-- ✅ Create: Wrike task "Test Task" (MAAAAAECoCvD) → ClickUp task (86dz0wcqk)
-- ✅ Mapping saved to task_mappings table
-- ✅ Sync logged to sync_logs table with timestamp and status
-- ✅ Task visible in ClickUp web UI
-- ✅ Event filtering working (TaskResponsiblesAdded triggers sync)
-- ✅ Deletion flow functional (unassign/delete in Wrike → removes from ClickUp)
+- ✅ **Forward Sync (Wrike → ClickUp):**
+  - Create: Wrike task → ClickUp task with auto-assignment
+  - Update: Title, dates, status changes sync to ClickUp
+  - Delete: Unassign/delete in Wrike → removes from ClickUp
+  - Mapping saved to task_mappings table
+  - Sync logged to sync_logs table
+  - Event filtering working (only assigned tasks sync)
+- ✅ **Reverse Sync (ClickUp → Wrike):**
+  - Update: Title changes sync from ClickUp to Wrike
+  - Update: Date changes (due_date, start_date) sync correctly
+  - Update: Status changes sync using correct `customStatus` parameter
+  - Bidirectional sync working without loops
+  - Reverse sync only updates (doesn't create new tasks)
 
 **Design Decision:** Separate sync module
 - Isolates business logic from API and presentation layers
@@ -1188,12 +1253,13 @@ This design prioritizes:
 
 The architecture starts with a solid foundation (NestJS + PostgreSQL) that can scale from a single integration to a full-featured task management platform with multiple integrations, users, and advanced features.
 
-**Implementation Progress (as of December 26, 2025):**
+**Implementation Progress (as of December 31, 2025):**
 - ✅ Backend foundation complete (NestJS, PostgreSQL, TypeORM)
-- ✅ Integration modules implemented (Wrike, ClickUp with comprehensive API clients)
-- ✅ Webhooks infrastructure ready (receiving and logging events)
-- 🔨 Sync logic in progress (next major milestone)
-- 📋 Frontend and API module planned (after sync is working)
+- ✅ Integration modules complete (Wrike, ClickUp with comprehensive API clients)
+- ✅ User ID caching for both platforms (auto-assignment support)
+- ✅ Webhooks infrastructure complete (bidirectional event processing)
+- ✅ **Sync logic complete** (bidirectional sync with dates, status, auto-assignment)
+- 📋 Frontend and API module planned (next major milestone)
 
 **Key advantages over initial Express + SQLite design:**
 - ✅ Multi-service support (frontend can query database)
