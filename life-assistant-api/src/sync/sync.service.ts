@@ -105,7 +105,7 @@ export class SyncService {
     const taskData: any = {
       name: wrikeTask.title,
       description: `View in Wrike: ${wrikeTask.permalink}`,
-      tags: ['touchbistro', 'from wrike'],
+      tags: ['touchbistro', 'from wrike', 'work'],
     };
 
     // Auto-assign to current user
