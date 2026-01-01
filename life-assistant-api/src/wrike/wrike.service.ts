@@ -4,7 +4,6 @@ import axios, { AxiosInstance } from 'axios';
 import {
   WrikeTasksResponse,
   WrikeWorkflowsResponse,
-  WrikeFoldersResponse,
   WrikeContactsResponse,
   WrikeWebhooksResponse,
 } from './types/wrike-api.types';
@@ -70,35 +69,6 @@ export class WrikeService implements OnModuleInit {
   }
 
   /**
-   * Fetch tasks from a specific folder
-   */
-  async getTasksInFolder(folderId: string): Promise<WrikeTasksResponse> {
-    try {
-      this.logger.log(`Fetching tasks from Wrike folder: ${folderId}`);
-      const response = await this.axiosInstance.get<WrikeTasksResponse>(`/folders/${folderId}/tasks`);
-      return response.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch tasks from folder ${folderId}:`, error.message);
-      this.logger.error(`Wrike API error:`, JSON.stringify(error.response?.data));
-      throw error;
-    }
-  }
-
-  /**
-   * Create a new task in Wrike
-   */
-  async createTask(folderId: string, taskData: any): Promise<any> {
-    try {
-      this.logger.log(`Creating task in Wrike folder: ${folderId}`);
-      const response = await this.axiosInstance.post(`/folders/${folderId}/tasks`, taskData);
-      return response.data;
-    } catch (error) {
-      this.logger.error(`Failed to create Wrike task:`, error.message);
-      throw error;
-    }
-  }
-
-  /**
    * Update an existing task
    */
   async updateTask(taskId: string, taskData: any): Promise<any> {
@@ -125,20 +95,6 @@ export class WrikeService implements OnModuleInit {
       return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch Wrike custom statuses:', error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all folders
-   */
-  async getAllFolders(): Promise<WrikeFoldersResponse> {
-    try {
-      this.logger.log('Fetching all Wrike folders');
-      const response = await this.axiosInstance.get<WrikeFoldersResponse>('/folders');
-      return response.data;
-    } catch (error) {
-      this.logger.error('Failed to fetch folders:', error.message);
       throw error;
     }
   }
