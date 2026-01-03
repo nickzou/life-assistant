@@ -143,10 +143,6 @@ DATABASE_USERNAME=life_app
 DATABASE_PASSWORD=CHANGE_ME_SECURE_PASSWORD
 DATABASE_NAME=life_assistant
 
-# JWT
-JWT_SECRET=CHANGE_ME_USE_openssl_rand_-hex_32
-JWT_EXPIRATION=7d
-
 # Wrike Integration
 WRIKE_TOKEN=your_wrike_token_here
 
@@ -156,12 +152,8 @@ CLICKUP_WORKSPACE_ID=your_workspace_id
 CLICKUP_LIST_ID=your_list_id
 ```
 
-**Generate secure secrets:**
+**Generate secure database password:**
 ```bash
-# Generate JWT secret
-openssl rand -hex 32
-
-# Generate database password
 openssl rand -base64 32
 ```
 
@@ -181,9 +173,6 @@ DATABASE_PORT=5432
 DATABASE_USERNAME=life_app_staging
 DATABASE_PASSWORD=DIFFERENT_SECURE_PASSWORD
 DATABASE_NAME=life_assistant_staging
-
-JWT_SECRET=DIFFERENT_JWT_SECRET
-JWT_EXPIRATION=7d
 
 WRIKE_TOKEN=your_wrike_token_here
 CLICKUP_TOKEN=your_clickup_token_here
