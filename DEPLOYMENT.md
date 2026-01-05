@@ -320,14 +320,14 @@ networks:
 
 **On your local machine:**
 ```bash
-# Generate SSH key
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy
+# Generate SSH key (use project-specific name for shared VPS)
+ssh-keygen -t ed25519 -C "life-assistant-deploy" -f ~/.ssh/life-assistant-deploy
 
 # Display private key (copy to GitHub secret)
-cat ~/.ssh/github_deploy
+cat ~/.ssh/life-assistant-deploy
 
 # Display public key (add to server)
-cat ~/.ssh/github_deploy.pub
+cat ~/.ssh/life-assistant-deploy.pub
 ```
 
 **On your server:**
