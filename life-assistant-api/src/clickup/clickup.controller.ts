@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Logger, Param } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
 
@@ -158,6 +158,82 @@ export class ClickUpController {
       };
     } catch (error) {
       this.logger.error('Failed to create task:', error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * List all registered webhooks
+   * GET /clickup/webhooks/:teamId
+   */
+  @Get('webhooks/:teamId')
+  async listWebhooks(@Param('teamId') teamId: string) {
+    try {
+      const webhooks = await this.clickUpService.listWebhooks(teamId);
+      this.logger.log(`Found ${webhooks.webhooks?.length || 0} webhooks`);
+      return {
+        success: true,
+        count: webhooks.webhooks?.length || 0,
+        webhooks: webhooks.webhooks,
+      };
+    } catch (error) {
+      this.logger.error('Failed to list webhooks:', error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Setup webhook for current environment
+   * POST /clickup/webhooks/:teamId/setup
+   * Body: { "baseUrl": "https://your-server.com" } (optional)
+   */
+  @Post('webhooks/:teamId/setup')
+  async setupWebhook(@Param('teamId') teamId: string, @Body() body: { baseUrl?: string }) {
+    try {
+      const baseUrl = body.baseUrl || 'https://e2ab384a1a9f.ngrok.app';
+      const hookUrl = `${baseUrl}/webhooks/clickup`;
+
+      this.logger.log(`Setting up webhook for team ${teamId}: ${hookUrl}`);
+
+      const webhook = await this.clickUpService.createWebhook(teamId, hookUrl);
+
+      return {
+        success: true,
+        message: 'Webhook registered successfully',
+        webhook,
+        hookUrl,
+      };
+    } catch (error) {
+      this.logger.error('Failed to setup webhook:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        details: error.response?.data,
+      };
+    }
+  }
+
+  /**
+   * Delete a webhook by ID
+   * DELETE /clickup/webhooks/:webhookId
+   */
+  @Delete('webhooks/:webhookId')
+  async deleteWebhook(@Param('webhookId') webhookId: string) {
+    try {
+      await this.clickUpService.deleteWebhook(webhookId);
+      this.logger.log(`Deleted webhook: ${webhookId}`);
+      return {
+        success: true,
+        message: `Webhook ${webhookId} deleted successfully`,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
       return {
         success: false,
         error: error.message,
