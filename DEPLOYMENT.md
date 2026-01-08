@@ -132,6 +132,9 @@ nano /var/www/life-assistant/shared/.env.production
 
 **Contents:**
 ```env
+# GitHub Container Registry
+GITHUB_USERNAME=your-github-username
+
 # Application
 NODE_ENV=production
 PORT=3000
@@ -165,16 +168,24 @@ nano /var/www/life-assistant/shared/.env.staging
 
 **Contents:**
 ```env
+# GitHub Container Registry
+GITHUB_USERNAME=your-github-username
+
+# Application
 NODE_ENV=staging
 PORT=3000
 
+# Database
 DATABASE_HOST=postgres
 DATABASE_PORT=5432
 DATABASE_USERNAME=life_app_staging
 DATABASE_PASSWORD=DIFFERENT_SECURE_PASSWORD
 DATABASE_NAME=life_assistant_staging
 
+# Wrike Integration
 WRIKE_TOKEN=your_wrike_token_here
+
+# ClickUp Integration
 CLICKUP_TOKEN=your_clickup_token_here
 CLICKUP_WORKSPACE_ID=your_workspace_id
 CLICKUP_LIST_ID=your_staging_list_id
