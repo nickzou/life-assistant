@@ -5,6 +5,7 @@ import { TaskMapping } from './entities/task-mapping.entity';
 import { SyncLog } from './entities/sync-log.entity';
 import { User } from './entities/user.entity';
 import { DatabaseService } from './database.service';
+import { InitialSchema1737420000000 } from './migrations/1737420000000-InitialSchema';
 
 @Module({
   imports: [
@@ -19,8 +20,10 @@ import { DatabaseService } from './database.service';
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
         entities: [TaskMapping, SyncLog, User],
-        synchronize: configService.get('NODE_ENV') === 'development', // Auto-sync schema in dev
-        logging: configService.get('NODE_ENV') === 'development',
+        migrations: [InitialSchema1737420000000],
+        migrationsRun: true, // Auto-run migrations on startup
+        synchronize: false, // Never use synchronize in production
+        logging: configService.get('NODE_ENV') !== 'production',
       }),
     }),
     TypeOrmModule.forFeature([TaskMapping, SyncLog, User]),
