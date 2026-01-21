@@ -7,11 +7,51 @@ import { SyncService } from '../sync/sync.service';
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
 
+  // Track recently synced tasks to prevent loops (taskId -> timestamp)
+  private recentWrikeSyncs = new Map<string, number>();
+  private recentClickUpSyncs = new Map<string, number>();
+  private readonly DEBOUNCE_MS = 5000; // 5 seconds
+
   constructor(
     private readonly wrikeService: WrikeService,
     private readonly clickUpService: ClickUpService,
     private readonly syncService: SyncService,
   ) {}
+
+  /**
+   * Check if a task was recently synced (within debounce window)
+   */
+  private wasRecentlySynced(
+    taskId: string,
+    syncMap: Map<string, number>,
+  ): boolean {
+    const lastSync = syncMap.get(taskId);
+    if (!lastSync) return false;
+
+    const elapsed = Date.now() - lastSync;
+    if (elapsed < this.DEBOUNCE_MS) {
+      return true;
+    }
+
+    // Clean up old entry
+    syncMap.delete(taskId);
+    return false;
+  }
+
+  /**
+   * Record that a task was just synced
+   */
+  private recordSync(taskId: string, syncMap: Map<string, number>): void {
+    syncMap.set(taskId, Date.now());
+
+    // Clean up old entries (older than 1 minute)
+    const cutoff = Date.now() - 60000;
+    for (const [id, timestamp] of syncMap.entries()) {
+      if (timestamp < cutoff) {
+        syncMap.delete(id);
+      }
+    }
+  }
 
   /**
    * Process incoming Wrike webhook event
@@ -52,9 +92,9 @@ export class WebhooksService {
         continue;
       }
 
-      // Skip events triggered by our own sync (prevents infinite loops)
-      if (eventAuthorId === currentUserId) {
-        this.logger.log(`Skipping event - triggered by sync bot (self)`);
+      // Skip if this Wrike task was recently synced TO (from ClickUp) - prevents loops
+      if (this.wasRecentlySynced(taskId, this.recentWrikeSyncs)) {
+        this.logger.log(`Skipping event - Wrike task ${taskId} was recently synced from ClickUp (debounce)`);
         continue;
       }
 
@@ -111,7 +151,10 @@ export class WebhooksService {
         this.logger.log(`Syncing task ${taskId}: ${task.title}`);
 
         // Sync the task to ClickUp
-        await this.syncService.syncWrikeToClickUp(task);
+        const clickUpTaskId = await this.syncService.syncWrikeToClickUp(task);
+
+        // Record the ClickUp task ID to prevent ClickUp webhook from echoing back
+        this.recordSync(clickUpTaskId, this.recentClickUpSyncs);
 
       } catch (error) {
         this.logger.error(`Error processing event ${eventType} for task ${taskId}:`, error.message);
@@ -126,7 +169,7 @@ export class WebhooksService {
     this.logger.log('Received ClickUp webhook event');
     this.logger.log('Full webhook payload:', JSON.stringify(payload, null, 2));
 
-    const { event, task_id, history_items } = payload;
+    const { event, task_id } = payload;
 
     // Event types we care about for reverse sync
     const SYNC_EVENT_TYPES = [
@@ -144,16 +187,10 @@ export class WebhooksService {
       return;
     }
 
-    // Skip events triggered by our own sync (prevents infinite loops)
-    const currentUserId = this.clickUpService.getCurrentUserId();
-    if (currentUserId && history_items?.length > 0) {
-      const triggeredBySelf = history_items.some(
-        (item: any) => item.user?.id === currentUserId,
-      );
-      if (triggeredBySelf) {
-        this.logger.log(`Skipping event - triggered by sync bot (self)`);
-        return;
-      }
+    // Skip if this task was recently synced FROM Wrike (prevents loops)
+    if (this.wasRecentlySynced(task_id, this.recentWrikeSyncs)) {
+      this.logger.log(`Skipping event - task ${task_id} was recently synced from Wrike (debounce)`);
+      return;
     }
 
     try {
@@ -164,7 +201,12 @@ export class WebhooksService {
       this.logger.log(`Syncing task ${task_id}: ${clickUpTask.name}`);
 
       // Sync the task to Wrike (reverse sync)
-      await this.syncService.syncClickUpToWrike(clickUpTask);
+      const wrikeTaskId = await this.syncService.syncClickUpToWrike(clickUpTask);
+
+      // Record the Wrike task ID to prevent Wrike webhook from echoing back
+      if (wrikeTaskId) {
+        this.recordSync(wrikeTaskId, this.recentWrikeSyncs);
+      }
 
     } catch (error) {
       this.logger.error(`Error processing event ${event} for task ${task_id}:`, error.message);
