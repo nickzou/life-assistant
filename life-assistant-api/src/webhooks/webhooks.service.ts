@@ -44,11 +44,17 @@ export class WebhooksService {
     for (const event of events) {
       const { eventType, taskId, addedResponsibles, removedResponsibles, eventAuthorId } = event;
 
-      this.logger.log(`Processing event: ${eventType} for task ${taskId}`);
+      this.logger.log(`Processing event: ${eventType} for task ${taskId} (author: ${eventAuthorId})`);
 
       // Skip events we don't care about
       if (!SYNC_EVENT_TYPES.includes(eventType)) {
         this.logger.log(`Skipping event type: ${eventType}`);
+        continue;
+      }
+
+      // Skip events triggered by our own sync (prevents infinite loops)
+      if (eventAuthorId === currentUserId) {
+        this.logger.log(`Skipping event - triggered by sync bot (self)`);
         continue;
       }
 
@@ -120,7 +126,7 @@ export class WebhooksService {
     this.logger.log('Received ClickUp webhook event');
     this.logger.log('Full webhook payload:', JSON.stringify(payload, null, 2));
 
-    const { event, task_id } = payload;
+    const { event, task_id, history_items } = payload;
 
     // Event types we care about for reverse sync
     const SYNC_EVENT_TYPES = [
@@ -136,6 +142,18 @@ export class WebhooksService {
     if (!SYNC_EVENT_TYPES.includes(event)) {
       this.logger.log(`Skipping event type: ${event}`);
       return;
+    }
+
+    // Skip events triggered by our own sync (prevents infinite loops)
+    const currentUserId = this.clickUpService.getCurrentUserId();
+    if (currentUserId && history_items?.length > 0) {
+      const triggeredBySelf = history_items.some(
+        (item: any) => item.user?.id === currentUserId,
+      );
+      if (triggeredBySelf) {
+        this.logger.log(`Skipping event - triggered by sync bot (self)`);
+        return;
+      }
     }
 
     try {
