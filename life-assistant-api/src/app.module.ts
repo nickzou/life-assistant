@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { WrikeModule } from './wrike/wrike.module';
 import { ClickUpModule } from './clickup/clickup.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { GrocyModule } from './grocy/grocy.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     WrikeModule,
     ClickUpModule,
     WebhooksModule,
+    GrocyModule,
   ],
   controllers: [AppController],
   providers: [AppService],
