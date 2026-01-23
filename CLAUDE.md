@@ -1,11 +1,13 @@
 # Life Assistant - Claude Code Context
 
 **Last Updated**: January 2026
-**Current Branch**: feature/webhooks (merges to feature/database-module)
+**Main Branch**: `main` (production) | **Staging Branch**: `staging`
 
 ## Project Overview
 
-Life Assistant is a NestJS-based API that synchronizes tasks between Wrike and ClickUp via webhooks. It maintains bidirectional sync, automatically creating/updating tasks when changes occur in either platform.
+Life Assistant is a personal life automation platform. The first implemented feature is bidirectional task synchronization between Wrike (work) and ClickUp (personal), allowing work tasks to automatically appear in a personal task manager.
+
+**Vision**: A unified automation hub for personal productivity - task sync is just the beginning. Future modules may include calendar integration, habit tracking, automated reminders, and more.
 
 **Tech Stack**: NestJS, TypeORM, PostgreSQL 18, Docker
 
@@ -136,25 +138,34 @@ curl http://localhost:3000/clickup/test/me
 
 ## Current State
 
+### Task Sync Module (Complete)
 - ✅ Wrike → ClickUp sync (create, update, delete)
 - ✅ ClickUp → Wrike sync (update only, no creation)
-- ✅ Webhook handlers for both platforms
-- ✅ Database entities and migrations
+- ✅ Webhook handlers with signature verification
+- ✅ Tag-based sync loop prevention (`synced-from-wrike` tag)
+- ✅ Status mapping with caching (case-insensitive matching)
+- ✅ Date sync (due dates, start dates)
+- ✅ Auto-assignment to current user
+
+### Infrastructure
+- ✅ Database entities and migrations (TaskMapping, SyncLog)
 - ✅ Docker development environment
-- ⏳ Production deployment (see DEPLOYMENT.md)
+- ✅ CI/CD via GitHub Actions
+- ✅ Staging deployment (`staging.life-assistant-api.waffleruntime.com`)
+- ⏳ Production deployment (infrastructure ready, pending promotion)
+
+### Not Yet Implemented
+- ❌ REST API for frontend
+- ❌ React frontend (for custom quick views and automation triggers, not task management - ClickUp handles that)
+- ❌ Authentication module (JWT)
+- ❌ Additional automation modules (meal prep, habits, etc.)
 
 ## Testing Workflow
 
 1. Start services: `docker compose up -d`
 2. Check logs: `docker logs -f life-assistant-api`
-3. Setup webhooks using test endpoints
-4. Trigger events in Wrike/ClickUp
-5. Verify sync in opposite platform
-6. Check sync_logs table for audit trail
-
-## Recent Changes
-
-- Added webhook signature verification
-- Implemented task deletion on unassignment
-- Added status mapping with caching
-- Created comprehensive deployment documentation
+3. For local webhook testing, use ngrok: `ngrok http 3000`
+4. Setup webhooks using test endpoints
+5. Trigger events in Wrike/ClickUp
+6. Verify sync in opposite platform
+7. Check sync_logs table for audit trail
