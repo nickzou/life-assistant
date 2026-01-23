@@ -1,10 +1,18 @@
 # Life Assistant
 
-A powerful task synchronization service that keeps your Wrike and ClickUp projects in perfect harmony. Built with NestJS, TypeORM, and PostgreSQL.
+A personal life automation platform built with NestJS, TypeORM, and PostgreSQL.
 
 ## Overview
 
-Life Assistant automatically synchronizes tasks between Wrike and ClickUp using webhooks for real-time bidirectional sync. When you create or update a task in either platform, the changes are instantly reflected in the other.
+Life Assistant is designed to automate various aspects of personal productivity. The first implemented module synchronizes work tasks from Wrike into ClickUp, allowing work assignments to automatically appear in a personal task manager.
+
+**Current Module: Task Sync**
+- Automatically syncs tasks between Wrike (work) and ClickUp (personal)
+- Real-time bidirectional sync via webhooks
+- When you're assigned a task in Wrike, it appears in ClickUp
+- Status and date changes sync both directions
+
+**Future Vision:** Additional automation modules for meal prep scheduling, habit tracking, custom quick-action triggers, and more.
 
 ### Key Features
 
