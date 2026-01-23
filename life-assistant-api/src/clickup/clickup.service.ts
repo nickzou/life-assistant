@@ -234,4 +234,32 @@ export class ClickUpService implements OnModuleInit {
       throw error;
     }
   }
+
+  /**
+   * Add a tag to a task
+   */
+  async addTag(taskId: string, tagName: string): Promise<void> {
+    try {
+      this.logger.log(`Adding tag "${tagName}" to task ${taskId}`);
+      await this.axiosInstance.post(`/task/${taskId}/tag/${tagName}`);
+      this.logger.log(`Successfully added tag "${tagName}" to task ${taskId}`);
+    } catch (error) {
+      this.logger.error(`Failed to add tag "${tagName}" to task ${taskId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a tag from a task
+   */
+  async removeTag(taskId: string, tagName: string): Promise<void> {
+    try {
+      this.logger.log(`Removing tag "${tagName}" from task ${taskId}`);
+      await this.axiosInstance.delete(`/task/${taskId}/tag/${tagName}`);
+      this.logger.log(`Successfully removed tag "${tagName}" from task ${taskId}`);
+    } catch (error) {
+      this.logger.error(`Failed to remove tag "${tagName}" from task ${taskId}:`, error.message);
+      throw error;
+    }
+  }
 }
