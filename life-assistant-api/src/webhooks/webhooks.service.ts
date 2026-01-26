@@ -115,15 +115,18 @@ export class WebhooksService {
 
   /**
    * Process incoming ClickUp webhook event
+   *
+   * NOTE: ClickUp → Wrike sync is currently disabled to prevent issues on the Wrike side.
+   * This handler only removes the sync tag to prevent loops from Wrike → ClickUp syncs.
    */
   async handleClickUpWebhook(payload: any): Promise<void> {
     this.logger.log('Received ClickUp webhook event');
-    this.logger.log('Full webhook payload:', JSON.stringify(payload, null, 2));
+    this.logger.debug('Full webhook payload:', JSON.stringify(payload, null, 2));
 
     const { event, task_id } = payload;
 
-    // Event types we care about for reverse sync
-    const SYNC_EVENT_TYPES = [
+    // Event types where we need to check for sync tag
+    const TAG_CHECK_EVENTS = [
       'taskUpdated',
       'taskStatusUpdated',
       'taskDueDateUpdated',
@@ -132,15 +135,14 @@ export class WebhooksService {
 
     this.logger.log(`Processing event: ${event} for task ${task_id}`);
 
-    // Skip events we don't care about
-    if (!SYNC_EVENT_TYPES.includes(event)) {
+    // Only process events where we might need to remove the sync tag
+    if (!TAG_CHECK_EVENTS.includes(event)) {
       this.logger.log(`Skipping event type: ${event}`);
       return;
     }
 
     try {
-      // Fetch full task details from ClickUp API
-      this.logger.log(`Fetching task details for: ${task_id}`);
+      // Fetch task to check for sync tag
       const clickUpTask = await this.clickUpService.getTask(task_id);
 
       // Check if task has the sync tag (indicates it was synced from Wrike)
@@ -150,16 +152,14 @@ export class WebhooksService {
 
       if (hasSyncTag) {
         this.logger.log(
-          `Task ${task_id} has sync tag "${SYNC_TAG}" - removing tag and skipping reverse sync`,
+          `Task ${task_id} has sync tag "${SYNC_TAG}" - removing tag (reverse sync disabled)`,
         );
         await this.clickUpService.removeTag(task_id, SYNC_TAG);
-        return;
+      } else {
+        this.logger.log(
+          `Task ${task_id} updated in ClickUp - reverse sync disabled, no action taken`,
+        );
       }
-
-      this.logger.log(`Syncing task ${task_id}: ${clickUpTask.name}`);
-
-      // Sync the task to Wrike (reverse sync)
-      await this.syncService.syncClickUpToWrike(clickUpTask);
 
     } catch (error) {
       this.logger.error(`Error processing event ${event} for task ${task_id}:`, error.message);
