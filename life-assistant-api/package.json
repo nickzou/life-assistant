@@ -23,7 +23,8 @@
     "migration:run": "npm run build && npm run typeorm migration:run",
     "migration:revert": "npm run build && npm run typeorm migration:revert",
     "migration:show": "npm run build && npm run typeorm migration:show",
-    "seed:user": "ts-node -r tsconfig-paths/register src/commands/seed-user.command.ts"
+    "seed:user": "ts-node -r tsconfig-paths/register src/commands/seed-user.command.ts",
+    "seed:user:prod": "node dist/commands/seed-user.command.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
