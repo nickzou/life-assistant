@@ -123,12 +123,14 @@ export class GrocyService implements OnModuleInit {
 
   /**
    * Get a recipe picture as a buffer
+   * Note: Grocy requires Base64-encoded filenames for the files endpoint
    */
   async getRecipePicture(
     filename: string,
   ): Promise<{ data: Buffer; contentType: string }> {
+    const encodedFilename = Buffer.from(filename).toString('base64');
     const response = await this.axiosInstance.get(
-      `/files/recipepictures/${encodeURIComponent(filename)}`,
+      `/files/recipepictures/${encodedFilename}`,
       {
         responseType: 'arraybuffer',
       },
