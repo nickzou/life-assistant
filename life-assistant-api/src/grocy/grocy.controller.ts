@@ -1,9 +1,62 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { GrocyService } from './grocy.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('grocy')
 export class GrocyController {
   constructor(private readonly grocyService: GrocyService) {}
+
+  /**
+   * Get today's meal plan
+   * GET /grocy/meal-plan/today
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('meal-plan/today')
+  async getTodaysMealPlan() {
+    const today = new Date().toISOString().split('T')[0];
+    const mealPlan = await this.grocyService.getMealPlanForDate(today);
+
+    // Enrich with recipe details
+    const enrichedMealPlan = await Promise.all(
+      mealPlan.map(async (meal: any) => {
+        if (meal.recipe_id) {
+          const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          return { ...meal, recipe };
+        }
+        return meal;
+      }),
+    );
+
+    return {
+      date: today,
+      meals: enrichedMealPlan,
+    };
+  }
+
+  /**
+   * Get meal plan for a specific date
+   * GET /grocy/meal-plan/date/:date
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('meal-plan/date/:date')
+  async getMealPlanByDate(@Param('date') date: string) {
+    const mealPlan = await this.grocyService.getMealPlanForDate(date);
+
+    const enrichedMealPlan = await Promise.all(
+      mealPlan.map(async (meal: any) => {
+        if (meal.recipe_id) {
+          const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          return { ...meal, recipe };
+        }
+        return meal;
+      }),
+    );
+
+    return {
+      date,
+      meals: enrichedMealPlan,
+    };
+  }
 
   /**
    * Test endpoint - get system info

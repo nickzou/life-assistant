@@ -16,9 +16,14 @@ function RootLayout() {
               Home
             </Link>
             {isAuthenticated && (
-              <Link to="/webhooks" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
-                Webhooks
-              </Link>
+              <>
+                <Link to="/meals" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
+                  Meals
+                </Link>
+                <Link to="/webhooks" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
+                  Webhooks
+                </Link>
+              </>
             )}
           </div>
           {isAuthenticated && (
