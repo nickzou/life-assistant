@@ -271,6 +271,8 @@ export class ClickUpService implements OnModuleInit {
     completed: number;
     remaining: number;
     overdue: number;
+    affirmativeCompletions: number;
+    completionRate: number;
   }> {
     try {
       this.logger.log(`Fetching tasks due today for workspace: ${workspaceId}`);
@@ -278,6 +280,9 @@ export class ClickUpService implements OnModuleInit {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      // Affirmative completion statuses (green - actually completed)
+      const AFFIRMATIVE_STATUSES = ['complete', 'went', 'attended'];
 
       // Fetch tasks due today
       const todayResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
@@ -305,11 +310,22 @@ export class ClickUpService implements OnModuleInit {
         (task: any) => task.status?.type === 'done' || task.status?.type === 'closed',
       ).length;
 
+      const affirmativeCompletions = todayTasks.filter(
+        (task: any) => AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+      ).length;
+
+      // Completion rate: affirmative completions / total tasks due today
+      const completionRate = todayTasks.length > 0
+        ? Math.round((affirmativeCompletions / todayTasks.length) * 100)
+        : 0;
+
       return {
         total: todayTasks.length,
         completed,
         remaining: todayTasks.length - completed,
         overdue: overdueTasks.length,
+        affirmativeCompletions,
+        completionRate,
       };
     } catch (error) {
       this.logger.error(`Failed to fetch tasks due today:`, error.message);

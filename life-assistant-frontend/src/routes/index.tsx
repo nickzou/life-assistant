@@ -8,6 +8,8 @@ interface TasksDueToday {
   completed: number
   remaining: number
   overdue: number
+  affirmativeCompletions: number
+  completionRate: number
 }
 
 export const Route = createFileRoute('/')({
@@ -53,24 +55,34 @@ function Index() {
           )}
 
           {tasks && (
-            <div className="grid grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{tasks.total}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Due Today</p>
+            <>
+              <div className="mb-6 text-center">
+                <p className="text-5xl font-bold text-green-600 dark:text-green-400">
+                  {tasks.completionRate}%
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Completion Rate ({tasks.affirmativeCompletions}/{tasks.total} tasks)
+                </p>
               </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">{tasks.completed}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{tasks.total}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Due Today</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{tasks.affirmativeCompletions}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{tasks.remaining}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-red-600 dark:text-red-400">{tasks.overdue}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Overdue</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{tasks.remaining}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-red-600 dark:text-red-400">{tasks.overdue}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Overdue</p>
-              </div>
-            </div>
+            </>
           )}
         </div>
       </div>
