@@ -133,6 +133,10 @@ function MealsPage() {
                           src={imageUrl}
                           alt={meal.recipe?.name || 'Recipe'}
                           className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                          onError={(e) => {
+                            // Hide image if it fails to load
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
                         />
                       )}
                       <div className="flex-1">

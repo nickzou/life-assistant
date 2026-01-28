@@ -155,19 +155,24 @@ export class GrocyController {
     @Param('recipeId') recipeId: string,
     @Res() res: Response,
   ) {
-    const recipe = await this.grocyService.getRecipe(parseInt(recipeId, 10));
+    try {
+      const recipe = await this.grocyService.getRecipe(parseInt(recipeId, 10));
 
-    if (!recipe.picture_file_name) {
-      res.status(404).send('No picture available');
-      return;
+      if (!recipe.picture_file_name) {
+        res.status(404).send('No picture available');
+        return;
+      }
+
+      const { data, contentType } = await this.grocyService.getRecipePicture(
+        recipe.picture_file_name,
+      );
+
+      res.set('Content-Type', contentType);
+      res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      res.send(data);
+    } catch (error) {
+      // Picture not found or Grocy error - return 404
+      res.status(404).send('Picture not available');
     }
-
-    const { data, contentType } = await this.grocyService.getRecipePicture(
-      recipe.picture_file_name,
-    );
-
-    res.set('Content-Type', contentType);
-    res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
-    res.send(data);
   }
 }
