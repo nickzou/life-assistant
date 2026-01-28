@@ -25,6 +25,8 @@ services:
     restart: unless-stopped
     ports:
       - '127.0.0.1:3001:3000'
+    environment:
+      TZ: America/New_York
     env_file:
       - .env.staging
     depends_on:
