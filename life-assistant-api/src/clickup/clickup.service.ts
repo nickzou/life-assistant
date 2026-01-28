@@ -263,6 +263,76 @@ export class ClickUpService implements OnModuleInit {
     }
   }
 
+  // Affirmative completion statuses (green - actually completed)
+  private readonly AFFIRMATIVE_STATUSES = ['complete', 'went', 'attended'];
+
+  /**
+   * Get completion stats for a specific date
+   */
+  async getCompletionStatsForDate(
+    workspaceId: string,
+    date: Date,
+  ): Promise<{
+    date: string;
+    total: number;
+    affirmativeCompletions: number;
+    completionRate: number;
+  }> {
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+
+    const response = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+      params: {
+        due_date_gt: startOfDay.getTime(),
+        due_date_lt: endOfDay.getTime(),
+        subtasks: true,
+        include_closed: true,
+      },
+    });
+
+    const tasks = response.data.tasks || [];
+    const affirmativeCompletions = tasks.filter(
+      (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+    ).length;
+
+    const completionRate = tasks.length > 0
+      ? Math.round((affirmativeCompletions / tasks.length) * 100)
+      : 0;
+
+    return {
+      date: startOfDay.toISOString().split('T')[0],
+      total: tasks.length,
+      affirmativeCompletions,
+      completionRate,
+    };
+  }
+
+  /**
+   * Get completion stats for the last N days
+   */
+  async getCompletionStatsHistory(
+    workspaceId: string,
+    days: number,
+  ): Promise<{
+    date: string;
+    total: number;
+    affirmativeCompletions: number;
+    completionRate: number;
+  }[]> {
+    this.logger.log(`Fetching completion stats for last ${days} days`);
+    const stats = [];
+    const today = new Date();
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dayStat = await this.getCompletionStatsForDate(workspaceId, date);
+      stats.push(dayStat);
+    }
+
+    return stats;
+  }
+
   /**
    * Get tasks due today for the workspace
    */
@@ -280,9 +350,6 @@ export class ClickUpService implements OnModuleInit {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-      // Affirmative completion statuses (green - actually completed)
-      const AFFIRMATIVE_STATUSES = ['complete', 'went', 'attended'];
 
       // Fetch tasks due today
       const todayResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
@@ -311,7 +378,7 @@ export class ClickUpService implements OnModuleInit {
       ).length;
 
       const affirmativeCompletions = todayTasks.filter(
-        (task: any) => AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+        (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
       ).length;
 
       // Completion rate: affirmative completions / total tasks due today
