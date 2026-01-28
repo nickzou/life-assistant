@@ -262,4 +262,58 @@ export class ClickUpService implements OnModuleInit {
       throw error;
     }
   }
+
+  /**
+   * Get tasks due today for the workspace
+   */
+  async getTasksDueToday(workspaceId: string): Promise<{
+    total: number;
+    completed: number;
+    remaining: number;
+    overdue: number;
+  }> {
+    try {
+      this.logger.log(`Fetching tasks due today for workspace: ${workspaceId}`);
+
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      // Fetch tasks due today
+      const todayResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+        params: {
+          due_date_gt: startOfDay.getTime(),
+          due_date_lt: endOfDay.getTime(),
+          subtasks: true,
+        },
+      });
+
+      // Fetch overdue tasks (due before today, not completed)
+      const overdueResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+        params: {
+          due_date_lt: startOfDay.getTime(),
+          subtasks: true,
+        },
+      });
+
+      const todayTasks = todayResponse.data.tasks || [];
+      const overdueTasks = (overdueResponse.data.tasks || []).filter(
+        (task: any) => task.status?.type !== 'done' && task.status?.type !== 'closed',
+      );
+
+      const completed = todayTasks.filter(
+        (task: any) => task.status?.type === 'done' || task.status?.type === 'closed',
+      ).length;
+
+      return {
+        total: todayTasks.length,
+        completed,
+        remaining: todayTasks.length - completed,
+        overdue: overdueTasks.length,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch tasks due today:`, error.message);
+      throw error;
+    }
+  }
 }
