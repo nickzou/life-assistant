@@ -11,9 +11,16 @@ function RootLayout() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {!isLoginPage && (
         <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-          <Link to="/" className="text-gray-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
-            Home
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link to="/" className="text-gray-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
+              Home
+            </Link>
+            {isAuthenticated && (
+              <Link to="/webhooks" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
+                Webhooks
+              </Link>
+            )}
+          </div>
           {isAuthenticated && (
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600 dark:text-gray-400">{user?.email}</span>
