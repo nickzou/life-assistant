@@ -1,7 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { WrikeService } from '../wrike/wrike.service';
 import { ClickUpService } from '../clickup/clickup.service';
 import { SyncService, SYNC_TAG } from '../sync/sync.service';
+
+export interface WebhookStatusItem {
+  id: string;
+  source: 'wrike' | 'clickup';
+  url: string;
+  status: 'active' | 'suspended' | 'unknown';
+  events?: string[];
+}
+
+export interface WebhookStatusResponse {
+  webhooks: WebhookStatusItem[];
+  summary: {
+    total: number;
+    active: number;
+    suspended: number;
+  };
+}
 
 @Injectable()
 export class WebhooksService {
@@ -11,6 +29,7 @@ export class WebhooksService {
     private readonly wrikeService: WrikeService,
     private readonly clickUpService: ClickUpService,
     private readonly syncService: SyncService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -115,15 +134,18 @@ export class WebhooksService {
 
   /**
    * Process incoming ClickUp webhook event
+   *
+   * NOTE: ClickUp → Wrike sync is currently disabled to prevent issues on the Wrike side.
+   * This handler only removes the sync tag to prevent loops from Wrike → ClickUp syncs.
    */
   async handleClickUpWebhook(payload: any): Promise<void> {
     this.logger.log('Received ClickUp webhook event');
-    this.logger.log('Full webhook payload:', JSON.stringify(payload, null, 2));
+    this.logger.debug('Full webhook payload:', JSON.stringify(payload, null, 2));
 
     const { event, task_id } = payload;
 
-    // Event types we care about for reverse sync
-    const SYNC_EVENT_TYPES = [
+    // Event types where we need to check for sync tag
+    const TAG_CHECK_EVENTS = [
       'taskUpdated',
       'taskStatusUpdated',
       'taskDueDateUpdated',
@@ -132,15 +154,14 @@ export class WebhooksService {
 
     this.logger.log(`Processing event: ${event} for task ${task_id}`);
 
-    // Skip events we don't care about
-    if (!SYNC_EVENT_TYPES.includes(event)) {
+    // Only process events where we might need to remove the sync tag
+    if (!TAG_CHECK_EVENTS.includes(event)) {
       this.logger.log(`Skipping event type: ${event}`);
       return;
     }
 
     try {
-      // Fetch full task details from ClickUp API
-      this.logger.log(`Fetching task details for: ${task_id}`);
+      // Fetch task to check for sync tag
       const clickUpTask = await this.clickUpService.getTask(task_id);
 
       // Check if task has the sync tag (indicates it was synced from Wrike)
@@ -150,19 +171,85 @@ export class WebhooksService {
 
       if (hasSyncTag) {
         this.logger.log(
-          `Task ${task_id} has sync tag "${SYNC_TAG}" - removing tag and skipping reverse sync`,
+          `Task ${task_id} has sync tag "${SYNC_TAG}" - removing tag (reverse sync disabled)`,
         );
         await this.clickUpService.removeTag(task_id, SYNC_TAG);
-        return;
+      } else {
+        this.logger.log(
+          `Task ${task_id} updated in ClickUp - reverse sync disabled, no action taken`,
+        );
       }
-
-      this.logger.log(`Syncing task ${task_id}: ${clickUpTask.name}`);
-
-      // Sync the task to Wrike (reverse sync)
-      await this.syncService.syncClickUpToWrike(clickUpTask);
 
     } catch (error) {
       this.logger.error(`Error processing event ${event} for task ${task_id}:`, error.message);
+    }
+  }
+
+  /**
+   * Get status of all registered webhooks from both platforms
+   */
+  async getWebhookStatus(): Promise<WebhookStatusResponse> {
+    const webhooks: WebhookStatusItem[] = [];
+
+    // Fetch Wrike webhooks
+    try {
+      this.logger.log('Fetching Wrike webhooks...');
+      const wrikeWebhooks = await this.wrikeService.listWebhooks();
+
+      for (const webhook of wrikeWebhooks.data) {
+        webhooks.push({
+          id: webhook.id,
+          source: 'wrike',
+          url: webhook.hookUrl,
+          status: webhook.status === 'Active' ? 'active' : 'suspended',
+        });
+      }
+      this.logger.log(`Found ${wrikeWebhooks.data.length} Wrike webhooks`);
+    } catch (error) {
+      this.logger.error('Failed to fetch Wrike webhooks:', error.message);
+    }
+
+    // Fetch ClickUp webhooks
+    try {
+      const workspaceId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+      if (workspaceId) {
+        this.logger.log('Fetching ClickUp webhooks...');
+        const clickUpWebhooks = await this.clickUpService.listWebhooks(workspaceId);
+
+        for (const webhook of clickUpWebhooks.webhooks || []) {
+          webhooks.push({
+            id: webhook.id,
+            source: 'clickup',
+            url: webhook.endpoint,
+            status: webhook.health?.status === 'active' ? 'active' : 'suspended',
+            events: webhook.events,
+          });
+        }
+        this.logger.log(`Found ${clickUpWebhooks.webhooks?.length || 0} ClickUp webhooks`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to fetch ClickUp webhooks:', error.message);
+    }
+
+    const summary = {
+      total: webhooks.length,
+      active: webhooks.filter((w) => w.status === 'active').length,
+      suspended: webhooks.filter((w) => w.status === 'suspended').length,
+    };
+
+    return { webhooks, summary };
+  }
+
+  /**
+   * Delete a webhook by source and ID
+   */
+  async deleteWebhook(source: 'wrike' | 'clickup', id: string): Promise<void> {
+    if (source === 'wrike') {
+      await this.wrikeService.deleteWebhook(id);
+    } else if (source === 'clickup') {
+      await this.clickUpService.deleteWebhook(id);
+    } else {
+      throw new Error(`Unknown webhook source: ${source}`);
     }
   }
 }

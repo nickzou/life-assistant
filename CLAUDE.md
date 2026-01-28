@@ -9,53 +9,84 @@ Life Assistant is a personal life automation platform. The first implemented fea
 
 **Vision**: A unified automation hub for personal productivity - task sync is just the beginning. Future modules may include calendar integration, habit tracking, automated reminders, and more.
 
-**Tech Stack**: NestJS, TypeORM, PostgreSQL 18, Docker
+**Tech Stack**: NestJS, TypeORM, PostgreSQL 18, Docker, React, Vite, TanStack Router, Tailwind CSS
 
 ## Architecture
 
 ```
 life-assistant/
-├── life-assistant-api/          # NestJS application
+├── life-assistant-api/          # NestJS backend
 │   ├── src/
+│   │   ├── auth/               # JWT authentication
 │   │   ├── wrike/              # Wrike API integration
 │   │   ├── clickup/            # ClickUp API integration
-│   │   ├── webhooks/           # Webhook handlers (Wrike & ClickUp)
+│   │   ├── webhooks/           # Webhook handlers + status monitoring
 │   │   ├── sync/               # Sync orchestration logic
-│   │   └── database/           # TypeORM entities & migrations
+│   │   ├── database/           # TypeORM entities & migrations
+│   │   └── commands/           # CLI commands (seed-user)
 │   ├── Dockerfile              # Multi-stage production build
 │   └── package.json
+├── life-assistant-frontend/     # React frontend
+│   ├── src/
+│   │   ├── routes/             # TanStack Router file-based routes
+│   │   ├── components/         # Reusable components
+│   │   ├── contexts/           # React contexts (AuthContext)
+│   │   └── lib/                # API client, utilities
+│   ├── Dockerfile              # Multi-stage build (Node + nginx)
+│   └── package.json
+├── deployment/                  # Docker Compose for prod/staging
 ├── docker-compose.yml          # Development environment
 └── DEPLOYMENT.md               # Production deployment guide
 ```
 
 ## Key Modules
 
-### 1. Wrike Module (`src/wrike/`)
+### 1. Auth Module (`src/auth/`)
+- **AuthService**: User validation, JWT token generation, password hashing
+- **AuthController**: `POST /auth/login`, `GET /auth/me` endpoints
+- **JwtStrategy**: Passport.js JWT strategy for token validation
+- **JwtAuthGuard**: Protects routes requiring authentication
+- **CurrentUser decorator**: Extracts user from request
+
+### 2. Wrike Module (`src/wrike/`)
 - **WrikeService**: API client with cached user ID (initialized on module startup)
 - **WrikeController**: Test endpoints for manual API testing
 - **Types**: TypeScript definitions in `types/wrike-api.types.ts`
 
-### 2. ClickUp Module (`src/clickup/`)
+### 3. ClickUp Module (`src/clickup/`)
 - **ClickUpService**: API client with cached user/workspace IDs
 - Similar structure to Wrike module
 
-### 3. Webhooks Module (`src/webhooks/`)
-- **WrikeWebhookController**: Handles Wrike webhook events (task created/updated/deleted/assigned)
-- **ClickUpWebhookController**: Handles ClickUp webhook events (task updated/status changed)
-- Both use signature verification for security
+### 4. Webhooks Module (`src/webhooks/`)
+- **WebhooksController**:
+  - `POST /webhooks/wrike` - Handles Wrike webhook events
+  - `POST /webhooks/clickup` - Handles ClickUp webhook events
+  - `GET /webhooks/status` - Returns status of all registered webhooks (protected)
+  - `DELETE /webhooks/:source/:id` - Deletes a webhook (protected)
+- **WebhooksService**: Processes webhook events, aggregates webhook status
 
-### 4. Sync Module (`src/sync/`)
+### 5. Sync Module (`src/sync/`)
 - **SyncService**: Orchestrates bidirectional sync between platforms
   - `syncWrikeToClickUp()`: Creates/updates ClickUp tasks
   - `syncClickUpToWrike()`: Updates Wrike tasks (no creation)
   - `deleteTaskFromClickUp()`: Deletes ClickUp tasks when Wrike assignment removed
   - Status mapping with cached workflow data
 
-### 5. Database Module (`src/database/`)
+### 6. Database Module (`src/database/`)
 - **Entities**:
+  - `User`: Single user for authentication
   - `TaskMapping`: Links Wrike tasks to ClickUp tasks
   - `SyncLog`: Audit trail of all sync operations
 - **Migrations**: TypeORM migrations in `migrations/`
+
+### 7. Frontend (`life-assistant-frontend/`)
+- **Routes**: TanStack Router file-based routing
+  - `/login` - Login page
+  - `/` - Home (protected)
+  - `/webhooks` - Webhook status monitoring (protected)
+- **AuthContext**: Manages JWT token storage and auth state
+- **ProtectedRoute**: HOC to guard authenticated routes
+- **API client**: Axios with JWT interceptor
 
 ## Critical Implementation Details
 
@@ -93,6 +124,11 @@ DATABASE_NAME=life_assistant
 # API Server
 PORT=3000
 NODE_ENV=development
+CORS_ORIGIN=http://localhost:5173
+
+# JWT Authentication
+JWT_SECRET=your_jwt_secret_change_in_production
+JWT_EXPIRATION=7d
 
 # Integrations
 WRIKE_TOKEN=your_wrike_token
@@ -101,23 +137,39 @@ CLICKUP_WORKSPACE_ID=your_workspace_id
 CLICKUP_LIST_ID=your_list_id
 ```
 
+Frontend environment (built into the app at build time):
+```bash
+VITE_API_URL=http://localhost:3000  # API base URL
+```
+
 ## Common Development Commands
 
 ```bash
-# Start development environment
+# Start database (Docker)
 docker compose up -d
 
-# Run migrations
+# Start API (in life-assistant-api/)
+npm run start:dev
+
+# Start frontend (in life-assistant-frontend/)
+npm run dev
+
+# Run migrations (in life-assistant-api/)
 npm run migration:run
 
 # Generate new migration
 npm run migration:generate -- src/database/migrations/MigrationName
 
-# Test Wrike API
-curl http://localhost:3000/wrike/test/me
+# Seed a user (development)
+npm run seed:user -- --email=you@example.com --password=yourpassword
 
-# Test ClickUp API
-curl http://localhost:3000/clickup/test/me
+# Seed a user (production container)
+docker compose exec api npm run seed:user:prod -- --email=you@example.com --password=yourpassword
+
+# Test login
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"yourpassword"}'
 ```
 
 ## Important Patterns
@@ -135,30 +187,47 @@ curl http://localhost:3000/clickup/test/me
 3. **Webhook URLs**: Must be publicly accessible (use ngrok for dev)
 4. **ClickUp List ID**: Required for all task operations, not workspace ID
 5. **Date Precision**: Always use `.toString()` on Unix timestamps for ClickUp
+6. **Wrike Webhooks**: Tend to go inactive/suspended - check status regularly
+7. **CORS**: API needs `CORS_ORIGIN` set to frontend URL in production
+8. **Password Special Characters**: When seeding users via CLI, special characters (`!$'"`) need shell escaping or use single quotes
+9. **Frontend API URL**: `VITE_API_URL` is baked in at build time, not runtime
 
 ## Current State
 
 ### Task Sync Module (Complete)
 - ✅ Wrike → ClickUp sync (create, update, delete)
-- ✅ ClickUp → Wrike sync (update only, no creation)
+- ✅ ClickUp → Wrike sync (disabled, was causing issues)
 - ✅ Webhook handlers with signature verification
 - ✅ Tag-based sync loop prevention (`synced-from-wrike` tag)
 - ✅ Status mapping with caching (case-insensitive matching)
 - ✅ Date sync (due dates, start dates)
 - ✅ Auto-assignment to current user
 
+### Authentication (Complete)
+- ✅ Single-user JWT authentication
+- ✅ Login endpoint with bcrypt password verification
+- ✅ Protected routes with JwtAuthGuard
+- ✅ User seeding CLI command
+
+### Frontend (Complete)
+- ✅ React + Vite + TanStack Router
+- ✅ Tailwind CSS styling
+- ✅ Login page with auth flow
+- ✅ Protected routes
+- ✅ Webhook status monitoring page
+
 ### Infrastructure
-- ✅ Database entities and migrations (TaskMapping, SyncLog)
+- ✅ Database entities and migrations (User, TaskMapping, SyncLog)
 - ✅ Docker development environment
-- ✅ CI/CD via GitHub Actions
-- ✅ Staging deployment (`staging.life-assistant-api.waffleruntime.com`)
+- ✅ CI/CD via GitHub Actions (builds both API and frontend)
+- ✅ Staging deployment
+  - API: `staging.life-assistant-api.waffleruntime.com`
+  - Frontend: `staging.life-assistant.waffleruntime.com`
 - ⏳ Production deployment (infrastructure ready, pending promotion)
 
 ### Not Yet Implemented
-- ❌ REST API for frontend
-- ❌ React frontend (for custom quick views and automation triggers, not task management - ClickUp handles that)
-- ❌ Authentication module (JWT)
 - ❌ Additional automation modules (meal prep, habits, etc.)
+- ❌ Webhook auto-recovery (re-register when suspended)
 
 ## Testing Workflow
 

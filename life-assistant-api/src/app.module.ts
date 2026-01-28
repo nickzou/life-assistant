@@ -7,6 +7,7 @@ import { WrikeModule } from './wrike/wrike.module';
 import { ClickUpModule } from './clickup/clickup.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { GrocyModule } from './grocy/grocy.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { GrocyModule } from './grocy/grocy.module';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    AuthModule,
     WrikeModule,
     ClickUpModule,
     WebhooksModule,
