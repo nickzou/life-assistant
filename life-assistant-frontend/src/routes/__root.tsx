@@ -17,6 +17,9 @@ function RootLayout() {
             </Link>
             {isAuthenticated && (
               <>
+                <Link to="/stats" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
+                  Stats
+                </Link>
                 <Link to="/meals" className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
                   Meals
                 </Link>

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WebhooksRouteImport } from './routes/webhooks'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as MealsRouteImport } from './routes/meals'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const WebhooksRoute = WebhooksRouteImport.update({
   id: '/webhooks',
   path: '/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MealsRoute = MealsRouteImport.update({
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/meals': typeof MealsRoute
+  '/stats': typeof StatsRoute
   '/webhooks': typeof WebhooksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/meals': typeof MealsRoute
+  '/stats': typeof StatsRoute
   '/webhooks': typeof WebhooksRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/meals': typeof MealsRoute
+  '/stats': typeof StatsRoute
   '/webhooks': typeof WebhooksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/meals' | '/webhooks'
+  fullPaths: '/' | '/login' | '/meals' | '/stats' | '/webhooks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/meals' | '/webhooks'
-  id: '__root__' | '/' | '/login' | '/meals' | '/webhooks'
+  to: '/' | '/login' | '/meals' | '/stats' | '/webhooks'
+  id: '__root__' | '/' | '/login' | '/meals' | '/stats' | '/webhooks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   MealsRoute: typeof MealsRoute
+  StatsRoute: typeof StatsRoute
   WebhooksRoute: typeof WebhooksRoute
 }
 
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/webhooks'
       fullPath: '/webhooks'
       preLoaderRoute: typeof WebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meals': {
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   MealsRoute: MealsRoute,
+  StatsRoute: StatsRoute,
   WebhooksRoute: WebhooksRoute,
 }
 export const routeTree = rootRouteImport
