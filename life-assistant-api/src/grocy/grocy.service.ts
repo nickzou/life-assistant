@@ -120,4 +120,22 @@ export class GrocyService implements OnModuleInit {
     const response = await this.axiosInstance.get('/tasks');
     return response.data;
   }
+
+  /**
+   * Get a recipe picture as a buffer
+   */
+  async getRecipePicture(
+    filename: string,
+  ): Promise<{ data: Buffer; contentType: string }> {
+    const response = await this.axiosInstance.get(
+      `/files/recipepictures/${encodeURIComponent(filename)}`,
+      {
+        responseType: 'arraybuffer',
+      },
+    );
+    return {
+      data: response.data,
+      contentType: response.headers['content-type'] || 'image/jpeg',
+    };
+  }
 }

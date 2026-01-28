@@ -1,13 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '../components/ProtectedRoute';
-import { api } from '../lib/api';
+import { api, API_BASE_URL } from '../lib/api';
 
 interface Recipe {
   id: number;
   name: string;
   description?: string;
   picture_file_name?: string;
+  picture_url?: string;
 }
 
 interface MealPlanItem {
@@ -116,33 +117,46 @@ function MealsPage() {
                 No meals planned for this day
               </div>
             ) : (
-              data.meals.map((meal) => (
-                <div
-                  key={meal.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mb-2">
-                        {getMealTypeLabel(meal.type)}
-                      </span>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {meal.recipe?.name || meal.note || 'Unnamed meal'}
-                      </h3>
-                      {meal.recipe?.description && (
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                          {meal.recipe.description}
-                        </p>
+              data.meals.map((meal) => {
+                const imageUrl = meal.recipe?.picture_url
+                  ? `${API_BASE_URL}${meal.recipe.picture_url}?token=${localStorage.getItem('auth_token')}`
+                  : null;
+
+                return (
+                  <div
+                    key={meal.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"
+                  >
+                    <div className="flex items-start gap-4">
+                      {imageUrl && (
+                        <img
+                          src={imageUrl}
+                          alt={meal.recipe?.name || 'Recipe'}
+                          className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                        />
                       )}
-                      {meal.servings && (
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                          Servings: {meal.servings}
-                        </p>
-                      )}
+                      <div className="flex-1">
+                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mb-2">
+                          {getMealTypeLabel(meal.type)}
+                        </span>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {meal.recipe?.name || meal.note || 'Unnamed meal'}
+                        </h3>
+                        {meal.recipe?.description && (
+                          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                            {meal.recipe.description}
+                          </p>
+                        )}
+                        {meal.servings && (
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+                            Servings: {meal.servings}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

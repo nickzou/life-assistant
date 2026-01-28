@@ -1,4 +1,5 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { GrocyService } from './grocy.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -21,6 +22,9 @@ export class GrocyController {
       mealPlan.map(async (meal: any) => {
         if (meal.recipe_id) {
           const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          if (recipe.picture_file_name) {
+            recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
+          }
           return { ...meal, recipe };
         }
         return meal;
@@ -46,6 +50,9 @@ export class GrocyController {
       mealPlan.map(async (meal: any) => {
         if (meal.recipe_id) {
           const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          if (recipe.picture_file_name) {
+            recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
+          }
           return { ...meal, recipe };
         }
         return meal;
@@ -136,5 +143,31 @@ export class GrocyController {
   @Get('test/tasks')
   async getTasks() {
     return this.grocyService.getTasks();
+  }
+
+  /**
+   * Proxy endpoint for recipe pictures
+   * GET /grocy/recipes/:recipeId/picture
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('recipes/:recipeId/picture')
+  async getRecipePicture(
+    @Param('recipeId') recipeId: string,
+    @Res() res: Response,
+  ) {
+    const recipe = await this.grocyService.getRecipe(parseInt(recipeId, 10));
+
+    if (!recipe.picture_file_name) {
+      res.status(404).send('No picture available');
+      return;
+    }
+
+    const { data, contentType } = await this.grocyService.getRecipePicture(
+      recipe.picture_file_name,
+    );
+
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+    res.send(data);
   }
 }

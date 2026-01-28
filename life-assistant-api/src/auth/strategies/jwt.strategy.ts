@@ -3,6 +3,20 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService, JwtPayload } from '../auth.service';
+import type { Request } from 'express';
+
+// Custom extractor that tries header first, then query param (for image loading)
+const extractJwt = (req: Request): string | null => {
+  const fromHeader = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+  if (fromHeader) {
+    return fromHeader;
+  }
+  // Fallback to query param for image loading
+  if (req.query?.token && typeof req.query.token === 'string') {
+    return req.query.token;
+  }
+  return null;
+};
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,7 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly authService: AuthService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: extractJwt,
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
     });
