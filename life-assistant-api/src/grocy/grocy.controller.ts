@@ -2,6 +2,7 @@ import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { GrocyService } from './grocy.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { getTodayString } from '../utils/date.utils';
 
 @Controller('grocy')
 export class GrocyController {
@@ -14,7 +15,7 @@ export class GrocyController {
   @UseGuards(JwtAuthGuard)
   @Get('meal-plan/today')
   async getTodaysMealPlan() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayString();
     const mealPlan = await this.grocyService.getMealPlanForDate(today);
 
     // Enrich with recipe details

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { api, API_BASE_URL } from '../lib/api';
+import { getTodayString } from '../lib/date.utils';
 
 interface Recipe {
   id: number;
@@ -36,14 +37,14 @@ function MealsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return getTodayString();
   });
 
   const fetchMealPlan = async (date: string) => {
     setLoading(true);
     setError(null);
     try {
-      const endpoint = date === new Date().toISOString().split('T')[0]
+      const endpoint = date === getTodayString()
         ? '/grocy/meal-plan/today'
         : `/grocy/meal-plan/date/${date}`;
       const response = await api.get<MealPlanResponse>(endpoint);
