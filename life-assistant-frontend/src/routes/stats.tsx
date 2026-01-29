@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { api } from '../lib/api'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface DayStats {
   date: string
@@ -68,7 +69,50 @@ function StatsPage() {
         )}
 
         {!loading && !error && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Completion Rate Trend
+              </h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={[...stats].reverse().map(day => ({
+                  ...day,
+                  label: formatDate(day.date)
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis
+                    dataKey="label"
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      color: '#F9FAFB'
+                    }}
+                    formatter={(value: number) => [`${value}%`, 'Completion Rate']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="completionRate"
+                    stroke="#10B981"
+                    strokeWidth={2}
+                    dot={{ fill: '#10B981', strokeWidth: 2 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
@@ -106,6 +150,7 @@ function StatsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </ProtectedRoute>
