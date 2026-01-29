@@ -7,6 +7,7 @@ import {
   ClickUpSpacesResponse,
   ClickUpListsResponse,
 } from './types/clickup-api.types';
+import { getNowInTimezone, formatDateString } from '../utils/date.utils';
 
 @Injectable()
 export class ClickUpService implements OnModuleInit {
@@ -266,17 +267,6 @@ export class ClickUpService implements OnModuleInit {
   // Affirmative completion statuses (green - actually completed)
   private readonly AFFIRMATIVE_STATUSES = ['complete', 'completed', 'went', 'attended'];
 
-  private readonly TIMEZONE = 'America/New_York';
-
-  /**
-   * Get current date in America/New_York timezone
-   * This ensures consistent behavior regardless of server TZ setting
-   */
-  private getNowInTimezone(): Date {
-    const now = new Date();
-    return new Date(now.toLocaleString('en-US', { timeZone: this.TIMEZONE }));
-  }
-
   // Statuses to exclude from total count (still in progress, shouldn't count against rate)
   private readonly EXCLUDED_STATUSES = ['in progress'];
 
@@ -319,11 +309,8 @@ export class ClickUpService implements OnModuleInit {
       ? Math.round((affirmativeCompletions / tasks.length) * 100)
       : 0;
 
-    // Use local date parts to avoid UTC conversion (toISOString always returns UTC)
-    const dateStr = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, '0')}-${String(startOfDay.getDate()).padStart(2, '0')}`;
-
     return {
-      date: dateStr,
+      date: formatDateString(startOfDay),
       total: tasks.length,
       affirmativeCompletions,
       completionRate,
@@ -344,7 +331,7 @@ export class ClickUpService implements OnModuleInit {
   }[]> {
     this.logger.log(`Fetching completion stats for last ${days} days`);
     const stats = [];
-    const today = this.getNowInTimezone();
+    const today = getNowInTimezone();
 
     for (let i = 0; i < days; i++) {
       const date = new Date(today);
@@ -370,7 +357,7 @@ export class ClickUpService implements OnModuleInit {
     try {
       this.logger.log(`Fetching tasks due today for workspace: ${workspaceId}`);
 
-      const now = this.getNowInTimezone();
+      const now = getNowInTimezone();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
