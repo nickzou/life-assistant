@@ -266,6 +266,9 @@ export class ClickUpService implements OnModuleInit {
   // Affirmative completion statuses (green - actually completed)
   private readonly AFFIRMATIVE_STATUSES = ['complete', 'completed', 'went', 'attended'];
 
+  // Statuses to exclude from total count (still in progress, shouldn't count against rate)
+  private readonly EXCLUDED_STATUSES = ['in progress'];
+
   /**
    * Get completion stats for a specific date
    */
@@ -290,7 +293,13 @@ export class ClickUpService implements OnModuleInit {
       },
     });
 
-    const tasks = response.data.tasks || [];
+    const allTasks = response.data.tasks || [];
+
+    // Filter out excluded statuses from total
+    const tasks = allTasks.filter(
+      (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
+    );
+
     const affirmativeCompletions = tasks.filter(
       (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
     ).length;
@@ -368,9 +377,14 @@ export class ClickUpService implements OnModuleInit {
         },
       });
 
-      const todayTasks = todayResponse.data.tasks || [];
+      const allTodayTasks = todayResponse.data.tasks || [];
       const overdueTasks = (overdueResponse.data.tasks || []).filter(
         (task: any) => task.status?.type !== 'done' && task.status?.type !== 'closed',
+      );
+
+      // Filter out excluded statuses for completion rate calculation
+      const todayTasks = allTodayTasks.filter(
+        (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
       );
 
       const completed = todayTasks.filter(
@@ -381,7 +395,7 @@ export class ClickUpService implements OnModuleInit {
         (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
       ).length;
 
-      // Completion rate: affirmative completions / total tasks due today
+      // Completion rate: affirmative completions / total tasks (excluding in-progress)
       const completionRate = todayTasks.length > 0
         ? Math.round((affirmativeCompletions / todayTasks.length) * 100)
         : 0;
