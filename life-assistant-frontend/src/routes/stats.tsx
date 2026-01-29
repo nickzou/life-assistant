@@ -98,7 +98,7 @@ function StatsPage() {
                       borderRadius: '0.5rem',
                       color: '#F9FAFB'
                     }}
-                    formatter={(value: number) => [`${value}%`, 'Completion Rate']}
+                    formatter={(value) => [`${value}%`, 'Completion Rate']}
                   />
                   <Line
                     type="monotone"
