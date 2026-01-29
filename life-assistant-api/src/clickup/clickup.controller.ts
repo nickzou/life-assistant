@@ -27,6 +27,20 @@ export class ClickUpController {
   }
 
   /**
+   * Get completion stats history for last N days
+   * GET /clickup/tasks/stats/:days
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('tasks/stats/:days')
+  async getCompletionStatsHistory(@Param('days') days: string) {
+    const workspaceId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+    if (!workspaceId) {
+      throw new Error('CLICKUP_WORKSPACE_ID not configured');
+    }
+    return this.clickUpService.getCompletionStatsHistory(workspaceId, parseInt(days, 10));
+  }
+
+  /**
    * Test endpoint: Fetch tasks from configured list
    * GET /clickup/test/tasks
    */

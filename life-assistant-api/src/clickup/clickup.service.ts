@@ -263,6 +263,85 @@ export class ClickUpService implements OnModuleInit {
     }
   }
 
+  // Affirmative completion statuses (green - actually completed)
+  private readonly AFFIRMATIVE_STATUSES = ['complete', 'completed', 'went', 'attended'];
+
+  // Statuses to exclude from total count (still in progress, shouldn't count against rate)
+  private readonly EXCLUDED_STATUSES = ['in progress'];
+
+  /**
+   * Get completion stats for a specific date
+   */
+  async getCompletionStatsForDate(
+    workspaceId: string,
+    date: Date,
+  ): Promise<{
+    date: string;
+    total: number;
+    affirmativeCompletions: number;
+    completionRate: number;
+  }> {
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+
+    const response = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+      params: {
+        due_date_gt: startOfDay.getTime(),
+        due_date_lt: endOfDay.getTime(),
+        subtasks: true,
+        include_closed: true,
+      },
+    });
+
+    const allTasks = response.data.tasks || [];
+
+    // Filter out excluded statuses from total
+    const tasks = allTasks.filter(
+      (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
+    );
+
+    const affirmativeCompletions = tasks.filter(
+      (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+    ).length;
+
+    const completionRate = tasks.length > 0
+      ? Math.round((affirmativeCompletions / tasks.length) * 100)
+      : 0;
+
+    return {
+      date: startOfDay.toISOString().split('T')[0],
+      total: tasks.length,
+      affirmativeCompletions,
+      completionRate,
+    };
+  }
+
+  /**
+   * Get completion stats for the last N days
+   */
+  async getCompletionStatsHistory(
+    workspaceId: string,
+    days: number,
+  ): Promise<{
+    date: string;
+    total: number;
+    affirmativeCompletions: number;
+    completionRate: number;
+  }[]> {
+    this.logger.log(`Fetching completion stats for last ${days} days`);
+    const stats = [];
+    const today = new Date();
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dayStat = await this.getCompletionStatsForDate(workspaceId, date);
+      stats.push(dayStat);
+    }
+
+    return stats;
+  }
+
   /**
    * Get tasks due today for the workspace
    */
@@ -281,9 +360,6 @@ export class ClickUpService implements OnModuleInit {
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-      // Affirmative completion statuses (green - actually completed)
-      const AFFIRMATIVE_STATUSES = ['complete', 'went', 'attended'];
-
       // Fetch tasks due today
       const todayResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
         params: {
@@ -301,9 +377,14 @@ export class ClickUpService implements OnModuleInit {
         },
       });
 
-      const todayTasks = todayResponse.data.tasks || [];
+      const allTodayTasks = todayResponse.data.tasks || [];
       const overdueTasks = (overdueResponse.data.tasks || []).filter(
         (task: any) => task.status?.type !== 'done' && task.status?.type !== 'closed',
+      );
+
+      // Filter out excluded statuses for completion rate calculation
+      const todayTasks = allTodayTasks.filter(
+        (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
       );
 
       const completed = todayTasks.filter(
@@ -311,10 +392,10 @@ export class ClickUpService implements OnModuleInit {
       ).length;
 
       const affirmativeCompletions = todayTasks.filter(
-        (task: any) => AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+        (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
       ).length;
 
-      // Completion rate: affirmative completions / total tasks due today
+      // Completion rate: affirmative completions / total tasks (excluding in-progress)
       const completionRate = todayTasks.length > 0
         ? Math.round((affirmativeCompletions / todayTasks.length) * 100)
         : 0;
