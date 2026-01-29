@@ -308,8 +308,11 @@ export class ClickUpService implements OnModuleInit {
       ? Math.round((affirmativeCompletions / tasks.length) * 100)
       : 0;
 
+    // Use local date parts to avoid UTC conversion (toISOString always returns UTC)
+    const dateStr = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, '0')}-${String(startOfDay.getDate()).padStart(2, '0')}`;
+
     return {
-      date: startOfDay.toISOString().split('T')[0],
+      date: dateStr,
       total: tasks.length,
       affirmativeCompletions,
       completionRate,
