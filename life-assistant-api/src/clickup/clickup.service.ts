@@ -264,7 +264,7 @@ export class ClickUpService implements OnModuleInit {
   }
 
   // Affirmative completion statuses (green - actually completed)
-  private readonly AFFIRMATIVE_STATUSES = ['complete', 'went', 'attended'];
+  private readonly AFFIRMATIVE_STATUSES = ['complete', 'completed', 'went', 'attended'];
 
   /**
    * Get completion stats for a specific date
