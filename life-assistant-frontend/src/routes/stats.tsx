@@ -39,10 +39,14 @@ function StatsPage() {
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
 
-    if (dateStr === today.toISOString().split('T')[0]) {
+    // Use local date parts to avoid UTC conversion issues
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+
+    if (dateStr === todayStr) {
       return 'Today'
     }
-    if (dateStr === yesterday.toISOString().split('T')[0]) {
+    if (dateStr === yesterdayStr) {
       return 'Yesterday'
     }
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
