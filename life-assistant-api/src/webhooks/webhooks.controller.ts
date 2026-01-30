@@ -1,11 +1,38 @@
-import { Controller, Post, Body, Headers, Logger, HttpCode } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Headers, Param, Logger, HttpCode, UseGuards } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 
   constructor(private readonly webhooksService: WebhooksService) {}
+
+  /**
+   * Get status of all registered webhooks
+   * GET /webhooks/status
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('status')
+  async getWebhookStatus() {
+    this.logger.log('Fetching webhook status');
+    return this.webhooksService.getWebhookStatus();
+  }
+
+  /**
+   * Delete a webhook
+   * DELETE /webhooks/:source/:id
+   */
+  @UseGuards(JwtAuthGuard)
+  @Delete(':source/:id')
+  async deleteWebhook(
+    @Param('source') source: 'wrike' | 'clickup',
+    @Param('id') id: string,
+  ) {
+    this.logger.log(`Deleting ${source} webhook: ${id}`);
+    await this.webhooksService.deleteWebhook(source, id);
+    return { success: true };
+  }
 
   /**
    * Wrike webhook endpoint

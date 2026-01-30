@@ -7,6 +7,7 @@ import {
   ClickUpSpacesResponse,
   ClickUpListsResponse,
 } from './types/clickup-api.types';
+import { getNowInTimezone, formatDateString } from '../utils/date.utils';
 
 @Injectable()
 export class ClickUpService implements OnModuleInit {
@@ -231,6 +232,185 @@ export class ClickUpService implements OnModuleInit {
       this.logger.log(`Successfully deleted ClickUp webhook: ${webhookId}`);
     } catch (error) {
       this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a tag to a task
+   */
+  async addTag(taskId: string, tagName: string): Promise<void> {
+    try {
+      this.logger.log(`Adding tag "${tagName}" to task ${taskId}`);
+      await this.axiosInstance.post(`/task/${taskId}/tag/${tagName}`);
+      this.logger.log(`Successfully added tag "${tagName}" to task ${taskId}`);
+    } catch (error) {
+      this.logger.error(`Failed to add tag "${tagName}" to task ${taskId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a tag from a task
+   */
+  async removeTag(taskId: string, tagName: string): Promise<void> {
+    try {
+      this.logger.log(`Removing tag "${tagName}" from task ${taskId}`);
+      await this.axiosInstance.delete(`/task/${taskId}/tag/${tagName}`);
+      this.logger.log(`Successfully removed tag "${tagName}" from task ${taskId}`);
+    } catch (error) {
+      this.logger.error(`Failed to remove tag "${tagName}" from task ${taskId}:`, error.message);
+      throw error;
+    }
+  }
+
+  // Affirmative completion statuses (green - actually completed)
+  private readonly AFFIRMATIVE_STATUSES = ['complete', 'completed', 'went', 'attended'];
+
+  // Statuses to exclude from total count (still in progress, shouldn't count against rate)
+  private readonly EXCLUDED_STATUSES = ['in progress'];
+
+  /**
+   * Get completion stats for a specific date
+   */
+  async getCompletionStatsForDate(
+    workspaceId: string,
+    date: Date,
+  ): Promise<{
+    date: string;
+    total: number;
+    affirmativeCompletions: number;
+    completionRate: number;
+  }> {
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+
+    const response = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+      params: {
+        due_date_gt: startOfDay.getTime(),
+        due_date_lt: endOfDay.getTime(),
+        subtasks: true,
+        include_closed: true,
+      },
+    });
+
+    const allTasks = response.data.tasks || [];
+
+    // Filter out excluded statuses from total
+    const tasks = allTasks.filter(
+      (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
+    );
+
+    const affirmativeCompletions = tasks.filter(
+      (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+    ).length;
+
+    const completionRate = tasks.length > 0
+      ? Math.round((affirmativeCompletions / tasks.length) * 100)
+      : 0;
+
+    return {
+      date: formatDateString(startOfDay),
+      total: tasks.length,
+      affirmativeCompletions,
+      completionRate,
+    };
+  }
+
+  /**
+   * Get completion stats for the last N days
+   */
+  async getCompletionStatsHistory(
+    workspaceId: string,
+    days: number,
+  ): Promise<{
+    date: string;
+    total: number;
+    affirmativeCompletions: number;
+    completionRate: number;
+  }[]> {
+    this.logger.log(`Fetching completion stats for last ${days} days`);
+    const stats = [];
+    const today = getNowInTimezone();
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dayStat = await this.getCompletionStatsForDate(workspaceId, date);
+      stats.push(dayStat);
+    }
+
+    return stats;
+  }
+
+  /**
+   * Get tasks due today for the workspace
+   */
+  async getTasksDueToday(workspaceId: string): Promise<{
+    total: number;
+    completed: number;
+    remaining: number;
+    overdue: number;
+    affirmativeCompletions: number;
+    completionRate: number;
+  }> {
+    try {
+      this.logger.log(`Fetching tasks due today for workspace: ${workspaceId}`);
+
+      const now = getNowInTimezone();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      // Fetch tasks due today
+      const todayResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+        params: {
+          due_date_gt: startOfDay.getTime(),
+          due_date_lt: endOfDay.getTime(),
+          subtasks: true,
+        },
+      });
+
+      // Fetch overdue tasks (due before today, not completed)
+      const overdueResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+        params: {
+          due_date_lt: startOfDay.getTime(),
+          subtasks: true,
+        },
+      });
+
+      const allTodayTasks = todayResponse.data.tasks || [];
+      const overdueTasks = (overdueResponse.data.tasks || []).filter(
+        (task: any) => task.status?.type !== 'done' && task.status?.type !== 'closed',
+      );
+
+      // Filter out excluded statuses for completion rate calculation
+      const todayTasks = allTodayTasks.filter(
+        (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
+      );
+
+      const completed = todayTasks.filter(
+        (task: any) => task.status?.type === 'done' || task.status?.type === 'closed',
+      ).length;
+
+      const affirmativeCompletions = todayTasks.filter(
+        (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+      ).length;
+
+      // Completion rate: affirmative completions / total tasks (excluding in-progress)
+      const completionRate = todayTasks.length > 0
+        ? Math.round((affirmativeCompletions / todayTasks.length) * 100)
+        : 0;
+
+      return {
+        total: todayTasks.length,
+        completed,
+        remaining: todayTasks.length - completed,
+        overdue: overdueTasks.length,
+        affirmativeCompletions,
+        completionRate,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch tasks due today:`, error.message);
       throw error;
     }
   }

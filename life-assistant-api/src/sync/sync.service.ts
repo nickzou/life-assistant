@@ -8,6 +8,9 @@ import { TaskMapping } from '../database/entities/task-mapping.entity';
 import { SyncLog } from '../database/entities/sync-log.entity';
 import { WrikeTask } from '../wrike/types/wrike-api.types';
 
+// Tag used to identify tasks synced from Wrike (to prevent reverse sync loops)
+export const SYNC_TAG = 'synced-from-wrike';
+
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
@@ -30,8 +33,9 @@ export class SyncService {
    * - Creates new ClickUp task or updates existing one
    * - Saves/updates mapping
    * - Logs sync operation
+   * @returns The ClickUp task ID that was created/updated
    */
-  async syncWrikeToClickUp(wrikeTask: WrikeTask): Promise<void> {
+  async syncWrikeToClickUp(wrikeTask: WrikeTask): Promise<string> {
     this.logger.log(`Starting sync: Wrike task ${wrikeTask.id} -> ClickUp`);
 
     try {
@@ -73,6 +77,7 @@ export class SyncService {
       });
 
       this.logger.log(`✅ Sync completed successfully: ${wrikeTask.title}`);
+      return clickUpTaskId;
     } catch (error) {
       this.logger.error(`❌ Sync failed for Wrike task ${wrikeTask.id}:`, error.message);
 
@@ -105,7 +110,7 @@ export class SyncService {
     const taskData: any = {
       name: wrikeTask.title,
       description: `View in Wrike: ${wrikeTask.permalink}`,
-      tags: ['touchbistro', 'from wrike', 'work'],
+      tags: ['touchbistro', 'from wrike', 'work', SYNC_TAG],
     };
 
     // Auto-assign to current user
@@ -149,6 +154,9 @@ export class SyncService {
    */
   private async updateClickUpTask(clickUpTaskId: string, wrikeTask: WrikeTask): Promise<void> {
     this.logger.log(`Updating ClickUp task: ${clickUpTaskId}`);
+
+    // First, add the sync tag to mark this as a Wrike-originated update
+    await this.clickUpService.addTag(clickUpTaskId, SYNC_TAG);
 
     const taskData: any = {
       name: wrikeTask.title,
@@ -242,8 +250,9 @@ export class SyncService {
    * - Checks if mapping exists
    * - Updates existing Wrike task (no creation in reverse sync)
    * - Logs sync operation
+   * @returns The Wrike task ID that was updated, or undefined if no mapping found
    */
-  async syncClickUpToWrike(clickUpTask: any): Promise<void> {
+  async syncClickUpToWrike(clickUpTask: any): Promise<string | undefined> {
     this.logger.log(`Starting reverse sync: ClickUp task ${clickUpTask.id} -> Wrike`);
 
     try {
@@ -254,7 +263,7 @@ export class SyncService {
 
       if (!existingMapping) {
         this.logger.warn(`No mapping found for ClickUp task ${clickUpTask.id}, skipping reverse sync`);
-        return;
+        return undefined;
       }
 
       this.logger.log(`Found existing mapping: ClickUp ${clickUpTask.id} <-> Wrike ${existingMapping.wrike_id}`);
@@ -273,6 +282,7 @@ export class SyncService {
       });
 
       this.logger.log(`✅ Reverse sync completed successfully: ${clickUpTask.name}`);
+      return existingMapping.wrike_id;
     } catch (error) {
       this.logger.error(`❌ Reverse sync failed for ClickUp task ${clickUpTask.id}:`, error.message);
 

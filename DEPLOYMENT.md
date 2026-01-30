@@ -16,6 +16,7 @@ Complete guide for deploying Life Assistant to production with Docker, CI/CD, an
 - [Phase 8: Initial Deployment](#phase-8-initial-deployment)
 - [Phase 9: Rollback Strategy](#phase-9-rollback-strategy)
 - [Phase 10: Monitoring & Maintenance](#phase-10-monitoring--maintenance)
+- [Frontend Deployment](#frontend-deployment)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -27,15 +28,19 @@ graph TB
     Internet([Internet]) --> Nginx[Nginx<br/>Port 80/443<br/>SSL Termination]
 
     subgraph DigitalOcean["DigitalOcean Droplet"]
+        Nginx --> ProdFrontend[Production Frontend<br/>Container :8080]
         Nginx --> ProdAPI[Production API<br/>Container :3000]
+        Nginx --> StagingFrontend[Staging Frontend<br/>Container :8081]
         Nginx --> StagingAPI[Staging API<br/>Container :3001]
 
         ProdAPI --> ProdDB[(Production DB<br/>Container :5432)]
         StagingAPI --> StagingDB[(Staging DB<br/>Container :5433)]
 
         subgraph Docker["Docker Environment"]
+            ProdFrontend
             ProdAPI
             ProdDB
+            StagingFrontend
             StagingAPI
             StagingDB
         end
@@ -52,7 +57,9 @@ graph TB
 ```
 
 **Components:**
-- **Nginx**: Reverse proxy, SSL termination, load balancing
+- **Nginx**: Reverse proxy, SSL termination, routing to frontend/API
+- **Frontend**: React SPA served by nginx container
+- **API**: NestJS backend container
 - **Docker**: Container runtime for isolation and consistency
 - **PostgreSQL**: Dedicated database containers for prod/staging
 - **GitHub Actions**: Automated CI/CD pipeline
@@ -132,6 +139,9 @@ nano /var/www/life-assistant/shared/.env.production
 
 **Contents:**
 ```env
+# GitHub Container Registry
+GITHUB_USERNAME=your-github-username
+
 # Application
 NODE_ENV=production
 PORT=3000
@@ -165,16 +175,24 @@ nano /var/www/life-assistant/shared/.env.staging
 
 **Contents:**
 ```env
+# GitHub Container Registry
+GITHUB_USERNAME=your-github-username
+
+# Application
 NODE_ENV=staging
 PORT=3000
 
+# Database
 DATABASE_HOST=postgres
 DATABASE_PORT=5432
 DATABASE_USERNAME=life_app_staging
 DATABASE_PASSWORD=DIFFERENT_SECURE_PASSWORD
 DATABASE_NAME=life_assistant_staging
 
+# Wrike Integration
 WRIKE_TOKEN=your_wrike_token_here
+
+# ClickUp Integration
 CLICKUP_TOKEN=your_clickup_token_here
 CLICKUP_WORKSPACE_ID=your_workspace_id
 CLICKUP_LIST_ID=your_staging_list_id
@@ -320,14 +338,14 @@ networks:
 
 **On your local machine:**
 ```bash
-# Generate SSH key
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy
+# Generate SSH key (use project-specific name for shared VPS)
+ssh-keygen -t ed25519 -C "life-assistant-deploy" -f ~/.ssh/life-assistant-deploy
 
 # Display private key (copy to GitHub secret)
-cat ~/.ssh/github_deploy
+cat ~/.ssh/life-assistant-deploy
 
 # Display public key (add to server)
-cat ~/.ssh/github_deploy.pub
+cat ~/.ssh/life-assistant-deploy.pub
 ```
 
 **On your server:**
@@ -730,6 +748,239 @@ docker system df
 # Clean up
 docker system prune -a --volumes
 ```
+
+---
+
+## Frontend Deployment
+
+The frontend is a React SPA built with Vite. It's containerized with nginx for production serving.
+
+### Frontend Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Nginx (Host)                            │
+│                                                             │
+│  app.yourdomain.com/* ──────► Frontend Container (nginx:80) │
+│  api.yourdomain.com/* ──────► API Container (:3000)         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Frontend Dockerfile
+
+Located at `life-assistant-frontend/Dockerfile`:
+
+```dockerfile
+# Build stage
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+**Key points:**
+- Multi-stage build keeps final image small (~50MB)
+- `VITE_API_URL` is baked in at build time (Vite requirement)
+- nginx handles SPA routing (all routes → index.html)
+
+### Building the Frontend Image
+
+```bash
+# Build with API URL for production
+docker build -t ghcr.io/YOUR_USERNAME/life-assistant-frontend:latest \
+  --build-arg VITE_API_URL=https://api.yourdomain.com \
+  life-assistant-frontend/
+
+# Build for staging
+docker build -t ghcr.io/YOUR_USERNAME/life-assistant-frontend:staging \
+  --build-arg VITE_API_URL=https://api.staging.yourdomain.com \
+  life-assistant-frontend/
+```
+
+### Adding Frontend to Docker Compose
+
+Update `/var/www/life-assistant/production/docker-compose.yml`:
+
+```yaml
+services:
+  # ... existing postgres and api services ...
+
+  frontend:
+    image: ghcr.io/YOUR_GITHUB_USERNAME/life-assistant-frontend:latest
+    container_name: life-assistant-frontend-prod
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8080:80'
+    networks:
+      - life-assistant-prod
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:80']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+For staging, use port `8081` and the `:staging` image tag.
+
+### Frontend Nginx Config (Host)
+
+Create `/etc/nginx/sites-available/life-assistant-frontend`:
+
+```nginx
+server {
+    listen 80;
+    server_name app.yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name app.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/app.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/app.yourdomain.com/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable the site:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/life-assistant-frontend /etc/nginx/sites-enabled/
+sudo certbot --nginx -d app.yourdomain.com
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Updated CI/CD for Frontend
+
+Add a frontend build job to `.github/workflows/deploy.yml`:
+
+```yaml
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine API URL
+        id: api-url
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "url=https://api.yourdomain.com" >> $GITHUB_OUTPUT
+          else
+            echo "url=https://api.staging.yourdomain.com" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/life-assistant-frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/staging' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./life-assistant-frontend
+          file: ./life-assistant-frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_API_URL=${{ steps.api-url.outputs.url }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+Update the deploy job to also pull the frontend:
+
+```yaml
+script: |
+  cd /var/www/life-assistant/${{ steps.env.outputs.environment }}
+
+  docker compose pull
+  docker compose up -d
+  docker compose exec -T api npm run migration:run || true
+  docker image prune -af --filter "until=24h"
+  docker compose ps
+```
+
+### Local Development
+
+For local development, don't use Docker. Instead:
+
+```bash
+# Terminal 1: Start the API
+cd life-assistant-api
+npm run start:dev
+
+# Terminal 2: Start the frontend
+cd life-assistant-frontend
+npm run dev
+```
+
+The frontend dev server runs at `http://localhost:5173` with hot reload.
+
+### Domain Structure Options
+
+**Option A: Subdomains (Recommended)**
+- `app.yourdomain.com` → Frontend
+- `api.yourdomain.com` → API
+
+**Option B: Path-based**
+- `yourdomain.com/` → Frontend
+- `yourdomain.com/api/*` → API (requires nginx path rewriting)
 
 ---
 

@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Delete, Body, Logger, Param } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Logger, Param, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('clickup')
 export class ClickUpController {
@@ -10,6 +11,34 @@ export class ClickUpController {
     private readonly clickUpService: ClickUpService,
     private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Get tasks due today summary
+   * GET /clickup/tasks/today
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('tasks/today')
+  async getTasksDueToday() {
+    const workspaceId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+    if (!workspaceId) {
+      throw new Error('CLICKUP_WORKSPACE_ID not configured');
+    }
+    return this.clickUpService.getTasksDueToday(workspaceId);
+  }
+
+  /**
+   * Get completion stats history for last N days
+   * GET /clickup/tasks/stats/:days
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('tasks/stats/:days')
+  async getCompletionStatsHistory(@Param('days') days: string) {
+    const workspaceId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+    if (!workspaceId) {
+      throw new Error('CLICKUP_WORKSPACE_ID not configured');
+    }
+    return this.clickUpService.getCompletionStatsHistory(workspaceId, parseInt(days, 10));
+  }
 
   /**
    * Test endpoint: Fetch tasks from configured list
