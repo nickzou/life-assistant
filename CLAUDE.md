@@ -223,11 +223,15 @@ curl -X POST http://localhost:3000/auth/login \
 - ✅ Staging deployment
   - API: `staging.life-assistant-api.waffleruntime.com`
   - Frontend: `staging.life-assistant.waffleruntime.com`
-- ⏳ Production deployment (infrastructure ready, pending promotion)
+- ✅ Production deployment
+  - API: `life-assistant-api.waffleruntime.com`
+  - Frontend: `life-assistant.waffleruntime.com`
 
 ### Not Yet Implemented
 - ❌ Additional automation modules (meal prep, habits, etc.)
 - ❌ Webhook auto-recovery (re-register when suspended)
+- ❌ CI/CD: Auto-sync docker-compose.yml to server (currently manual copy required)
+- ❌ Health endpoint for API (`/health`)
 
 ## Testing Workflow
 
