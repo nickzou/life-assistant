@@ -28,6 +28,13 @@ function RootLayout() {
             Stats
           </Link>
           <Link
+            to="/tasks"
+            className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Tasks
+          </Link>
+          <Link
             to="/meals"
             className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
             onClick={() => setMobileMenuOpen(false)}

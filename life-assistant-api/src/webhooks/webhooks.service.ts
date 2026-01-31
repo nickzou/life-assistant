@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WrikeService } from '../wrike/wrike.service';
 import { ClickUpService } from '../clickup/clickup.service';
@@ -30,6 +30,8 @@ export class WebhooksService {
     private readonly clickUpService: ClickUpService,
     private readonly syncService: SyncService,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => TaskInsightsService))
+    private readonly taskInsightsService: TaskInsightsService,
   ) {}
 
   /**

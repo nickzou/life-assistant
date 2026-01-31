@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WebhooksRouteImport } from './routes/webhooks'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as ShoppingRouteImport } from './routes/shopping'
 import { Route as MealsRouteImport } from './routes/meals'
@@ -19,6 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const WebhooksRoute = WebhooksRouteImport.update({
   id: '/webhooks',
   path: '/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StatsRoute = StatsRouteImport.update({
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/meals': typeof MealsRoute
   '/shopping': typeof ShoppingRoute
   '/stats': typeof StatsRoute
+  '/tasks': typeof TasksRoute
   '/webhooks': typeof WebhooksRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/meals': typeof MealsRoute
   '/shopping': typeof ShoppingRoute
   '/stats': typeof StatsRoute
+  '/tasks': typeof TasksRoute
   '/webhooks': typeof WebhooksRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/meals': typeof MealsRoute
   '/shopping': typeof ShoppingRoute
   '/stats': typeof StatsRoute
+  '/tasks': typeof TasksRoute
   '/webhooks': typeof WebhooksRoute
 }
 export interface FileRouteTypes {
@@ -93,6 +102,7 @@ export interface RootRouteChildren {
   MealsRoute: typeof MealsRoute
   ShoppingRoute: typeof ShoppingRoute
   StatsRoute: typeof StatsRoute
+  TasksRoute: typeof TasksRoute
   WebhooksRoute: typeof WebhooksRoute
 }
 
@@ -103,6 +113,13 @@ declare module '@tanstack/react-router' {
       path: '/webhooks'
       fullPath: '/webhooks'
       preLoaderRoute: typeof WebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stats': {
@@ -149,6 +166,7 @@ const rootRouteChildren: RootRouteChildren = {
   MealsRoute: MealsRoute,
   ShoppingRoute: ShoppingRoute,
   StatsRoute: StatsRoute,
+  TasksRoute: TasksRoute,
   WebhooksRoute: WebhooksRoute,
 }
 export const routeTree = rootRouteImport
