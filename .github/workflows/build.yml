@@ -1,4 +1,4 @@
-name: Build
+name: Build & Test
 
 on:
   workflow_run:
@@ -38,6 +38,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm test
 
   build-frontend:
     name: Build Frontend
