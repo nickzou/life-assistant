@@ -45,7 +45,9 @@ export class SyncService {
 
       if (existingMapping) {
         // Update existing ClickUp task
-        this.logger.log(`Found existing mapping: Wrike ${wrikeTask.id} <-> ClickUp ${existingMapping.clickup_id}`);
+        this.logger.log(
+          `Found existing mapping: Wrike ${wrikeTask.id} <-> ClickUp ${existingMapping.clickup_id}`,
+        );
         await this.updateClickUpTask(existingMapping.clickup_id, wrikeTask);
         clickUpTaskId = existingMapping.clickup_id;
       } else {
@@ -60,7 +62,9 @@ export class SyncService {
           integration_type: 'wrike-clickup',
         });
         await this.taskMappingRepository.save(newMapping);
-        this.logger.log(`Saved new mapping: Wrike ${wrikeTask.id} <-> ClickUp ${clickUpTaskId}`);
+        this.logger.log(
+          `Saved new mapping: Wrike ${wrikeTask.id} <-> ClickUp ${clickUpTaskId}`,
+        );
       }
 
       // Log successful sync
@@ -76,7 +80,10 @@ export class SyncService {
       this.logger.log(`✅ Sync completed successfully: ${wrikeTask.title}`);
       return clickUpTaskId;
     } catch (error) {
-      this.logger.error(`❌ Sync failed for Wrike task ${wrikeTask.id}:`, error.message);
+      this.logger.error(
+        `❌ Sync failed for Wrike task ${wrikeTask.id}:`,
+        error.message,
+      );
 
       // Log failed sync
       await this.logSync({
@@ -120,13 +127,19 @@ export class SyncService {
     // Add due date if present (convert ISO string to Unix timestamp in milliseconds)
     if (wrikeTask.dates?.due) {
       taskData.due_date = new Date(wrikeTask.dates.due).getTime().toString();
-      this.logger.log(`Setting due date: ${wrikeTask.dates.due} -> ${taskData.due_date}`);
+      this.logger.log(
+        `Setting due date: ${wrikeTask.dates.due} -> ${taskData.due_date}`,
+      );
     }
 
     // Add start date if present
     if (wrikeTask.dates?.start) {
-      taskData.start_date = new Date(wrikeTask.dates.start).getTime().toString();
-      this.logger.log(`Setting start date: ${wrikeTask.dates.start} -> ${taskData.start_date}`);
+      taskData.start_date = new Date(wrikeTask.dates.start)
+        .getTime()
+        .toString();
+      this.logger.log(
+        `Setting start date: ${wrikeTask.dates.start} -> ${taskData.start_date}`,
+      );
     }
 
     // Map Wrike status to ClickUp status
@@ -149,7 +162,10 @@ export class SyncService {
   /**
    * Update an existing ClickUp task with data from Wrike task
    */
-  private async updateClickUpTask(clickUpTaskId: string, wrikeTask: WrikeTask): Promise<void> {
+  private async updateClickUpTask(
+    clickUpTaskId: string,
+    wrikeTask: WrikeTask,
+  ): Promise<void> {
     this.logger.log(`Updating ClickUp task: ${clickUpTaskId}`);
 
     const taskData: any = {
@@ -167,13 +183,19 @@ export class SyncService {
     // Add due date if present
     if (wrikeTask.dates?.due) {
       taskData.due_date = new Date(wrikeTask.dates.due).getTime().toString();
-      this.logger.log(`Updating due date: ${wrikeTask.dates.due} -> ${taskData.due_date}`);
+      this.logger.log(
+        `Updating due date: ${wrikeTask.dates.due} -> ${taskData.due_date}`,
+      );
     }
 
     // Add start date if present
     if (wrikeTask.dates?.start) {
-      taskData.start_date = new Date(wrikeTask.dates.start).getTime().toString();
-      this.logger.log(`Updating start date: ${wrikeTask.dates.start} -> ${taskData.start_date}`);
+      taskData.start_date = new Date(wrikeTask.dates.start)
+        .getTime()
+        .toString();
+      this.logger.log(
+        `Updating start date: ${wrikeTask.dates.start} -> ${taskData.start_date}`,
+      );
     }
 
     // Map Wrike status to ClickUp status
@@ -200,7 +222,9 @@ export class SyncService {
       });
 
       if (!mapping) {
-        this.logger.warn(`No mapping found for Wrike task ${wrikeTaskId}, nothing to delete`);
+        this.logger.warn(
+          `No mapping found for Wrike task ${wrikeTaskId}, nothing to delete`,
+        );
         return;
       }
 
@@ -223,9 +247,14 @@ export class SyncService {
         status: 'success',
       });
 
-      this.logger.log(`✅ Successfully deleted ClickUp task ${clickUpTaskId} and mapping`);
+      this.logger.log(
+        `✅ Successfully deleted ClickUp task ${clickUpTaskId} and mapping`,
+      );
     } catch (error) {
-      this.logger.error(`❌ Failed to delete task for Wrike ${wrikeTaskId}:`, error.message);
+      this.logger.error(
+        `❌ Failed to delete task for Wrike ${wrikeTaskId}:`,
+        error.message,
+      );
 
       await this.logSync({
         source_platform: 'wrike',
@@ -247,7 +276,9 @@ export class SyncService {
    * @returns The Wrike task ID that was updated, or undefined if no mapping found
    */
   async syncClickUpToWrike(clickUpTask: any): Promise<string | undefined> {
-    this.logger.log(`Starting reverse sync: ClickUp task ${clickUpTask.id} -> Wrike`);
+    this.logger.log(
+      `Starting reverse sync: ClickUp task ${clickUpTask.id} -> Wrike`,
+    );
 
     try {
       // Check if mapping exists
@@ -256,11 +287,15 @@ export class SyncService {
       });
 
       if (!existingMapping) {
-        this.logger.warn(`No mapping found for ClickUp task ${clickUpTask.id}, skipping reverse sync`);
+        this.logger.warn(
+          `No mapping found for ClickUp task ${clickUpTask.id}, skipping reverse sync`,
+        );
         return undefined;
       }
 
-      this.logger.log(`Found existing mapping: ClickUp ${clickUpTask.id} <-> Wrike ${existingMapping.wrike_id}`);
+      this.logger.log(
+        `Found existing mapping: ClickUp ${clickUpTask.id} <-> Wrike ${existingMapping.wrike_id}`,
+      );
 
       // Update existing Wrike task
       await this.updateWrikeTask(existingMapping.wrike_id, clickUpTask);
@@ -275,10 +310,15 @@ export class SyncService {
         status: 'success',
       });
 
-      this.logger.log(`✅ Reverse sync completed successfully: ${clickUpTask.name}`);
+      this.logger.log(
+        `✅ Reverse sync completed successfully: ${clickUpTask.name}`,
+      );
       return existingMapping.wrike_id;
     } catch (error) {
-      this.logger.error(`❌ Reverse sync failed for ClickUp task ${clickUpTask.id}:`, error.message);
+      this.logger.error(
+        `❌ Reverse sync failed for ClickUp task ${clickUpTask.id}:`,
+        error.message,
+      );
 
       await this.logSync({
         source_platform: 'clickup',
@@ -297,7 +337,10 @@ export class SyncService {
   /**
    * Update an existing Wrike task with data from ClickUp task
    */
-  private async updateWrikeTask(wrikeTaskId: string, clickUpTask: any): Promise<void> {
+  private async updateWrikeTask(
+    wrikeTaskId: string,
+    clickUpTask: any,
+  ): Promise<void> {
     this.logger.log(`Updating Wrike task: ${wrikeTaskId}`);
 
     const taskData: any = {
@@ -309,7 +352,9 @@ export class SyncService {
       const dueDate = new Date(parseInt(clickUpTask.due_date));
       taskData.dates = taskData.dates || {};
       taskData.dates.due = dueDate.toISOString().slice(0, 19); // Remove 'Z' for Wrike format
-      this.logger.log(`Updating due date: ${clickUpTask.due_date} -> ${taskData.dates.due}`);
+      this.logger.log(
+        `Updating due date: ${clickUpTask.due_date} -> ${taskData.dates.due}`,
+      );
     }
 
     // Add start date if present
@@ -317,7 +362,9 @@ export class SyncService {
       const startDate = new Date(parseInt(clickUpTask.start_date));
       taskData.dates = taskData.dates || {};
       taskData.dates.start = startDate.toISOString().slice(0, 19);
-      this.logger.log(`Updating start date: ${clickUpTask.start_date} -> ${taskData.dates.start}`);
+      this.logger.log(
+        `Updating start date: ${clickUpTask.start_date} -> ${taskData.dates.start}`,
+      );
     }
 
     // Map ClickUp status to Wrike status
@@ -335,7 +382,9 @@ export class SyncService {
   /**
    * Map ClickUp status to Wrike customStatusId
    */
-  private async mapClickUpStatusToWrike(clickUpTask: any): Promise<string | undefined> {
+  private async mapClickUpStatusToWrike(
+    clickUpTask: any,
+  ): Promise<string | undefined> {
     // Load statuses if not already loaded
     await this.loadWrikeStatuses();
     await this.loadClickUpStatuses();
@@ -349,12 +398,16 @@ export class SyncService {
     // Find matching Wrike status by name (case-insensitive)
     for (const [statusId, statusName] of this.wrikeStatusMap.entries()) {
       if (statusName.toLowerCase() === clickUpStatusName.toLowerCase()) {
-        this.logger.log(`Mapped status: ${clickUpStatusName} (ClickUp) -> ${statusName} (Wrike) [${statusId}]`);
+        this.logger.log(
+          `Mapped status: ${clickUpStatusName} (ClickUp) -> ${statusName} (Wrike) [${statusId}]`,
+        );
         return statusId;
       }
     }
 
-    this.logger.warn(`No Wrike status matches ClickUp status: ${clickUpStatusName}`);
+    this.logger.warn(
+      `No Wrike status matches ClickUp status: ${clickUpStatusName}`,
+    );
     return undefined;
   }
 
@@ -422,7 +475,9 @@ export class SyncService {
   /**
    * Map Wrike status to ClickUp status name
    */
-  private async mapWrikeStatusToClickUp(wrikeTask: WrikeTask): Promise<string | undefined> {
+  private async mapWrikeStatusToClickUp(
+    wrikeTask: WrikeTask,
+  ): Promise<string | undefined> {
     // Load statuses if not already loaded
     await this.loadWrikeStatuses();
     await this.loadClickUpStatuses();
@@ -430,18 +485,26 @@ export class SyncService {
     // Get Wrike status name from customStatusId
     const wrikeStatusName = this.wrikeStatusMap.get(wrikeTask.customStatusId);
     if (!wrikeStatusName) {
-      this.logger.warn(`Could not find Wrike status name for ID: ${wrikeTask.customStatusId}`);
+      this.logger.warn(
+        `Could not find Wrike status name for ID: ${wrikeTask.customStatusId}`,
+      );
       return undefined;
     }
 
     // Find matching ClickUp status (case-insensitive)
-    const clickUpStatusName = this.clickUpStatusMap.get(wrikeStatusName.toLowerCase());
+    const clickUpStatusName = this.clickUpStatusMap.get(
+      wrikeStatusName.toLowerCase(),
+    );
     if (!clickUpStatusName) {
-      this.logger.warn(`No ClickUp status matches Wrike status: ${wrikeStatusName}`);
+      this.logger.warn(
+        `No ClickUp status matches Wrike status: ${wrikeStatusName}`,
+      );
       return undefined;
     }
 
-    this.logger.log(`Mapped status: ${wrikeStatusName} (Wrike) -> ${clickUpStatusName} (ClickUp)`);
+    this.logger.log(
+      `Mapped status: ${wrikeStatusName} (Wrike) -> ${clickUpStatusName} (ClickUp)`,
+    );
     return clickUpStatusName;
   }
 }
