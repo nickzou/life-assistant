@@ -4,10 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TaskMapping } from './entities/task-mapping.entity';
 import { SyncLog } from './entities/sync-log.entity';
 import { User } from './entities/user.entity';
-import { DueDateChange } from './entities/due-date-change.entity';
 import { DatabaseService } from './database.service';
 import { InitialSchema1737420000000 } from './migrations/1737420000000-InitialSchema';
-import { AddDueDateChanges1738300000000 } from './migrations/1738300000000-AddDueDateChanges';
 
 @Module({
   imports: [
@@ -21,17 +19,14 @@ import { AddDueDateChanges1738300000000 } from './migrations/1738300000000-AddDu
         username: configService.get('DATABASE_USERNAME'),
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
-        entities: [TaskMapping, SyncLog, User, DueDateChange],
-        migrations: [
-          InitialSchema1737420000000,
-          AddDueDateChanges1738300000000,
-        ],
+        entities: [TaskMapping, SyncLog, User],
+        migrations: [InitialSchema1737420000000],
         migrationsRun: true, // Auto-run migrations on startup
         synchronize: false, // Never use synchronize in production
         logging: configService.get('NODE_ENV') !== 'production',
       }),
     }),
-    TypeOrmModule.forFeature([TaskMapping, SyncLog, User, DueDateChange]),
+    TypeOrmModule.forFeature([TaskMapping, SyncLog, User]),
   ],
   providers: [DatabaseService],
   exports: [DatabaseService, TypeOrmModule],

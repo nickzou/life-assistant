@@ -186,8 +186,9 @@ export class GrocyService implements OnModuleInit {
    * Get all shopping lists
    */
   async getShoppingLists(): Promise<ShoppingList[]> {
-    const response =
-      await this.axiosInstance.get<ShoppingList[]>('/objects/shopping_lists');
+    const response = await this.axiosInstance.get<ShoppingList[]>(
+      '/objects/shopping_lists',
+    );
     return response.data;
   }
 
@@ -216,8 +217,9 @@ export class GrocyService implements OnModuleInit {
    * Get all quantity units (for display purposes)
    */
   async getQuantityUnits(): Promise<QuantityUnit[]> {
-    const response =
-      await this.axiosInstance.get<QuantityUnit[]>('/objects/quantity_units');
+    const response = await this.axiosInstance.get<QuantityUnit[]>(
+      '/objects/quantity_units',
+    );
     return response.data;
   }
 

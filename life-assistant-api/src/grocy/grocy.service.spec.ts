@@ -193,7 +193,14 @@ describe('GrocyService', () => {
     it('should enrich items with product names and quantity units', async () => {
       const mockItems = [
         { id: 1, product_id: 5, amount: 2, done: false, shopping_list_id: 1 },
-        { id: 2, product_id: null, note: 'Custom item', amount: 1, done: false, shopping_list_id: 1 },
+        {
+          id: 2,
+          product_id: null,
+          note: 'Custom item',
+          amount: 1,
+          done: false,
+          shopping_list_id: 1,
+        },
       ];
       const mockProducts = [
         { id: 5, name: 'Milk', qu_id_stock: 10 },
