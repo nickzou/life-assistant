@@ -21,7 +21,7 @@ export class WrikeService implements OnModuleInit {
     this.axiosInstance = axios.create({
       baseURL: this.baseUrl,
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -36,13 +36,20 @@ export class WrikeService implements OnModuleInit {
       const userResponse = await this.getCurrentUser();
       if (userResponse.data && userResponse.data.length > 0) {
         this.currentUserId = userResponse.data[0].id;
-        this.logger.log(`Wrike user ID cached: ${this.currentUserId} (${userResponse.data[0].firstName} ${userResponse.data[0].lastName})`);
+        this.logger.log(
+          `Wrike user ID cached: ${this.currentUserId} (${userResponse.data[0].firstName} ${userResponse.data[0].lastName})`,
+        );
       } else {
         this.logger.warn('No user data returned from Wrike API');
       }
     } catch (error) {
-      this.logger.error('Failed to fetch current user ID during initialization:', error.message);
-      this.logger.error('Task assignment filtering will not work until this is resolved');
+      this.logger.error(
+        'Failed to fetch current user ID during initialization:',
+        error.message,
+      );
+      this.logger.error(
+        'Task assignment filtering will not work until this is resolved',
+      );
     }
   }
 
@@ -60,7 +67,9 @@ export class WrikeService implements OnModuleInit {
   async getTask(taskId: string): Promise<WrikeTasksResponse> {
     try {
       this.logger.log(`Fetching Wrike task: ${taskId}`);
-      const response = await this.axiosInstance.get<WrikeTasksResponse>(`/tasks/${taskId}`);
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(
+        `/tasks/${taskId}`,
+      );
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch Wrike task ${taskId}:`, error.message);
@@ -75,11 +84,20 @@ export class WrikeService implements OnModuleInit {
     try {
       this.logger.log(`Updating Wrike task: ${taskId}`);
       this.logger.log(`Task data: ${JSON.stringify(taskData, null, 2)}`);
-      const response = await this.axiosInstance.put(`/tasks/${taskId}`, taskData);
+      const response = await this.axiosInstance.put(
+        `/tasks/${taskId}`,
+        taskData,
+      );
       return response.data;
     } catch (error) {
-      this.logger.error(`Failed to update Wrike task ${taskId}:`, error.message);
-      this.logger.error(`Wrike API error details:`, JSON.stringify(error.response?.data, null, 2));
+      this.logger.error(
+        `Failed to update Wrike task ${taskId}:`,
+        error.message,
+      );
+      this.logger.error(
+        `Wrike API error details:`,
+        JSON.stringify(error.response?.data, null, 2),
+      );
       throw error;
     }
   }
@@ -91,10 +109,14 @@ export class WrikeService implements OnModuleInit {
   async getCustomStatuses(): Promise<WrikeWorkflowsResponse> {
     try {
       this.logger.log('Fetching Wrike custom statuses');
-      const response = await this.axiosInstance.get<WrikeWorkflowsResponse>('/workflows');
+      const response =
+        await this.axiosInstance.get<WrikeWorkflowsResponse>('/workflows');
       return response.data;
     } catch (error) {
-      this.logger.error('Failed to fetch Wrike custom statuses:', error.message);
+      this.logger.error(
+        'Failed to fetch Wrike custom statuses:',
+        error.message,
+      );
       throw error;
     }
   }
@@ -106,9 +128,12 @@ export class WrikeService implements OnModuleInit {
   async getCurrentUser(): Promise<WrikeContactsResponse> {
     try {
       this.logger.log('Fetching current Wrike user information');
-      const response = await this.axiosInstance.get<WrikeContactsResponse>('/contacts', {
-        params: { me: true }
-      });
+      const response = await this.axiosInstance.get<WrikeContactsResponse>(
+        '/contacts',
+        {
+          params: { me: true },
+        },
+      );
       return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch current user:', error.message);
@@ -124,11 +149,17 @@ export class WrikeService implements OnModuleInit {
     try {
       this.logger.log(`Creating Wrike webhook for URL: ${hookUrl}`);
 
-      const response = await this.axiosInstance.post<WrikeWebhooksResponse>('/webhooks', null, {
-        params: { hookUrl },
-      });
+      const response = await this.axiosInstance.post<WrikeWebhooksResponse>(
+        '/webhooks',
+        null,
+        {
+          params: { hookUrl },
+        },
+      );
 
-      this.logger.log(`Webhook created successfully: ${response.data.data[0]?.id}`);
+      this.logger.log(
+        `Webhook created successfully: ${response.data.data[0]?.id}`,
+      );
       return response.data;
     } catch (error) {
       this.logger.error('Failed to create webhook:', error.message);
@@ -143,7 +174,8 @@ export class WrikeService implements OnModuleInit {
   async listWebhooks(): Promise<WrikeWebhooksResponse> {
     try {
       this.logger.log('Fetching all webhooks');
-      const response = await this.axiosInstance.get<WrikeWebhooksResponse>('/webhooks');
+      const response =
+        await this.axiosInstance.get<WrikeWebhooksResponse>('/webhooks');
       return response.data;
     } catch (error) {
       this.logger.error('Failed to fetch webhooks:', error.message);
@@ -160,7 +192,10 @@ export class WrikeService implements OnModuleInit {
       await this.axiosInstance.delete(`/webhooks/${webhookId}`);
       this.logger.log(`Webhook deleted: ${webhookId}`);
     } catch (error) {
-      this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
+      this.logger.error(
+        `Failed to delete webhook ${webhookId}:`,
+        error.message,
+      );
       throw error;
     }
   }

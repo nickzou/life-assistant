@@ -171,7 +171,7 @@ export class GrocyController {
       res.set('Content-Type', contentType);
       res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
       res.send(data);
-    } catch (error) {
+    } catch {
       // Picture not found or Grocy error - return 404
       res.status(404).send('Picture not available');
     }

@@ -1,4 +1,12 @@
-import { Controller, Get, Logger, Param, Post, Delete, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Logger,
+  Param,
+  Post,
+  Delete,
+  Body,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WrikeService } from './wrike.service';
 
@@ -147,7 +155,10 @@ export class WrikeController {
         message: `Webhook ${webhookId} deleted successfully`,
       };
     } catch (error) {
-      this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
+      this.logger.error(
+        `Failed to delete webhook ${webhookId}:`,
+        error.message,
+      );
       return {
         success: false,
         error: error.message,

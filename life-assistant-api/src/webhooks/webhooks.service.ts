@@ -44,26 +44,36 @@ export class WebhooksService {
 
     // Event types we care about:
     const SYNC_EVENT_TYPES = [
-      'TaskResponsiblesAdded',    // When someone is assigned
-      'TaskResponsiblesRemoved',  // When someone is unassigned
-      'TaskStatusChanged',        // When status changes
-      'TaskTitleChanged',         // When title changes
-      'TaskDescriptionChanged',   // When description changes
-      'TaskDatesChanged',         // When dates change
-      'TaskDeleted',              // When task is deleted
+      'TaskResponsiblesAdded', // When someone is assigned
+      'TaskResponsiblesRemoved', // When someone is unassigned
+      'TaskStatusChanged', // When status changes
+      'TaskTitleChanged', // When title changes
+      'TaskDescriptionChanged', // When description changes
+      'TaskDatesChanged', // When dates change
+      'TaskDeleted', // When task is deleted
     ];
 
     const currentUserId = this.wrikeService.getCurrentUserId();
     if (!currentUserId) {
-      this.logger.error('Current user ID not initialized - cannot process webhooks');
+      this.logger.error(
+        'Current user ID not initialized - cannot process webhooks',
+      );
       return;
     }
 
     // Process each event
     for (const event of events) {
-      const { eventType, taskId, addedResponsibles, removedResponsibles, eventAuthorId } = event;
+      const {
+        eventType,
+        taskId,
+        addedResponsibles,
+        removedResponsibles,
+        eventAuthorId,
+      } = event;
 
-      this.logger.log(`Processing event: ${eventType} for task ${taskId} (author: ${eventAuthorId})`);
+      this.logger.log(
+        `Processing event: ${eventType} for task ${taskId} (author: ${eventAuthorId})`,
+      );
 
       // Skip events we don't care about
       if (!SYNC_EVENT_TYPES.includes(eventType)) {
@@ -85,17 +95,23 @@ export class WebhooksService {
       if (eventType === 'TaskResponsiblesRemoved') {
         const userWasRemoved = removedResponsibles?.includes(currentUserId);
         if (!userWasRemoved) {
-          this.logger.log(`Task ${taskId} - someone else was unassigned, skipping`);
+          this.logger.log(
+            `Task ${taskId} - someone else was unassigned, skipping`,
+          );
           continue;
         }
-        this.logger.log(`Task ${taskId} - current user was unassigned, will delete from ClickUp`);
+        this.logger.log(
+          `Task ${taskId} - current user was unassigned, will delete from ClickUp`,
+        );
         await this.syncService.deleteTaskFromClickUp(taskId);
         continue;
       }
 
       // For TaskDeleted, delete from ClickUp
       if (eventType === 'TaskDeleted') {
-        this.logger.log(`Task ${taskId} was deleted in Wrike, deleting from ClickUp`);
+        this.logger.log(
+          `Task ${taskId} was deleted in Wrike, deleting from ClickUp`,
+        );
         await this.syncService.deleteTaskFromClickUp(taskId);
         continue;
       }
@@ -116,7 +132,9 @@ export class WebhooksService {
         if (eventType !== 'TaskResponsiblesAdded') {
           const isAssignedToMe = task.responsibleIds?.includes(currentUserId);
           if (!isAssignedToMe) {
-            this.logger.log(`Task ${taskId} not assigned to current user, skipping`);
+            this.logger.log(
+              `Task ${taskId} not assigned to current user, skipping`,
+            );
             continue;
           }
         }
@@ -125,9 +143,11 @@ export class WebhooksService {
 
         // Sync the task to ClickUp
         await this.syncService.syncWrikeToClickUp(task);
-
       } catch (error) {
-        this.logger.error(`Error processing event ${eventType} for task ${taskId}:`, error.message);
+        this.logger.error(
+          `Error processing event ${eventType} for task ${taskId}:`,
+          error.message,
+        );
       }
     }
   }
@@ -139,10 +159,15 @@ export class WebhooksService {
    */
   async handleClickUpWebhook(payload: any): Promise<void> {
     this.logger.log('Received ClickUp webhook event');
-    this.logger.debug('Full webhook payload:', JSON.stringify(payload, null, 2));
+    this.logger.debug(
+      'Full webhook payload:',
+      JSON.stringify(payload, null, 2),
+    );
 
     const { event, task_id } = payload;
-    this.logger.log(`Event: ${event} for task ${task_id} - reverse sync disabled, no action taken`);
+    this.logger.log(
+      `Event: ${event} for task ${task_id} - reverse sync disabled, no action taken`,
+    );
   }
 
   /**
@@ -171,21 +196,27 @@ export class WebhooksService {
 
     // Fetch ClickUp webhooks
     try {
-      const workspaceId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+      const workspaceId = this.configService.get<string>(
+        'CLICKUP_WORKSPACE_ID',
+      );
       if (workspaceId) {
         this.logger.log('Fetching ClickUp webhooks...');
-        const clickUpWebhooks = await this.clickUpService.listWebhooks(workspaceId);
+        const clickUpWebhooks =
+          await this.clickUpService.listWebhooks(workspaceId);
 
         for (const webhook of clickUpWebhooks.webhooks || []) {
           webhooks.push({
             id: webhook.id,
             source: 'clickup',
             url: webhook.endpoint,
-            status: webhook.health?.status === 'active' ? 'active' : 'suspended',
+            status:
+              webhook.health?.status === 'active' ? 'active' : 'suspended',
             events: webhook.events,
           });
         }
-        this.logger.log(`Found ${clickUpWebhooks.webhooks?.length || 0} ClickUp webhooks`);
+        this.logger.log(
+          `Found ${clickUpWebhooks.webhooks?.length || 0} ClickUp webhooks`,
+        );
       }
     } catch (error) {
       this.logger.error('Failed to fetch ClickUp webhooks:', error.message);

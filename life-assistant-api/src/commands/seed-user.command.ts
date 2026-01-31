@@ -39,7 +39,9 @@ async function bootstrap() {
   const passwordArg = args.find((arg) => arg.startsWith('--password='));
 
   if (!emailArg || !passwordArg) {
-    console.error('Usage: npm run seed:user -- --email=you@example.com --password=yourpassword');
+    console.error(
+      'Usage: npm run seed:user -- --email=you@example.com --password=yourpassword',
+    );
     process.exit(1);
   }
 

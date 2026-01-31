@@ -1,21 +1,14 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { authApi } from '../lib/api';
-import type { User, LoginCredentials } from '../lib/api';
-
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from './AuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<ReturnType<typeof authApi.me> extends Promise<infer T> ? T | null : never>(null);
+  const [isLoading, setIsLoading] = useState(() => {
+    // Initialize based on whether token exists - avoids sync setState in effect
+    return !!localStorage.getItem('auth_token');
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -31,12 +24,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .finally(() => {
           setIsLoading(false);
         });
-    } else {
-      setIsLoading(false);
     }
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: Parameters<typeof authApi.login>[0]) => {
     const response = await authApi.login(credentials);
     localStorage.setItem('auth_token', response.access_token);
     setUser(response.user);
@@ -60,12 +51,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }
