@@ -1002,6 +1002,56 @@ graph TB
 - Unlimited webhook calls
 - No database row limits
 
+## Planned Features
+
+### Task Insights Page (`/tasks`)
+
+**Status:** Planned
+
+**Purpose:** Surface patterns in task management behavior to help identify chronic procrastination and improve personal productivity.
+
+#### MVP - Reschedule Leaderboard
+
+A "wall of shame" showing tasks that keep getting pushed.
+
+**Requirements:**
+- New frontend route: `/tasks`
+- Ranked list of tasks rescheduled 3+ times
+- Sorted by reschedule count (highest first)
+- Display: task name, current due date, reschedule count, tags
+- ClickUp personal tasks only (excludes Wrike/work tasks)
+- Excludes completed tasks
+
+**Technical Investigation Needed:**
+- [ ] Verify ClickUp API exposes task activity history (due date changes)
+- [ ] If not available via API, design alternative approach (track changes ourselves)
+
+**Data Requirements:**
+- Task ID and name
+- Current due date
+- Number of times due date was changed
+- Task tags (for pattern analysis)
+
+**UI Mockup:**
+```
+Reschedule Leaderboard
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  Task                    Due        Pushes  Tags
+1  Clean garage            Feb 15     12      [home] [weekend]
+2  Schedule dentist        Feb 3      8       [health]
+3  Review insurance        Jan 28     7       [admin] [finance]
+4  Organize photos         Mar 1      5       [home]
+5  Call mom                Feb 1      4       [family]
+```
+
+#### Future Enhancements (Roadmap)
+- **Completed tasks view** - Celebrate tasks that finally got done after multiple reschedules ("Victory Lap")
+- **Tag analysis** - Which categories of tasks get pushed most often
+- **Time patterns** - Do certain days/weeks have more reschedules
+- **Streak tracking** - How many days since last reschedule
+
+---
+
 ## Future Enhancements
 
 ### Phase 1: Task Sync Module (Complete)
