@@ -22,7 +22,7 @@ export class ClickUpService implements OnModuleInit {
     this.axiosInstance = axios.create({
       baseURL: this.baseUrl,
       headers: {
-        'Authorization': token,
+        Authorization: token,
         'Content-Type': 'application/json',
       },
     });
@@ -33,16 +33,23 @@ export class ClickUpService implements OnModuleInit {
    */
   async onModuleInit() {
     try {
-      this.logger.log('Initializing ClickUp service - fetching current user...');
+      this.logger.log(
+        'Initializing ClickUp service - fetching current user...',
+      );
       const userResponse = await this.getAuthorizedUser();
       if (userResponse.user) {
         this.currentUserId = userResponse.user.id;
-        this.logger.log(`ClickUp user ID cached: ${this.currentUserId} (${userResponse.user.username})`);
+        this.logger.log(
+          `ClickUp user ID cached: ${this.currentUserId} (${userResponse.user.username})`,
+        );
       } else {
         this.logger.warn('No user data returned from ClickUp API');
       }
     } catch (error) {
-      this.logger.error('Failed to fetch current user ID during initialization:', error.message);
+      this.logger.error(
+        'Failed to fetch current user ID during initialization:',
+        error.message,
+      );
       this.logger.error('Auto-assignment will not work until this is resolved');
     }
   }
@@ -76,11 +83,19 @@ export class ClickUpService implements OnModuleInit {
   async getTask(taskId: string): Promise<ClickUpTask> {
     try {
       this.logger.log(`Fetching ClickUp task: ${taskId}`);
-      const response = await this.axiosInstance.get<ClickUpTask>(`/task/${taskId}`);
+      const response = await this.axiosInstance.get<ClickUpTask>(
+        `/task/${taskId}`,
+      );
       return response.data;
     } catch (error) {
-      this.logger.error(`Failed to fetch ClickUp task ${taskId}:`, error.message);
-      this.logger.error(`ClickUp API error:`, JSON.stringify(error.response?.data));
+      this.logger.error(
+        `Failed to fetch ClickUp task ${taskId}:`,
+        error.message,
+      );
+      this.logger.error(
+        `ClickUp API error:`,
+        JSON.stringify(error.response?.data),
+      );
       throw error;
     }
   }
@@ -91,11 +106,19 @@ export class ClickUpService implements OnModuleInit {
   async getTasksInList(listId: string): Promise<ClickUpTasksResponse> {
     try {
       this.logger.log(`Fetching tasks from ClickUp list: ${listId}`);
-      const response = await this.axiosInstance.get<ClickUpTasksResponse>(`/list/${listId}/task`);
+      const response = await this.axiosInstance.get<ClickUpTasksResponse>(
+        `/list/${listId}/task`,
+      );
       return response.data;
     } catch (error) {
-      this.logger.error(`Failed to fetch tasks from list ${listId}:`, error.message);
-      this.logger.error(`ClickUp API error:`, JSON.stringify(error.response?.data));
+      this.logger.error(
+        `Failed to fetch tasks from list ${listId}:`,
+        error.message,
+      );
+      this.logger.error(
+        `ClickUp API error:`,
+        JSON.stringify(error.response?.data),
+      );
       throw error;
     }
   }
@@ -105,11 +128,19 @@ export class ClickUpService implements OnModuleInit {
    */
   async createTask(
     listId: string,
-    taskData: { name: string; description?: string; status?: string; priority?: number },
+    taskData: {
+      name: string;
+      description?: string;
+      status?: string;
+      priority?: number;
+    },
   ): Promise<ClickUpTask> {
     try {
       this.logger.log(`Creating task in ClickUp list: ${listId}`);
-      const response = await this.axiosInstance.post<ClickUpTask>(`/list/${listId}/task`, taskData);
+      const response = await this.axiosInstance.post<ClickUpTask>(
+        `/list/${listId}/task`,
+        taskData,
+      );
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to create ClickUp task:`, error.message);
@@ -137,10 +168,15 @@ export class ClickUpService implements OnModuleInit {
   async getListsInSpace(spaceId: string): Promise<ClickUpListsResponse> {
     try {
       this.logger.log(`Fetching lists from ClickUp space: ${spaceId}`);
-      const response = await this.axiosInstance.get<ClickUpListsResponse>(`/space/${spaceId}/list`);
+      const response = await this.axiosInstance.get<ClickUpListsResponse>(
+        `/space/${spaceId}/list`,
+      );
       return response.data;
     } catch (error) {
-      this.logger.error(`Failed to fetch lists from space ${spaceId}:`, error.message);
+      this.logger.error(
+        `Failed to fetch lists from space ${spaceId}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -151,7 +187,9 @@ export class ClickUpService implements OnModuleInit {
   async getSpaces(workspaceId: string): Promise<ClickUpSpacesResponse> {
     try {
       this.logger.log(`Fetching ClickUp spaces in workspace: ${workspaceId}`);
-      const response = await this.axiosInstance.get<ClickUpSpacesResponse>(`/team/${workspaceId}/space`);
+      const response = await this.axiosInstance.get<ClickUpSpacesResponse>(
+        `/team/${workspaceId}/space`,
+      );
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch spaces:`, error.message);
@@ -165,7 +203,10 @@ export class ClickUpService implements OnModuleInit {
   async updateTask(taskId: string, taskData: any): Promise<any> {
     try {
       this.logger.log(`Updating ClickUp task: ${taskId}`);
-      const response = await this.axiosInstance.put(`/task/${taskId}`, taskData);
+      const response = await this.axiosInstance.put(
+        `/task/${taskId}`,
+        taskData,
+      );
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to update task ${taskId}:`, error.message);
@@ -206,15 +247,16 @@ export class ClickUpService implements OnModuleInit {
    */
   async createWebhook(teamId: string, hookUrl: string): Promise<any> {
     try {
-      this.logger.log(`Creating ClickUp webhook for team ${teamId}: ${hookUrl}`);
-      const response = await this.axiosInstance.post(`/team/${teamId}/webhook`, {
-        endpoint: hookUrl,
-        events: [
-          'taskUpdated',
-          'taskStatusUpdated',
-          'taskDueDateUpdated',
-        ],
-      });
+      this.logger.log(
+        `Creating ClickUp webhook for team ${teamId}: ${hookUrl}`,
+      );
+      const response = await this.axiosInstance.post(
+        `/team/${teamId}/webhook`,
+        {
+          endpoint: hookUrl,
+          events: ['taskUpdated', 'taskStatusUpdated', 'taskDueDateUpdated'],
+        },
+      );
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to create webhook:`, error.message);
@@ -231,7 +273,10 @@ export class ClickUpService implements OnModuleInit {
       await this.axiosInstance.delete(`/webhook/${webhookId}`);
       this.logger.log(`Successfully deleted ClickUp webhook: ${webhookId}`);
     } catch (error) {
-      this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
+      this.logger.error(
+        `Failed to delete webhook ${webhookId}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -245,7 +290,10 @@ export class ClickUpService implements OnModuleInit {
       await this.axiosInstance.post(`/task/${taskId}/tag/${tagName}`);
       this.logger.log(`Successfully added tag "${tagName}" to task ${taskId}`);
     } catch (error) {
-      this.logger.error(`Failed to add tag "${tagName}" to task ${taskId}:`, error.message);
+      this.logger.error(
+        `Failed to add tag "${tagName}" to task ${taskId}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -257,15 +305,25 @@ export class ClickUpService implements OnModuleInit {
     try {
       this.logger.log(`Removing tag "${tagName}" from task ${taskId}`);
       await this.axiosInstance.delete(`/task/${taskId}/tag/${tagName}`);
-      this.logger.log(`Successfully removed tag "${tagName}" from task ${taskId}`);
+      this.logger.log(
+        `Successfully removed tag "${tagName}" from task ${taskId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to remove tag "${tagName}" from task ${taskId}:`, error.message);
+      this.logger.error(
+        `Failed to remove tag "${tagName}" from task ${taskId}:`,
+        error.message,
+      );
       throw error;
     }
   }
 
   // Affirmative completion statuses (green - actually completed)
-  private readonly AFFIRMATIVE_STATUSES = ['complete', 'completed', 'went', 'attended'];
+  private readonly AFFIRMATIVE_STATUSES = [
+    'complete',
+    'completed',
+    'went',
+    'attended',
+  ];
 
   // Statuses to exclude from total count (still in progress, shouldn't count against rate)
   private readonly EXCLUDED_STATUSES = ['in progress'];
@@ -282,8 +340,24 @@ export class ClickUpService implements OnModuleInit {
     affirmativeCompletions: number;
     completionRate: number;
   }> {
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+    const startOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
 
     const response = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
       params: {
@@ -298,16 +372,18 @@ export class ClickUpService implements OnModuleInit {
 
     // Filter out excluded statuses from total
     const tasks = allTasks.filter(
-      (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
+      (task: any) =>
+        !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
     );
 
-    const affirmativeCompletions = tasks.filter(
-      (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+    const affirmativeCompletions = tasks.filter((task: any) =>
+      this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
     ).length;
 
-    const completionRate = tasks.length > 0
-      ? Math.round((affirmativeCompletions / tasks.length) * 100)
-      : 0;
+    const completionRate =
+      tasks.length > 0
+        ? Math.round((affirmativeCompletions / tasks.length) * 100)
+        : 0;
 
     return {
       date: formatDateString(startOfDay),
@@ -323,12 +399,14 @@ export class ClickUpService implements OnModuleInit {
   async getCompletionStatsHistory(
     workspaceId: string,
     days: number,
-  ): Promise<{
-    date: string;
-    total: number;
-    affirmativeCompletions: number;
-    completionRate: number;
-  }[]> {
+  ): Promise<
+    {
+      date: string;
+      total: number;
+      affirmativeCompletions: number;
+      completionRate: number;
+    }[]
+  > {
     this.logger.log(`Fetching completion stats for last ${days} days`);
     const stats = [];
     const today = getNowInTimezone();
@@ -358,48 +436,74 @@ export class ClickUpService implements OnModuleInit {
       this.logger.log(`Fetching tasks due today for workspace: ${workspaceId}`);
 
       const now = getNowInTimezone();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const startOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        0,
+        0,
+        0,
+        0,
+      );
+      const endOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23,
+        59,
+        59,
+        999,
+      );
 
       // Fetch tasks due today
-      const todayResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
-        params: {
-          due_date_gt: startOfDay.getTime(),
-          due_date_lt: endOfDay.getTime(),
-          subtasks: true,
+      const todayResponse = await this.axiosInstance.get(
+        `/team/${workspaceId}/task`,
+        {
+          params: {
+            due_date_gt: startOfDay.getTime(),
+            due_date_lt: endOfDay.getTime(),
+            subtasks: true,
+          },
         },
-      });
+      );
 
       // Fetch overdue tasks (due before today, not completed)
-      const overdueResponse = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
-        params: {
-          due_date_lt: startOfDay.getTime(),
-          subtasks: true,
+      const overdueResponse = await this.axiosInstance.get(
+        `/team/${workspaceId}/task`,
+        {
+          params: {
+            due_date_lt: startOfDay.getTime(),
+            subtasks: true,
+          },
         },
-      });
+      );
 
       const allTodayTasks = todayResponse.data.tasks || [];
       const overdueTasks = (overdueResponse.data.tasks || []).filter(
-        (task: any) => task.status?.type !== 'done' && task.status?.type !== 'closed',
+        (task: any) =>
+          task.status?.type !== 'done' && task.status?.type !== 'closed',
       );
 
       // Filter out excluded statuses for completion rate calculation
       const todayTasks = allTodayTasks.filter(
-        (task: any) => !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
+        (task: any) =>
+          !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
       );
 
       const completed = todayTasks.filter(
-        (task: any) => task.status?.type === 'done' || task.status?.type === 'closed',
+        (task: any) =>
+          task.status?.type === 'done' || task.status?.type === 'closed',
       ).length;
 
-      const affirmativeCompletions = todayTasks.filter(
-        (task: any) => this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
+      const affirmativeCompletions = todayTasks.filter((task: any) =>
+        this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
       ).length;
 
       // Completion rate: affirmative completions / total tasks (excluding in-progress)
-      const completionRate = todayTasks.length > 0
-        ? Math.round((affirmativeCompletions / todayTasks.length) * 100)
-        : 0;
+      const completionRate =
+        todayTasks.length > 0
+          ? Math.round((affirmativeCompletions / todayTasks.length) * 100)
+          : 0;
 
       return {
         total: todayTasks.length,

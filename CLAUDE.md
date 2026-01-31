@@ -11,6 +11,27 @@ Life Assistant is a personal life automation platform. The first implemented fea
 
 **Tech Stack**: NestJS, TypeORM, PostgreSQL 18, Docker, React, Vite, TanStack Router, Tailwind CSS
 
+## Branching Strategy
+
+```
+main (stable/production)
+  │
+  ├──► feature-branch ──► PR to staging (test) ──► PR to main (promote)
+  │
+  └──► staging (unstable/testing)
+```
+
+**Rules:**
+1. **Always branch off `main`** - it's the stable base
+2. **PR to `staging` first** - test features in the unstable environment
+3. **PR to `main` when stable** - promote tested features to production
+4. **Merge `main` → `staging`** - occasionally reset staging to stable state
+
+**Branch purposes:**
+- `main` - Production deployments, stable code only
+- `staging` - Testing deployments, can be unstable
+- Feature branches - Short-lived, deleted after merging to main
+
 ## Architecture
 
 ```

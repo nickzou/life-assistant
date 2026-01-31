@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Delete, Body, Logger, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Logger,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,7 +46,10 @@ export class ClickUpController {
     if (!workspaceId) {
       throw new Error('CLICKUP_WORKSPACE_ID not configured');
     }
-    return this.clickUpService.getCompletionStatsHistory(workspaceId, parseInt(days, 10));
+    return this.clickUpService.getCompletionStatsHistory(
+      workspaceId,
+      parseInt(days, 10),
+    );
   }
 
   /**
@@ -98,7 +110,9 @@ export class ClickUpController {
   @Get('test/spaces')
   async testSpaces() {
     try {
-      const workspaceId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+      const workspaceId = this.configService.get<string>(
+        'CLICKUP_WORKSPACE_ID',
+      );
       if (!workspaceId) {
         throw new Error('CLICKUP_WORKSPACE_ID not configured in .env');
       }
@@ -156,7 +170,10 @@ export class ClickUpController {
         data: lists,
       };
     } catch (error) {
-      this.logger.error(`Failed to fetch lists from space ${spaceId}:`, error.message);
+      this.logger.error(
+        `Failed to fetch lists from space ${spaceId}:`,
+        error.message,
+      );
       return {
         success: false,
         error: error.message,
@@ -223,7 +240,10 @@ export class ClickUpController {
    * Body: { "baseUrl": "https://your-server.com" } (optional)
    */
   @Post('webhooks/:teamId/setup')
-  async setupWebhook(@Param('teamId') teamId: string, @Body() body: { baseUrl?: string }) {
+  async setupWebhook(
+    @Param('teamId') teamId: string,
+    @Body() body: { baseUrl?: string },
+  ) {
     try {
       const baseUrl = body.baseUrl || 'https://e2ab384a1a9f.ngrok.app';
       const hookUrl = `${baseUrl}/webhooks/clickup`;
@@ -262,7 +282,10 @@ export class ClickUpController {
         message: `Webhook ${webhookId} deleted successfully`,
       };
     } catch (error) {
-      this.logger.error(`Failed to delete webhook ${webhookId}:`, error.message);
+      this.logger.error(
+        `Failed to delete webhook ${webhookId}:`,
+        error.message,
+      );
       return {
         success: false,
         error: error.message,
