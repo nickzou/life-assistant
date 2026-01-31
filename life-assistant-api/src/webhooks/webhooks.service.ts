@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WrikeService } from '../wrike/wrike.service';
 import { ClickUpService } from '../clickup/clickup.service';
-import { SyncService, SYNC_TAG } from '../sync/sync.service';
+import { SyncService } from '../sync/sync.service';
 
 export interface WebhookStatusItem {
   id: string;
@@ -136,53 +136,13 @@ export class WebhooksService {
    * Process incoming ClickUp webhook event
    *
    * NOTE: ClickUp → Wrike sync is currently disabled to prevent issues on the Wrike side.
-   * This handler only removes the sync tag to prevent loops from Wrike → ClickUp syncs.
    */
   async handleClickUpWebhook(payload: any): Promise<void> {
     this.logger.log('Received ClickUp webhook event');
     this.logger.debug('Full webhook payload:', JSON.stringify(payload, null, 2));
 
     const { event, task_id } = payload;
-
-    // Event types where we need to check for sync tag
-    const TAG_CHECK_EVENTS = [
-      'taskUpdated',
-      'taskStatusUpdated',
-      'taskDueDateUpdated',
-      'taskStartDateUpdated',
-    ];
-
-    this.logger.log(`Processing event: ${event} for task ${task_id}`);
-
-    // Only process events where we might need to remove the sync tag
-    if (!TAG_CHECK_EVENTS.includes(event)) {
-      this.logger.log(`Skipping event type: ${event}`);
-      return;
-    }
-
-    try {
-      // Fetch task to check for sync tag
-      const clickUpTask = await this.clickUpService.getTask(task_id);
-
-      // Check if task has the sync tag (indicates it was synced from Wrike)
-      const hasSyncTag = clickUpTask.tags?.some(
-        (tag: any) => tag.name === SYNC_TAG,
-      );
-
-      if (hasSyncTag) {
-        this.logger.log(
-          `Task ${task_id} has sync tag "${SYNC_TAG}" - removing tag (reverse sync disabled)`,
-        );
-        await this.clickUpService.removeTag(task_id, SYNC_TAG);
-      } else {
-        this.logger.log(
-          `Task ${task_id} updated in ClickUp - reverse sync disabled, no action taken`,
-        );
-      }
-
-    } catch (error) {
-      this.logger.error(`Error processing event ${event} for task ${task_id}:`, error.message);
-    }
+    this.logger.log(`Event: ${event} for task ${task_id} - reverse sync disabled, no action taken`);
   }
 
   /**

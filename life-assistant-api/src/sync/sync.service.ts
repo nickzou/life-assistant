@@ -8,9 +8,6 @@ import { TaskMapping } from '../database/entities/task-mapping.entity';
 import { SyncLog } from '../database/entities/sync-log.entity';
 import { WrikeTask } from '../wrike/types/wrike-api.types';
 
-// Tag used to identify tasks synced from Wrike (to prevent reverse sync loops)
-export const SYNC_TAG = 'synced-from-wrike';
-
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
@@ -110,7 +107,7 @@ export class SyncService {
     const taskData: any = {
       name: wrikeTask.title,
       description: `View in Wrike: ${wrikeTask.permalink}`,
-      tags: ['touchbistro', 'from wrike', 'work', SYNC_TAG],
+      tags: ['touchbistro', 'from wrike', 'work'],
     };
 
     // Auto-assign to current user
@@ -154,9 +151,6 @@ export class SyncService {
    */
   private async updateClickUpTask(clickUpTaskId: string, wrikeTask: WrikeTask): Promise<void> {
     this.logger.log(`Updating ClickUp task: ${clickUpTaskId}`);
-
-    // First, add the sync tag to mark this as a Wrike-originated update
-    await this.clickUpService.addTag(clickUpTaskId, SYNC_TAG);
 
     const taskData: any = {
       name: wrikeTask.title,
