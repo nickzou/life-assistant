@@ -1,11 +1,28 @@
-import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Res,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { GrocyService } from './grocy.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { getTodayString } from '../utils/date.utils';
+import {
+  GenerateShoppingListRequest,
+  GenerateShoppingListResponse,
+  EnrichedShoppingListItem,
+  ShoppingList,
+} from './grocy.types';
 
 @Controller('grocy')
 export class GrocyController {
+  private readonly logger = new Logger(GrocyController.name);
+
   constructor(private readonly grocyService: GrocyService) {}
 
   /**
@@ -63,6 +80,111 @@ export class GrocyController {
     return {
       date,
       meals: enrichedMealPlan,
+    };
+  }
+
+  /**
+   * Get meal plan for a date range
+   * GET /grocy/meal-plan/range/:startDate/:endDate
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('meal-plan/range/:startDate/:endDate')
+  async getMealPlanByDateRange(
+    @Param('startDate') startDate: string,
+    @Param('endDate') endDate: string,
+  ) {
+    const mealPlan = await this.grocyService.getMealPlanForDateRange(
+      startDate,
+      endDate,
+    );
+
+    const enrichedMealPlan = await Promise.all(
+      mealPlan.map(async (meal: any) => {
+        if (meal.recipe_id) {
+          const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          if (recipe.picture_file_name) {
+            recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
+          }
+          return { ...meal, recipe };
+        }
+        return meal;
+      }),
+    );
+
+    return {
+      startDate,
+      endDate,
+      meals: enrichedMealPlan,
+    };
+  }
+
+  /**
+   * Get current shopping list
+   * GET /grocy/shopping-list
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('shopping-list')
+  async getShoppingList(): Promise<{
+    lists: ShoppingList[];
+    items: EnrichedShoppingListItem[];
+  }> {
+    const [lists, items] = await Promise.all([
+      this.grocyService.getShoppingLists(),
+      this.grocyService.getEnrichedShoppingListItems(),
+    ]);
+
+    return { lists, items };
+  }
+
+  /**
+   * Generate shopping list from meal plan for a date range
+   * POST /grocy/shopping-list/generate
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('shopping-list/generate')
+  async generateShoppingList(
+    @Body() body: GenerateShoppingListRequest,
+  ): Promise<GenerateShoppingListResponse> {
+    const { startDate, endDate } = body;
+    this.logger.log(
+      `Generating shopping list for meal plan: ${startDate} to ${endDate}`,
+    );
+
+    // Get all meals in the date range
+    const meals = await this.grocyService.getMealPlanForDateRange(
+      startDate,
+      endDate,
+    );
+
+    // Extract unique recipe IDs
+    const recipeIds = [
+      ...new Set(
+        meals.filter((m) => m.recipe_id).map((m) => m.recipe_id as number),
+      ),
+    ];
+
+    this.logger.log(`Found ${recipeIds.length} unique recipes in meal plan`);
+
+    // Add missing ingredients for each recipe
+    let addedRecipes = 0;
+    for (const recipeId of recipeIds) {
+      try {
+        await this.grocyService.addMissingToShoppingList(recipeId);
+        addedRecipes++;
+        this.logger.log(`Added missing ingredients for recipe ${recipeId}`);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to add ingredients for recipe ${recipeId}: ${error.message}`,
+        );
+      }
+    }
+
+    // Get updated shopping list
+    const items = await this.grocyService.getEnrichedShoppingListItems();
+
+    return {
+      addedRecipes,
+      items,
     };
   }
 

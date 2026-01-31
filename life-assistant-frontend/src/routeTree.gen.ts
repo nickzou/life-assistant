@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WebhooksRouteImport } from './routes/webhooks'
 import { Route as StatsRouteImport } from './routes/stats'
+import { Route as ShoppingRouteImport } from './routes/shopping'
 import { Route as MealsRouteImport } from './routes/meals'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,6 +24,11 @@ const WebhooksRoute = WebhooksRouteImport.update({
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShoppingRoute = ShoppingRouteImport.update({
+  id: '/shopping',
+  path: '/shopping',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MealsRoute = MealsRouteImport.update({
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/meals': typeof MealsRoute
+  '/shopping': typeof ShoppingRoute
   '/stats': typeof StatsRoute
   '/webhooks': typeof WebhooksRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/meals': typeof MealsRoute
+  '/shopping': typeof ShoppingRoute
   '/stats': typeof StatsRoute
   '/webhooks': typeof WebhooksRoute
 }
@@ -60,21 +68,30 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/meals': typeof MealsRoute
+  '/shopping': typeof ShoppingRoute
   '/stats': typeof StatsRoute
   '/webhooks': typeof WebhooksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/meals' | '/stats' | '/webhooks'
+  fullPaths: '/' | '/login' | '/meals' | '/shopping' | '/stats' | '/webhooks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/meals' | '/stats' | '/webhooks'
-  id: '__root__' | '/' | '/login' | '/meals' | '/stats' | '/webhooks'
+  to: '/' | '/login' | '/meals' | '/shopping' | '/stats' | '/webhooks'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/meals'
+    | '/shopping'
+    | '/stats'
+    | '/webhooks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   MealsRoute: typeof MealsRoute
+  ShoppingRoute: typeof ShoppingRoute
   StatsRoute: typeof StatsRoute
   WebhooksRoute: typeof WebhooksRoute
 }
@@ -93,6 +110,13 @@ declare module '@tanstack/react-router' {
       path: '/stats'
       fullPath: '/stats'
       preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shopping': {
+      id: '/shopping'
+      path: '/shopping'
+      fullPath: '/shopping'
+      preLoaderRoute: typeof ShoppingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meals': {
@@ -123,6 +147,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   MealsRoute: MealsRoute,
+  ShoppingRoute: ShoppingRoute,
   StatsRoute: StatsRoute,
   WebhooksRoute: WebhooksRoute,
 }

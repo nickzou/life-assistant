@@ -1,6 +1,15 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import {
+  RecipeFulfillment,
+  ShoppingList,
+  ShoppingListItem,
+  EnrichedShoppingListItem,
+  MealPlanItem,
+  Product,
+  QuantityUnit,
+} from './grocy.types';
 
 @Injectable()
 export class GrocyService implements OnModuleInit {
@@ -139,5 +148,104 @@ export class GrocyService implements OnModuleInit {
       data: response.data,
       contentType: response.headers['content-type'] || 'image/jpeg',
     };
+  }
+
+  /**
+   * Get meal plan entries for a date range
+   */
+  async getMealPlanForDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<MealPlanItem[]> {
+    const response = await this.axiosInstance.get<MealPlanItem[]>(
+      `/objects/meal_plan?query[]=day>=${startDate}&query[]=day<=${endDate}`,
+    );
+    return response.data;
+  }
+
+  /**
+   * Get recipe fulfillment status (ingredients with stock info)
+   */
+  async getRecipeFulfillment(recipeId: number): Promise<RecipeFulfillment> {
+    const response = await this.axiosInstance.get<RecipeFulfillment>(
+      `/recipes/${recipeId}/fulfillment`,
+    );
+    return response.data;
+  }
+
+  /**
+   * Add missing ingredients from a recipe to the shopping list
+   */
+  async addMissingToShoppingList(recipeId: number): Promise<void> {
+    await this.axiosInstance.post(
+      `/recipes/${recipeId}/add-not-fulfilled-products-to-shoppinglist`,
+    );
+  }
+
+  /**
+   * Get all shopping lists
+   */
+  async getShoppingLists(): Promise<ShoppingList[]> {
+    const response = await this.axiosInstance.get<ShoppingList[]>(
+      '/objects/shopping_lists',
+    );
+    return response.data;
+  }
+
+  /**
+   * Get shopping list items, optionally filtered by list ID
+   */
+  async getShoppingListItems(listId?: number): Promise<ShoppingListItem[]> {
+    let url = '/objects/shopping_list';
+    if (listId !== undefined) {
+      url += `?query[]=shopping_list_id=${listId}`;
+    }
+    const response = await this.axiosInstance.get<ShoppingListItem[]>(url);
+    return response.data;
+  }
+
+  /**
+   * Get all products (for enriching shopping list items)
+   */
+  async getAllProducts(): Promise<Product[]> {
+    const response =
+      await this.axiosInstance.get<Product[]>('/objects/products');
+    return response.data;
+  }
+
+  /**
+   * Get all quantity units (for display purposes)
+   */
+  async getQuantityUnits(): Promise<QuantityUnit[]> {
+    const response = await this.axiosInstance.get<QuantityUnit[]>(
+      '/objects/quantity_units',
+    );
+    return response.data;
+  }
+
+  /**
+   * Get enriched shopping list items with product names
+   */
+  async getEnrichedShoppingListItems(
+    listId?: number,
+  ): Promise<EnrichedShoppingListItem[]> {
+    const [items, products, quantityUnits] = await Promise.all([
+      this.getShoppingListItems(listId),
+      this.getAllProducts(),
+      this.getQuantityUnits(),
+    ]);
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    const quMap = new Map(quantityUnits.map((qu) => [qu.id, qu]));
+
+    return items.map((item) => {
+      const product = item.product_id ? productMap.get(item.product_id) : null;
+      const qu = product ? quMap.get(product.qu_id_stock) : null;
+      return {
+        ...item,
+        product_name: product?.name,
+        qu_name: qu?.name,
+      };
+    });
   }
 }
