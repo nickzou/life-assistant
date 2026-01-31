@@ -35,6 +35,13 @@ function RootLayout() {
             Meals
           </Link>
           <Link
+            to="/shopping"
+            className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Shopping
+          </Link>
+          <Link
             to="/webhooks"
             className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
             onClick={() => setMobileMenuOpen(false)}
