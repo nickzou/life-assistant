@@ -4,6 +4,7 @@ import { WebhooksService } from './webhooks.service';
 import { WrikeService } from '../wrike/wrike.service';
 import { ClickUpService } from '../clickup/clickup.service';
 import { SyncService } from '../sync/sync.service';
+import { TaskInsightsService } from '../task-insights/task-insights.service';
 import {
   WrikeTask,
   WrikeWebhooksResponse,
@@ -15,6 +16,7 @@ describe('WebhooksService', () => {
   let clickUpService: jest.Mocked<Partial<ClickUpService>>;
   let syncService: jest.Mocked<Partial<SyncService>>;
   let configService: jest.Mocked<Partial<ConfigService>>;
+  let taskInsightsService: jest.Mocked<Partial<TaskInsightsService>>;
 
   const mockCurrentUserId = 'user-123';
 
@@ -40,6 +42,10 @@ describe('WebhooksService', () => {
       get: jest.fn(),
     };
 
+    taskInsightsService = {
+      trackDueDateChange: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhooksService,
@@ -47,6 +53,7 @@ describe('WebhooksService', () => {
         { provide: ClickUpService, useValue: clickUpService },
         { provide: SyncService, useValue: syncService },
         { provide: ConfigService, useValue: configService },
+        { provide: TaskInsightsService, useValue: taskInsightsService },
       ],
     }).compile();
 
