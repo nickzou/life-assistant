@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WrikeService } from '../wrike/wrike.service';
 import { ClickUpService } from '../clickup/clickup.service';
 import { SyncService } from '../sync/sync.service';
+import { TaskInsightsService } from '../task-insights/task-insights.service';
 
 export interface WebhookStatusItem {
   id: string;
@@ -30,6 +31,8 @@ export class WebhooksService {
     private readonly clickUpService: ClickUpService,
     private readonly syncService: SyncService,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => TaskInsightsService))
+    private readonly taskInsightsService: TaskInsightsService,
   ) {}
 
   /**
@@ -156,6 +159,7 @@ export class WebhooksService {
    * Process incoming ClickUp webhook event
    *
    * NOTE: ClickUp → Wrike sync is currently disabled to prevent issues on the Wrike side.
+   * However, we still track due date changes for the Task Insights feature.
    */
   async handleClickUpWebhook(payload: any): Promise<void> {
     this.logger.log('Received ClickUp webhook event');
@@ -164,10 +168,38 @@ export class WebhooksService {
       JSON.stringify(payload, null, 2),
     );
 
-    const { event, task_id } = payload;
-    this.logger.log(
-      `Event: ${event} for task ${task_id} - reverse sync disabled, no action taken`,
-    );
+    const { event, task_id, history_items } = payload;
+    this.logger.log(`Event: ${event} for task ${task_id}`);
+
+    // Track due date changes for Task Insights
+    if (event === 'taskDueDateUpdated' && task_id) {
+      try {
+        // Extract previous and new due dates from history_items if available
+        let previousDueDate: number | null = null;
+        let newDueDate: number | null = null;
+
+        if (history_items && Array.isArray(history_items)) {
+          for (const item of history_items) {
+            if (item.field === 'due_date') {
+              previousDueDate = item.before ? parseInt(item.before, 10) : null;
+              newDueDate = item.after ? parseInt(item.after, 10) : null;
+              break;
+            }
+          }
+        }
+
+        await this.taskInsightsService.trackDueDateChange(
+          task_id,
+          previousDueDate,
+          newDueDate,
+        );
+        this.logger.log(`Tracked due date change for task ${task_id}`);
+      } catch (error) {
+        this.logger.error(
+          `Failed to track due date change for task ${task_id}: ${error.message}`,
+        );
+      }
+    }
   }
 
   /**
