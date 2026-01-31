@@ -69,7 +69,10 @@ describe('AuthService', () => {
     it('should return null when user does not exist', async () => {
       userRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.validateUser('nonexistent@example.com', 'password');
+      const result = await service.validateUser(
+        'nonexistent@example.com',
+        'password',
+      );
 
       expect(result).toBeNull();
     });
@@ -80,7 +83,10 @@ describe('AuthService', () => {
 
       userRepository.findOne.mockResolvedValue(userWithHash);
 
-      const result = await service.validateUser('test@example.com', 'wrongpassword');
+      const result = await service.validateUser(
+        'test@example.com',
+        'wrongpassword',
+      );
 
       expect(result).toBeNull();
     });
@@ -153,7 +159,10 @@ describe('AuthService', () => {
       userRepository.create.mockReturnValue(mockUser);
       userRepository.save.mockResolvedValue(mockUser);
 
-      const result = await service.createUser('test@example.com', 'password123');
+      const result = await service.createUser(
+        'test@example.com',
+        'password123',
+      );
 
       expect(result).toEqual(mockUser);
       expect(userRepository.findOne).toHaveBeenCalledWith({

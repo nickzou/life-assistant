@@ -4,7 +4,10 @@ import { WebhooksService } from './webhooks.service';
 import { WrikeService } from '../wrike/wrike.service';
 import { ClickUpService } from '../clickup/clickup.service';
 import { SyncService } from '../sync/sync.service';
-import { WrikeTask, WrikeWebhooksResponse } from '../wrike/types/wrike-api.types';
+import {
+  WrikeTask,
+  WrikeWebhooksResponse,
+} from '../wrike/types/wrike-api.types';
 
 describe('WebhooksService', () => {
   let service: WebhooksService;
@@ -54,93 +57,132 @@ describe('WebhooksService', () => {
     it('should skip events when current user ID is not initialized', async () => {
       wrikeService.getCurrentUserId.mockReturnValue(null);
 
-      await service.handleWrikeWebhook([{ eventType: 'TaskStatusChanged', taskId: 'task-1' }]);
+      await service.handleWrikeWebhook([
+        { eventType: 'TaskStatusChanged', taskId: 'task-1' },
+      ]);
 
       expect(syncService.syncWrikeToClickUp).not.toHaveBeenCalled();
     });
 
     it('should skip unsupported event types', async () => {
-      await service.handleWrikeWebhook([{ eventType: 'SomeOtherEvent', taskId: 'task-1' }]);
+      await service.handleWrikeWebhook([
+        { eventType: 'SomeOtherEvent', taskId: 'task-1' },
+      ]);
 
       expect(syncService.syncWrikeToClickUp).not.toHaveBeenCalled();
       expect(wrikeService.getTask).not.toHaveBeenCalled();
     });
 
     it('should skip TaskResponsiblesAdded when user was not added', async () => {
-      await service.handleWrikeWebhook([{
-        eventType: 'TaskResponsiblesAdded',
-        taskId: 'task-1',
-        addedResponsibles: ['other-user'],
-      }]);
+      await service.handleWrikeWebhook([
+        {
+          eventType: 'TaskResponsiblesAdded',
+          taskId: 'task-1',
+          addedResponsibles: ['other-user'],
+        },
+      ]);
 
       expect(syncService.syncWrikeToClickUp).not.toHaveBeenCalled();
     });
 
     it('should sync task when current user is added', async () => {
-      const mockTask = { id: 'task-1', title: 'Test Task', responsibleIds: [mockCurrentUserId] } as WrikeTask;
-      wrikeService.getTask.mockResolvedValue({ kind: 'tasks', data: [mockTask] });
+      const mockTask = {
+        id: 'task-1',
+        title: 'Test Task',
+        responsibleIds: [mockCurrentUserId],
+      } as WrikeTask;
+      wrikeService.getTask.mockResolvedValue({
+        kind: 'tasks',
+        data: [mockTask],
+      });
       syncService.syncWrikeToClickUp.mockResolvedValue('clickup-task-1');
 
-      await service.handleWrikeWebhook([{
-        eventType: 'TaskResponsiblesAdded',
-        taskId: 'task-1',
-        addedResponsibles: [mockCurrentUserId],
-      }]);
+      await service.handleWrikeWebhook([
+        {
+          eventType: 'TaskResponsiblesAdded',
+          taskId: 'task-1',
+          addedResponsibles: [mockCurrentUserId],
+        },
+      ]);
 
       expect(wrikeService.getTask).toHaveBeenCalledWith('task-1');
       expect(syncService.syncWrikeToClickUp).toHaveBeenCalledWith(mockTask);
     });
 
     it('should delete task from ClickUp when current user is removed', async () => {
-      await service.handleWrikeWebhook([{
-        eventType: 'TaskResponsiblesRemoved',
-        taskId: 'task-1',
-        removedResponsibles: [mockCurrentUserId],
-      }]);
+      await service.handleWrikeWebhook([
+        {
+          eventType: 'TaskResponsiblesRemoved',
+          taskId: 'task-1',
+          removedResponsibles: [mockCurrentUserId],
+        },
+      ]);
 
       expect(syncService.deleteTaskFromClickUp).toHaveBeenCalledWith('task-1');
     });
 
     it('should skip TaskResponsiblesRemoved when other user was removed', async () => {
-      await service.handleWrikeWebhook([{
-        eventType: 'TaskResponsiblesRemoved',
-        taskId: 'task-1',
-        removedResponsibles: ['other-user'],
-      }]);
+      await service.handleWrikeWebhook([
+        {
+          eventType: 'TaskResponsiblesRemoved',
+          taskId: 'task-1',
+          removedResponsibles: ['other-user'],
+        },
+      ]);
 
       expect(syncService.deleteTaskFromClickUp).not.toHaveBeenCalled();
     });
 
     it('should delete task from ClickUp on TaskDeleted event', async () => {
-      await service.handleWrikeWebhook([{
-        eventType: 'TaskDeleted',
-        taskId: 'task-1',
-      }]);
+      await service.handleWrikeWebhook([
+        {
+          eventType: 'TaskDeleted',
+          taskId: 'task-1',
+        },
+      ]);
 
       expect(syncService.deleteTaskFromClickUp).toHaveBeenCalledWith('task-1');
     });
 
     it('should sync task on status change if assigned to current user', async () => {
-      const mockTask = { id: 'task-1', title: 'Test Task', responsibleIds: [mockCurrentUserId] } as WrikeTask;
-      wrikeService.getTask.mockResolvedValue({ kind: 'tasks', data: [mockTask] });
+      const mockTask = {
+        id: 'task-1',
+        title: 'Test Task',
+        responsibleIds: [mockCurrentUserId],
+      } as WrikeTask;
+      wrikeService.getTask.mockResolvedValue({
+        kind: 'tasks',
+        data: [mockTask],
+      });
       syncService.syncWrikeToClickUp.mockResolvedValue('clickup-task-1');
 
-      await service.handleWrikeWebhook([{
-        eventType: 'TaskStatusChanged',
-        taskId: 'task-1',
-      }]);
+      await service.handleWrikeWebhook([
+        {
+          eventType: 'TaskStatusChanged',
+          taskId: 'task-1',
+        },
+      ]);
 
       expect(syncService.syncWrikeToClickUp).toHaveBeenCalledWith(mockTask);
     });
 
     it('should skip status change if task not assigned to current user', async () => {
-      const mockTask = { id: 'task-1', title: 'Test Task', responsibleIds: ['other-user'] } as WrikeTask;
-      wrikeService.getTask.mockResolvedValue({ kind: 'tasks', data: [mockTask] });
+      const mockTask = {
+        id: 'task-1',
+        title: 'Test Task',
+        responsibleIds: ['other-user'],
+      } as WrikeTask;
+      wrikeService.getTask.mockResolvedValue({
+        kind: 'tasks',
+        data: [mockTask],
+      });
 
-      await service.handleWrikeWebhook([{
-        eventType: 'TaskStatusChanged',
-        taskId: 'task-1',
-      }]);
+      await service.handleWrikeWebhook([
+        {
+          eventType: 'TaskStatusChanged',
+          taskId: 'task-1',
+        },
+      ]);
 
       expect(syncService.syncWrikeToClickUp).not.toHaveBeenCalled();
     });
@@ -157,7 +199,10 @@ describe('WebhooksService', () => {
     });
 
     it('should handle non-array payload', async () => {
-      await service.handleWrikeWebhook({ eventType: 'TaskDeleted', taskId: 'task-1' });
+      await service.handleWrikeWebhook({
+        eventType: 'TaskDeleted',
+        taskId: 'task-1',
+      });
 
       expect(syncService.deleteTaskFromClickUp).toHaveBeenCalledWith('task-1');
     });
@@ -165,7 +210,10 @@ describe('WebhooksService', () => {
 
   describe('handleClickUpWebhook', () => {
     it('should log event but take no action (reverse sync disabled)', async () => {
-      await service.handleClickUpWebhook({ event: 'taskUpdated', task_id: 'task-1' });
+      await service.handleClickUpWebhook({
+        event: 'taskUpdated',
+        task_id: 'task-1',
+      });
 
       // Just verify it doesn't throw - reverse sync is disabled
       expect(syncService.syncWrikeToClickUp).not.toHaveBeenCalled();
@@ -177,15 +225,30 @@ describe('WebhooksService', () => {
       wrikeService.listWebhooks.mockResolvedValue({
         kind: 'webhooks',
         data: [
-          { id: 'wrike-1', accountId: 'acc-1', hookUrl: 'https://example.com/wrike', status: 'Active' },
-          { id: 'wrike-2', accountId: 'acc-1', hookUrl: 'https://example.com/wrike2', status: 'Suspended' },
+          {
+            id: 'wrike-1',
+            accountId: 'acc-1',
+            hookUrl: 'https://example.com/wrike',
+            status: 'Active',
+          },
+          {
+            id: 'wrike-2',
+            accountId: 'acc-1',
+            hookUrl: 'https://example.com/wrike2',
+            status: 'Suspended',
+          },
         ],
       } as WrikeWebhooksResponse);
 
       configService.get.mockReturnValue('workspace-123');
       clickUpService.listWebhooks.mockResolvedValue({
         webhooks: [
-          { id: 'clickup-1', endpoint: 'https://example.com/clickup', health: { status: 'active' }, events: ['taskUpdated'] },
+          {
+            id: 'clickup-1',
+            endpoint: 'https://example.com/clickup',
+            health: { status: 'active' },
+            events: ['taskUpdated'],
+          },
         ],
       });
 
@@ -211,7 +274,10 @@ describe('WebhooksService', () => {
     });
 
     it('should handle ClickUp API errors gracefully', async () => {
-      wrikeService.listWebhooks.mockResolvedValue({ kind: 'webhooks', data: [] } as WrikeWebhooksResponse);
+      wrikeService.listWebhooks.mockResolvedValue({
+        kind: 'webhooks',
+        data: [],
+      } as WrikeWebhooksResponse);
       configService.get.mockReturnValue('workspace-123');
       clickUpService.listWebhooks.mockRejectedValue(new Error('API error'));
 
@@ -221,10 +287,13 @@ describe('WebhooksService', () => {
     });
 
     it('should skip ClickUp when workspace ID not configured', async () => {
-      wrikeService.listWebhooks.mockResolvedValue({ kind: 'webhooks', data: [] } as WrikeWebhooksResponse);
+      wrikeService.listWebhooks.mockResolvedValue({
+        kind: 'webhooks',
+        data: [],
+      } as WrikeWebhooksResponse);
       configService.get.mockReturnValue(undefined);
 
-      const result = await service.getWebhookStatus();
+      await service.getWebhookStatus();
 
       expect(clickUpService.listWebhooks).not.toHaveBeenCalled();
     });

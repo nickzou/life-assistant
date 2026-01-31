@@ -71,7 +71,10 @@ describe('SyncService', () => {
         { provide: WrikeService, useValue: wrikeService },
         { provide: ClickUpService, useValue: clickUpService },
         { provide: ConfigService, useValue: configService },
-        { provide: getRepositoryToken(TaskMapping), useValue: mockTaskMappingRepo },
+        {
+          provide: getRepositoryToken(TaskMapping),
+          useValue: mockTaskMappingRepo,
+        },
         { provide: getRepositoryToken(SyncLog), useValue: mockSyncLogRepo },
       ],
     }).compile();
@@ -86,13 +89,25 @@ describe('SyncService', () => {
       // Mock status loading
       wrikeService.getCustomStatuses.mockResolvedValue({
         kind: 'workflows',
-        data: [{
-          id: 'workflow-1',
-          name: 'Default',
-          standard: true,
-          hidden: false,
-          customStatuses: [{ id: 'status-1', name: 'In Progress', standardName: false, standard: false, color: 'blue', group: 'Active', hidden: false }],
-        }],
+        data: [
+          {
+            id: 'workflow-1',
+            name: 'Default',
+            standard: true,
+            hidden: false,
+            customStatuses: [
+              {
+                id: 'status-1',
+                name: 'In Progress',
+                standardName: false,
+                standard: false,
+                color: 'blue',
+                group: 'Active',
+                hidden: false,
+              },
+            ],
+          },
+        ],
       });
       clickUpService.getList.mockResolvedValue({
         statuses: [{ status: 'In Progress' }, { status: 'Done' }],
@@ -101,72 +116,99 @@ describe('SyncService', () => {
 
     it('should create new ClickUp task when no mapping exists', async () => {
       taskMappingRepository.findOne.mockResolvedValue(null);
-      clickUpService.createTask.mockResolvedValue({ id: 'clickup-task-new' } as any);
+      clickUpService.createTask.mockResolvedValue({
+        id: 'clickup-task-new',
+      } as any);
       taskMappingRepository.create.mockReturnValue(mockTaskMapping);
       taskMappingRepository.save.mockResolvedValue(mockTaskMapping);
 
-      const result = await service.syncWrikeToClickUp(mockWrikeTask as WrikeTask);
+      const result = await service.syncWrikeToClickUp(
+        mockWrikeTask as WrikeTask,
+      );
 
       expect(result).toBe('clickup-task-new');
-      expect(clickUpService.createTask).toHaveBeenCalledWith('list-123', expect.objectContaining({
-        name: 'Test Task',
-        description: 'View in Wrike: https://wrike.com/task/123',
-        assignees: ['clickup-user-1'],
-      }));
+      expect(clickUpService.createTask).toHaveBeenCalledWith(
+        'list-123',
+        expect.objectContaining({
+          name: 'Test Task',
+          description: 'View in Wrike: https://wrike.com/task/123',
+          assignees: ['clickup-user-1'],
+        }),
+      );
       expect(taskMappingRepository.create).toHaveBeenCalled();
       expect(taskMappingRepository.save).toHaveBeenCalled();
-      expect(syncLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        action: 'create',
-        status: 'success',
-      }));
+      expect(syncLogRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'create',
+          status: 'success',
+        }),
+      );
     });
 
     it('should update existing ClickUp task when mapping exists', async () => {
       taskMappingRepository.findOne.mockResolvedValue(mockTaskMapping);
 
-      const result = await service.syncWrikeToClickUp(mockWrikeTask as WrikeTask);
+      const result = await service.syncWrikeToClickUp(
+        mockWrikeTask as WrikeTask,
+      );
 
       expect(result).toBe('clickup-task-1');
-      expect(clickUpService.updateTask).toHaveBeenCalledWith('clickup-task-1', expect.objectContaining({
-        name: 'Test Task',
-      }));
+      expect(clickUpService.updateTask).toHaveBeenCalledWith(
+        'clickup-task-1',
+        expect.objectContaining({
+          name: 'Test Task',
+        }),
+      );
       expect(clickUpService.createTask).not.toHaveBeenCalled();
-      expect(syncLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        action: 'update',
-        status: 'success',
-      }));
+      expect(syncLogRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'update',
+          status: 'success',
+        }),
+      );
     });
 
     it('should log error and throw when sync fails', async () => {
       taskMappingRepository.findOne.mockResolvedValue(null);
       clickUpService.createTask.mockRejectedValue(new Error('API error'));
 
-      await expect(service.syncWrikeToClickUp(mockWrikeTask as WrikeTask)).rejects.toThrow('API error');
+      await expect(
+        service.syncWrikeToClickUp(mockWrikeTask as WrikeTask),
+      ).rejects.toThrow('API error');
 
-      expect(syncLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'failed',
-        error_message: 'API error',
-      }));
+      expect(syncLogRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'failed',
+          error_message: 'API error',
+        }),
+      );
     });
 
     it('should throw error when CLICKUP_LIST_ID not configured', async () => {
       configService.get.mockReturnValue(undefined);
       taskMappingRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.syncWrikeToClickUp(mockWrikeTask as WrikeTask)).rejects.toThrow('CLICKUP_LIST_ID not configured');
+      await expect(
+        service.syncWrikeToClickUp(mockWrikeTask as WrikeTask),
+      ).rejects.toThrow('CLICKUP_LIST_ID not configured');
     });
 
     it('should convert dates to Unix timestamps', async () => {
       taskMappingRepository.findOne.mockResolvedValue(null);
-      clickUpService.createTask.mockResolvedValue({ id: 'clickup-task-new' } as any);
+      clickUpService.createTask.mockResolvedValue({
+        id: 'clickup-task-new',
+      } as any);
       taskMappingRepository.create.mockReturnValue(mockTaskMapping);
 
       await service.syncWrikeToClickUp(mockWrikeTask as WrikeTask);
 
-      expect(clickUpService.createTask).toHaveBeenCalledWith('list-123', expect.objectContaining({
-        due_date: expect.any(String),
-        start_date: expect.any(String),
-      }));
+      expect(clickUpService.createTask).toHaveBeenCalledWith(
+        'list-123',
+        expect.objectContaining({
+          due_date: expect.any(String),
+          start_date: expect.any(String),
+        }),
+      );
     });
   });
 
@@ -177,11 +219,15 @@ describe('SyncService', () => {
       await service.deleteTaskFromClickUp('wrike-task-1');
 
       expect(clickUpService.deleteTask).toHaveBeenCalledWith('clickup-task-1');
-      expect(taskMappingRepository.remove).toHaveBeenCalledWith(mockTaskMapping);
-      expect(syncLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        action: 'delete',
-        status: 'success',
-      }));
+      expect(taskMappingRepository.remove).toHaveBeenCalledWith(
+        mockTaskMapping,
+      );
+      expect(syncLogRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'delete',
+          status: 'success',
+        }),
+      );
     });
 
     it('should do nothing when no mapping found', async () => {
@@ -199,11 +245,13 @@ describe('SyncService', () => {
 
       await service.deleteTaskFromClickUp('wrike-task-1');
 
-      expect(syncLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        action: 'delete',
-        status: 'failed',
-        error_message: 'Delete failed',
-      }));
+      expect(syncLogRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'delete',
+          status: 'failed',
+          error_message: 'Delete failed',
+        }),
+      );
     });
   });
 
@@ -219,13 +267,25 @@ describe('SyncService', () => {
     beforeEach(() => {
       wrikeService.getCustomStatuses.mockResolvedValue({
         kind: 'workflows',
-        data: [{
-          id: 'workflow-1',
-          name: 'Default',
-          standard: true,
-          hidden: false,
-          customStatuses: [{ id: 'status-1', name: 'In Progress', standardName: false, standard: false, color: 'blue', group: 'Active', hidden: false }],
-        }],
+        data: [
+          {
+            id: 'workflow-1',
+            name: 'Default',
+            standard: true,
+            hidden: false,
+            customStatuses: [
+              {
+                id: 'status-1',
+                name: 'In Progress',
+                standardName: false,
+                standard: false,
+                color: 'blue',
+                group: 'Active',
+                hidden: false,
+              },
+            ],
+          },
+        ],
       });
       clickUpService.getList.mockResolvedValue({
         statuses: [{ status: 'In Progress' }, { status: 'Done' }],
@@ -238,15 +298,20 @@ describe('SyncService', () => {
       const result = await service.syncClickUpToWrike(mockClickUpTask);
 
       expect(result).toBe('wrike-task-1');
-      expect(wrikeService.updateTask).toHaveBeenCalledWith('wrike-task-1', expect.objectContaining({
-        title: 'Test Task',
-      }));
-      expect(syncLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        source_platform: 'clickup',
-        target_platform: 'wrike',
-        action: 'update',
-        status: 'success',
-      }));
+      expect(wrikeService.updateTask).toHaveBeenCalledWith(
+        'wrike-task-1',
+        expect.objectContaining({
+          title: 'Test Task',
+        }),
+      );
+      expect(syncLogRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source_platform: 'clickup',
+          target_platform: 'wrike',
+          action: 'update',
+          status: 'success',
+        }),
+      );
     });
 
     it('should return undefined when no mapping exists', async () => {
@@ -262,12 +327,16 @@ describe('SyncService', () => {
       taskMappingRepository.findOne.mockResolvedValue(mockTaskMapping);
       wrikeService.updateTask.mockRejectedValue(new Error('Wrike API error'));
 
-      await expect(service.syncClickUpToWrike(mockClickUpTask)).rejects.toThrow('Wrike API error');
+      await expect(service.syncClickUpToWrike(mockClickUpTask)).rejects.toThrow(
+        'Wrike API error',
+      );
 
-      expect(syncLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'failed',
-        error_message: 'Wrike API error',
-      }));
+      expect(syncLogRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'failed',
+          error_message: 'Wrike API error',
+        }),
+      );
     });
   });
 });

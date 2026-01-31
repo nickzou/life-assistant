@@ -47,7 +47,10 @@ describe('ClickUpService', () => {
         },
       });
 
-      const result = await service.getCompletionStatsForDate(workspaceId, testDate);
+      const result = await service.getCompletionStatsForDate(
+        workspaceId,
+        testDate,
+      );
 
       expect(result).toEqual({
         date: '2024-01-15',
@@ -69,7 +72,10 @@ describe('ClickUpService', () => {
         },
       });
 
-      const result = await service.getCompletionStatsForDate(workspaceId, testDate);
+      const result = await service.getCompletionStatsForDate(
+        workspaceId,
+        testDate,
+      );
 
       expect(result.total).toBe(2); // Only complete and to do
       expect(result.affirmativeCompletions).toBe(1);
@@ -81,7 +87,10 @@ describe('ClickUpService', () => {
         data: { tasks: [] },
       });
 
-      const result = await service.getCompletionStatsForDate(workspaceId, testDate);
+      const result = await service.getCompletionStatsForDate(
+        workspaceId,
+        testDate,
+      );
 
       expect(result).toEqual({
         date: '2024-01-15',
@@ -103,7 +112,10 @@ describe('ClickUpService', () => {
         },
       });
 
-      const result = await service.getCompletionStatsForDate(workspaceId, testDate);
+      const result = await service.getCompletionStatsForDate(
+        workspaceId,
+        testDate,
+      );
 
       expect(result.affirmativeCompletions).toBe(4);
       expect(result.completionRate).toBe(100);
@@ -153,8 +165,12 @@ describe('ClickUpService', () => {
 
       // Dates should be in order: today, yesterday, day before
       const dates = result.map((r) => r.date);
-      expect(new Date(dates[0]).getTime()).toBeGreaterThan(new Date(dates[1]).getTime());
-      expect(new Date(dates[1]).getTime()).toBeGreaterThan(new Date(dates[2]).getTime());
+      expect(new Date(dates[0]).getTime()).toBeGreaterThan(
+        new Date(dates[1]).getTime(),
+      );
+      expect(new Date(dates[1]).getTime()).toBeGreaterThan(
+        new Date(dates[2]).getTime(),
+      );
     });
   });
 

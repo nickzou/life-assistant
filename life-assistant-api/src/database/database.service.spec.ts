@@ -43,7 +43,10 @@ describe('DatabaseService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DatabaseService,
-        { provide: getRepositoryToken(TaskMapping), useValue: mockTaskMappingRepo },
+        {
+          provide: getRepositoryToken(TaskMapping),
+          useValue: mockTaskMappingRepo,
+        },
         { provide: getRepositoryToken(SyncLog), useValue: mockSyncLogRepo },
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
       ],
@@ -57,9 +60,16 @@ describe('DatabaseService', () => {
     it('should update wrike token', async () => {
       const user = { ...mockUser };
       userRepository.findOne.mockResolvedValue(user);
-      userRepository.save.mockResolvedValue({ ...user, wrike_token: 'new-wrike-token' });
+      userRepository.save.mockResolvedValue({
+        ...user,
+        wrike_token: 'new-wrike-token',
+      });
 
-      const result = await service.updateUserTokens('user-123', 'new-wrike-token', undefined);
+      const result = await service.updateUserTokens(
+        'user-123',
+        'new-wrike-token',
+        undefined,
+      );
 
       expect(userRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ wrike_token: 'new-wrike-token' }),
@@ -70,9 +80,16 @@ describe('DatabaseService', () => {
     it('should update clickup token', async () => {
       const user = { ...mockUser };
       userRepository.findOne.mockResolvedValue(user);
-      userRepository.save.mockResolvedValue({ ...user, clickup_token: 'new-clickup-token' });
+      userRepository.save.mockResolvedValue({
+        ...user,
+        clickup_token: 'new-clickup-token',
+      });
 
-      const result = await service.updateUserTokens('user-123', undefined, 'new-clickup-token');
+      const result = await service.updateUserTokens(
+        'user-123',
+        undefined,
+        'new-clickup-token',
+      );
 
       expect(userRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ clickup_token: 'new-clickup-token' }),
@@ -89,7 +106,11 @@ describe('DatabaseService', () => {
         clickup_token: 'clickup-token',
       });
 
-      await service.updateUserTokens('user-123', 'wrike-token', 'clickup-token');
+      await service.updateUserTokens(
+        'user-123',
+        'wrike-token',
+        'clickup-token',
+      );
 
       expect(userRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -108,7 +129,11 @@ describe('DatabaseService', () => {
     });
 
     it('should not modify tokens when not provided', async () => {
-      const user = { ...mockUser, wrike_token: 'existing-wrike', clickup_token: 'existing-clickup' };
+      const user = {
+        ...mockUser,
+        wrike_token: 'existing-wrike',
+        clickup_token: 'existing-clickup',
+      };
       userRepository.findOne.mockResolvedValue(user);
       userRepository.save.mockResolvedValue(user);
 
