@@ -274,6 +274,16 @@ export class GrocyController {
   }
 
   /**
+   * Get meal plan sections
+   * GET /grocy/meal-plan/sections
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('meal-plan/sections')
+  async getMealPlanSections() {
+    return this.grocyService.getMealPlanSections();
+  }
+
+  /**
    * Get current shopping list
    * GET /grocy/shopping-list
    */

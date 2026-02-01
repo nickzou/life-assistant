@@ -142,33 +142,20 @@ function MealsPage() {
     }
   };
 
-  // Fetch sections from the meal plan range endpoint (they're included in enriched meals)
-  const extractSectionsFromMeals = (meals: MealPlanItem[]): MealPlanSection[] => {
-    const sectionMap = new Map<number, MealPlanSection>();
-    meals.forEach((meal) => {
-      if (meal.section_id && meal.section_name !== undefined) {
-        sectionMap.set(meal.section_id, {
-          id: meal.section_id,
-          name: meal.section_name,
-          sort_number: meal.section_id, // Approximate sort order
-        });
-      }
-    });
-    return Array.from(sectionMap.values()).sort((a, b) => a.sort_number - b.sort_number);
+  const fetchSections = async () => {
+    try {
+      const response = await api.get<MealPlanSection[]>('/grocy/meal-plan/sections');
+      setSections(response.data.sort((a, b) => a.sort_number - b.sort_number));
+    } catch {
+      console.error('Failed to fetch sections');
+    }
   };
 
   useEffect(() => {
     fetchMealPlan();
     fetchRecipes();
+    fetchSections();
   }, [fetchMealPlan]);
-
-  // Extract sections when meal plan changes
-  useEffect(() => {
-    const extractedSections = extractSectionsFromMeals(mealPlan);
-    if (extractedSections.length > 0) {
-      setSections(extractedSections);
-    }
-  }, [mealPlan]);
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     const newDate = new Date(weekStartDate);
