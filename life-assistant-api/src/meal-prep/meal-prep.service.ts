@@ -163,7 +163,7 @@ export class MealPrepService {
       // Create main task
       const mainTask = await this.clickUpService.createTask(this.mealsListId, {
         name: recipeName,
-        tags: ['meal-prep', 'meal'],
+        tags: ['meal prep', 'meal'],
         due_date: mealDueDate,
       });
       clickUpTasks.push(mainTask.id);
@@ -194,7 +194,7 @@ export class MealPrepService {
           custom_fields?: Array<{ id: string; value: any }>;
         } = {
           name: `Defrost ${defrostItem}`,
-          tags: ['meal-prep', 'defrost'],
+          tags: ['meal prep', 'defrost'],
           due_date: mealDueDate,
         };
 
