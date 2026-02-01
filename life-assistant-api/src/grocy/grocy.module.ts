@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { GrocyService } from './grocy.service';
 import { GrocyController } from './grocy.controller';
+import { MealPrepModule } from '../meal-prep/meal-prep.module';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, forwardRef(() => MealPrepModule)],
   controllers: [GrocyController],
   providers: [GrocyService],
   exports: [GrocyService],

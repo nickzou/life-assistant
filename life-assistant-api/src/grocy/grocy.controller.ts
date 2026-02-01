@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Body,
@@ -12,6 +13,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { GrocyService } from './grocy.service';
+import { MealPrepService } from '../meal-prep/meal-prep.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { getTodayString } from '../utils/date.utils';
 import {
@@ -25,12 +27,16 @@ import {
   ConsumeRecipeRequest,
   MealPlanItem,
 } from './grocy.types';
+import { RecipePrepConfig } from '../database/entities/recipe-prep-config.entity';
 
 @Controller('grocy')
 export class GrocyController {
   private readonly logger = new Logger(GrocyController.name);
 
-  constructor(private readonly grocyService: GrocyService) {}
+  constructor(
+    private readonly grocyService: GrocyService,
+    private readonly mealPrepService: MealPrepService,
+  ) {}
 
   /**
    * Get today's meal plan
@@ -144,30 +150,44 @@ export class GrocyController {
   }
 
   /**
-   * Create a new meal plan item
+   * Create a new meal plan item with optional ClickUp tasks
    * POST /grocy/meal-plan
    */
   @UseGuards(JwtAuthGuard)
   @Post('meal-plan')
-  async createMealPlanItem(
-    @Body() body: CreateMealPlanItemDto,
-  ): Promise<MealPlanItem> {
-    this.logger.log(`Creating meal plan item for ${body.day}`);
-    return this.grocyService.createMealPlanItem(body);
+  async createMealPlanItem(@Body() body: CreateMealPlanItemDto): Promise<{
+    mealPlanItem: MealPlanItem;
+    clickUpTasks: string[];
+  }> {
+    this.logger.log(
+      `Creating meal plan item for ${body.day} (createClickUpTasks: ${body.createClickUpTasks ?? true})`,
+    );
+
+    const createClickUpTasks = body.createClickUpTasks ?? true;
+    const recipeName = body.recipeName || `Recipe ${body.recipe_id}`;
+
+    return this.mealPrepService.createMealWithTasks(
+      body,
+      createClickUpTasks,
+      recipeName,
+    );
   }
 
   /**
-   * Delete a meal plan item
+   * Delete a meal plan item and associated ClickUp tasks
    * DELETE /grocy/meal-plan/:id
    */
   @UseGuards(JwtAuthGuard)
   @Delete('meal-plan/:id')
-  async deleteMealPlanItem(
-    @Param('id') id: string,
-  ): Promise<{ success: boolean }> {
-    this.logger.log(`Deleting meal plan item ${id}`);
-    await this.grocyService.deleteMealPlanItem(parseInt(id, 10));
-    return { success: true };
+  async deleteMealPlanItem(@Param('id') id: string): Promise<{
+    grocyDeleted: boolean;
+    clickUpTasksDeleted: number;
+    clickUpTasksSkipped: number;
+  }> {
+    this.logger.log(
+      `Deleting meal plan item ${id} with associated ClickUp tasks`,
+    );
+    return this.mealPrepService.deleteMealWithTasks(parseInt(id, 10));
   }
 
   /**
@@ -181,10 +201,7 @@ export class GrocyController {
     @Body() body: { done: boolean },
   ): Promise<{ success: boolean }> {
     this.logger.log(`Updating meal plan item ${id} done status`);
-    await this.grocyService.updateMealPlanItemDone(
-      parseInt(id, 10),
-      body.done,
-    );
+    await this.grocyService.updateMealPlanItemDone(parseInt(id, 10), body.done);
     return { success: true };
   }
 
@@ -207,6 +224,46 @@ export class GrocyController {
   }
 
   /**
+   * Get prep config for a recipe
+   * GET /grocy/recipes/:recipeId/prep-config
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('recipes/:recipeId/prep-config')
+  async getRecipePrepConfig(
+    @Param('recipeId') recipeId: string,
+  ): Promise<RecipePrepConfig | null> {
+    return this.mealPrepService.getPrepConfig(parseInt(recipeId, 10));
+  }
+
+  /**
+   * Save/update prep config for a recipe
+   * PUT /grocy/recipes/:recipeId/prep-config
+   */
+  @UseGuards(JwtAuthGuard)
+  @Put('recipes/:recipeId/prep-config')
+  async saveRecipePrepConfig(
+    @Param('recipeId') recipeId: string,
+    @Body()
+    body: {
+      requires_defrost?: boolean;
+      defrost_item?: string;
+    },
+  ): Promise<RecipePrepConfig> {
+    this.logger.log(`Saving prep config for recipe ${recipeId}`);
+    return this.mealPrepService.savePrepConfig(parseInt(recipeId, 10), body);
+  }
+
+  /**
+   * Get all prep configs
+   * GET /grocy/prep-configs
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('prep-configs')
+  async getAllPrepConfigs(): Promise<RecipePrepConfig[]> {
+    return this.mealPrepService.getAllPrepConfigs();
+  }
+
+  /**
    * Get recipes for selection dropdown
    * GET /grocy/recipes/selection
    */
@@ -214,6 +271,16 @@ export class GrocyController {
   @Get('recipes/selection')
   async getRecipesForSelection(): Promise<RecipeSelectionItem[]> {
     return this.grocyService.getRecipesForSelection();
+  }
+
+  /**
+   * Get meal plan sections
+   * GET /grocy/meal-plan/sections
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('meal-plan/sections')
+  async getMealPlanSections() {
+    return this.grocyService.getMealPlanSections();
   }
 
   /**
@@ -395,6 +462,14 @@ export class GrocyController {
   @Get('test/recipe-nestings')
   async getRecipeNestings() {
     return this.grocyService.getRecipeNestings();
+  }
+
+  /**
+   * Test endpoint - get meal plan sections
+   */
+  @Get('test/sections')
+  async getTestSections() {
+    return this.grocyService.getMealPlanSections();
   }
 
   /**

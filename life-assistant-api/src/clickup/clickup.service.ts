@@ -133,6 +133,9 @@ export class ClickUpService implements OnModuleInit {
       description?: string;
       status?: string;
       priority?: number;
+      due_date?: number; // Unix timestamp in milliseconds
+      tags?: string[];
+      custom_fields?: Array<{ id: string; value: any }>;
     },
   ): Promise<ClickUpTask> {
     try {
@@ -158,6 +161,23 @@ export class ClickUpService implements OnModuleInit {
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch list ${listId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get custom fields for a list
+   */
+  async getListCustomFields(listId: string): Promise<any[]> {
+    try {
+      this.logger.log(`Fetching custom fields for list: ${listId}`);
+      const response = await this.axiosInstance.get(`/list/${listId}/field`);
+      return response.data.fields || [];
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch custom fields for list ${listId}:`,
+        error.message,
+      );
       throw error;
     }
   }
