@@ -190,6 +190,89 @@ describe('GrocyService', () => {
     });
   });
 
+  describe('getMealPlanSections', () => {
+    it('should fetch all meal plan sections', async () => {
+      const mockSections = [
+        { id: 1, name: 'Breakfast', sort_number: 1 },
+        { id: 2, name: 'Lunch', sort_number: 2 },
+        { id: 3, name: 'Dinner', sort_number: 3 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockSections });
+
+      const result = await service.getMealPlanSections();
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/objects/meal_plan_sections',
+      );
+      expect(result).toEqual(mockSections);
+    });
+
+    it('should handle sections with null names', async () => {
+      const mockSections = [
+        { id: -1, name: null, sort_number: -1 },
+        { id: 1, name: 'Breakfast', sort_number: 1 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockSections });
+
+      const result = await service.getMealPlanSections();
+
+      expect(result).toEqual(mockSections);
+      expect(result[0].name).toBeNull();
+    });
+  });
+
+  describe('updateShoppingListItemDone', () => {
+    beforeEach(() => {
+      mockAxiosInstance.put = jest.fn();
+    });
+
+    it('should update item to done status', async () => {
+      mockAxiosInstance.put.mockResolvedValue({});
+
+      await service.updateShoppingListItemDone(42, true);
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/objects/shopping_list/42',
+        { done: 1 },
+      );
+    });
+
+    it('should update item to not done status', async () => {
+      mockAxiosInstance.put.mockResolvedValue({});
+
+      await service.updateShoppingListItemDone(42, false);
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/objects/shopping_list/42',
+        { done: 0 },
+      );
+    });
+  });
+
+  describe('addMissingProductsToShoppingList', () => {
+    it('should add missing products to default list', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.addMissingProductsToShoppingList();
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/stock/shoppinglist/add-missing-products',
+        {},
+      );
+    });
+
+    it('should add missing products to specified list', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.addMissingProductsToShoppingList(3);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/stock/shoppinglist/add-missing-products',
+        { list_id: 3 },
+      );
+    });
+  });
+
   describe('getEnrichedShoppingListItems', () => {
     it('should enrich items with product names and quantity units', async () => {
       const mockItems = [
