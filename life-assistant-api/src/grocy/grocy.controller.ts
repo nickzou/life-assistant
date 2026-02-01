@@ -14,9 +14,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { getTodayString } from '../utils/date.utils';
 import {
   GenerateShoppingListRequest,
-  GenerateShoppingListResponse,
   EnrichedShoppingListItem,
   ShoppingList,
+  SmartGenerateShoppingListResponse,
+  AddItemsToShoppingListRequest,
 } from './grocy.types';
 
 @Controller('grocy')
@@ -137,55 +138,34 @@ export class GrocyController {
   }
 
   /**
-   * Generate shopping list from meal plan for a date range
+   * Generate smart shopping list from meal plan for a date range
+   * Recursively resolves homemade products to base purchasable ingredients
    * POST /grocy/shopping-list/generate
    */
   @UseGuards(JwtAuthGuard)
   @Post('shopping-list/generate')
   async generateShoppingList(
     @Body() body: GenerateShoppingListRequest,
-  ): Promise<GenerateShoppingListResponse> {
+  ): Promise<SmartGenerateShoppingListResponse> {
     const { startDate, endDate } = body;
     this.logger.log(
-      `Generating shopping list for meal plan: ${startDate} to ${endDate}`,
+      `Generating smart shopping list for meal plan: ${startDate} to ${endDate}`,
     );
 
-    // Get all meals in the date range
-    const meals = await this.grocyService.getMealPlanForDateRange(
-      startDate,
-      endDate,
-    );
+    return this.grocyService.generateSmartShoppingList(startDate, endDate);
+  }
 
-    // Extract unique recipe IDs
-    const recipeIds = [
-      ...new Set(
-        meals.filter((m) => m.recipe_id).map((m) => m.recipe_id as number),
-      ),
-    ];
-
-    this.logger.log(`Found ${recipeIds.length} unique recipes in meal plan`);
-
-    // Add missing ingredients for each recipe
-    let addedRecipes = 0;
-    for (const recipeId of recipeIds) {
-      try {
-        await this.grocyService.addMissingToShoppingList(recipeId);
-        addedRecipes++;
-        this.logger.log(`Added missing ingredients for recipe ${recipeId}`);
-      } catch (error) {
-        this.logger.warn(
-          `Failed to add ingredients for recipe ${recipeId}: ${error.message}`,
-        );
-      }
-    }
-
-    // Get updated shopping list
-    const items = await this.grocyService.getEnrichedShoppingListItems();
-
-    return {
-      addedRecipes,
-      items,
-    };
+  /**
+   * Add calculated items to Grocy's shopping list
+   * POST /grocy/shopping-list/add-items
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('shopping-list/add-items')
+  async addItemsToShoppingList(
+    @Body() body: AddItemsToShoppingListRequest,
+  ): Promise<{ added: number; failed: number }> {
+    this.logger.log(`Adding ${body.items.length} items to Grocy shopping list`);
+    return this.grocyService.addItemsToShoppingList(body.items);
   }
 
   /**
@@ -250,6 +230,43 @@ export class GrocyController {
   @Get('test/recipes/:recipeId')
   async getRecipe(@Param('recipeId') recipeId: string) {
     return this.grocyService.getRecipe(parseInt(recipeId, 10));
+  }
+
+  /**
+   * Test endpoint - get recipe ingredients
+   */
+  @Get('test/recipes/:recipeId/ingredients')
+  async getRecipeIngredients(@Param('recipeId') recipeId: string) {
+    const ingredients = await this.grocyService.getRecipeIngredients();
+    const recipeIdNum = parseInt(recipeId, 10);
+    return ingredients.filter((i) => i.recipe_id === recipeIdNum);
+  }
+
+  /**
+   * Test endpoint - list all homemade products (products produced by recipes)
+   */
+  @Get('test/homemade-products')
+  async getHomemadeProducts() {
+    return this.grocyService.getHomemadeProducts();
+  }
+
+  /**
+   * Test endpoint - generate smart shopping list for a date range
+   */
+  @Get('test/shopping-list/:startDate/:endDate')
+  async testGenerateShoppingList(
+    @Param('startDate') startDate: string,
+    @Param('endDate') endDate: string,
+  ) {
+    return this.grocyService.generateSmartShoppingList(startDate, endDate);
+  }
+
+  /**
+   * Test endpoint - get all recipe nestings (included recipes)
+   */
+  @Get('test/recipe-nestings')
+  async getRecipeNestings() {
+    return this.grocyService.getRecipeNestings();
   }
 
   /**

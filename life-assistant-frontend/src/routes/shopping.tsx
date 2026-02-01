@@ -49,9 +49,27 @@ interface ShoppingListResponse {
   items: ShoppingListItem[];
 }
 
+interface SmartShoppingListItem {
+  product_id: number;
+  product_name: string;
+  needed_amount: number;
+  stock_amount: number;
+  to_buy_amount: number;
+  qu_id: number;
+  qu_name?: string;
+}
+
 interface GenerateResponse {
-  addedRecipes: number;
-  items: ShoppingListItem[];
+  startDate: string;
+  endDate: string;
+  recipesProcessed: number;
+  homemadeProductsResolved: number;
+  items: SmartShoppingListItem[];
+}
+
+interface AddItemsResponse {
+  added: number;
+  failed: number;
 }
 
 export const Route = createFileRoute('/shopping')({
@@ -75,8 +93,10 @@ function ShoppingPage() {
   });
   const [mealPlan, setMealPlan] = useState<MealPlanRangeResponse | null>(null);
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
+  const [generatedItems, setGeneratedItems] = useState<SmartShoppingListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [addingToGrocy, setAddingToGrocy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -115,19 +135,49 @@ function ShoppingPage() {
     setGenerating(true);
     setError(null);
     setSuccessMessage(null);
+    setGeneratedItems([]);
     try {
       const response = await api.post<GenerateResponse>('/grocy/shopping-list/generate', {
         startDate: weekDates.start,
         endDate: weekDates.end,
       });
-      setShoppingList(response.data.items);
+      setGeneratedItems(response.data.items);
+      const homemadeText = response.data.homemadeProductsResolved > 0
+        ? ` (resolved ${response.data.homemadeProductsResolved} homemade product${response.data.homemadeProductsResolved !== 1 ? 's' : ''})`
+        : '';
       setSuccessMessage(
-        `Added ingredients from ${response.data.addedRecipes} recipe(s) to shopping list`
+        `Processed ${response.data.recipesProcessed} recipe(s)${homemadeText} - ${response.data.items.length} item(s) to buy`
       );
     } catch {
       setError('Failed to generate shopping list');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleAddToGrocy = async () => {
+    if (generatedItems.length === 0) return;
+
+    setAddingToGrocy(true);
+    setError(null);
+    try {
+      const response = await api.post<AddItemsResponse>('/grocy/shopping-list/add-items', {
+        items: generatedItems,
+      });
+
+      const message = response.data.failed > 0
+        ? `Added ${response.data.added} item(s) to Grocy (${response.data.failed} failed)`
+        : `Added ${response.data.added} item(s) to Grocy shopping list`;
+
+      setSuccessMessage(message);
+      setGeneratedItems([]); // Clear generated items after adding
+
+      // Refresh the current shopping list
+      await fetchShoppingList();
+    } catch {
+      setError('Failed to add items to Grocy');
+    } finally {
+      setAddingToGrocy(false);
     }
   };
 
@@ -312,16 +362,56 @@ function ShoppingPage() {
           {/* Shopping List Section */}
           <div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Current Shopping List
+              {generatedItems.length > 0 ? 'Generated Shopping List' : 'Current Shopping List'}
             </h2>
 
-            {shoppingList.length === 0 && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow">
-                Shopping list is empty
+            {/* Generated Items (from smart generation) */}
+            {generatedItems.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    Items to Buy ({generatedItems.length})
+                  </h3>
+                  <button
+                    onClick={handleAddToGrocy}
+                    disabled={addingToGrocy}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    {addingToGrocy ? 'Adding...' : 'Add to Grocy'}
+                  </button>
+                </div>
+                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {generatedItems.map((item) => (
+                    <li
+                      key={item.product_id}
+                      className="p-4 flex items-center justify-between"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="text-gray-900 dark:text-white">
+                          {item.product_name}
+                        </span>
+                        {item.stock_amount > 0 && (
+                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                            (need {item.needed_amount.toFixed(1)}, have {item.stock_amount.toFixed(1)})
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap ml-4">
+                        {item.to_buy_amount.toFixed(1)} {item.qu_name || ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
-            {pendingItems.length > 0 && (
+            {generatedItems.length === 0 && shoppingList.length === 0 && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow">
+                Shopping list is empty. Click "Generate Shopping List" to calculate items from your meal plan.
+              </div>
+            )}
+
+            {generatedItems.length === 0 && pendingItems.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 className="font-medium text-gray-900 dark:text-white">
@@ -349,7 +439,7 @@ function ShoppingPage() {
               </div>
             )}
 
-            {doneItems.length > 0 && (
+            {generatedItems.length === 0 && doneItems.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow opacity-60">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 className="font-medium text-gray-900 dark:text-white">
