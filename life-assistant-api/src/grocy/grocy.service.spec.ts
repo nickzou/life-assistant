@@ -448,7 +448,7 @@ describe('GrocyService', () => {
           type: 'recipe',
           recipe_id: 5,
           section_id: 1,
-          servings: 2,
+          recipe_servings: 2,
         },
       );
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
@@ -478,7 +478,7 @@ describe('GrocyService', () => {
           type: 'recipe',
           recipe_id: 5,
           section_id: null,
-          servings: 1,
+          recipe_servings: 1,
         },
       );
     });

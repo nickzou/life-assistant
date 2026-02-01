@@ -16,7 +16,7 @@ This document outlines the testing strategy for Life Assistant, covering both th
 
 **Stack**: Jest + NestJS Testing utilities
 
-**Current Coverage** (113 tests):
+**Current Coverage** (131 tests):
 - `app.controller.spec.ts` - App controller (1 test)
 - `date.utils.spec.ts` - Date formatting utilities (8 tests)
 - `auth.service.spec.ts` - JWT authentication logic (10 tests)
@@ -27,11 +27,16 @@ This document outlines the testing strategy for Life Assistant, covering both th
   - Recipe picture handling (4 tests)
   - Meal plan date range fetching (1 test)
   - Recipe fulfillment and shopping list (8 tests)
-  - Meal plan CRUD operations (7 tests) - **NEW**
-  - Recipe consumption (2 tests) - **NEW**
-  - Recipe selection filtering (4 tests) - **NEW**
+  - Meal plan CRUD operations (7 tests)
+  - Recipe consumption (2 tests)
+  - Recipe selection filtering (4 tests)
   - Homemade product resolution (5 tests)
   - Recipe ingredient resolution (16 tests)
+- `meal-prep.service.spec.ts` - Meal prep ClickUp integration (18 tests) - **NEW**
+  - Prep config CRUD (5 tests)
+  - Create meal with ClickUp tasks (6 tests)
+  - Delete meal with ClickUp task cleanup (6 tests)
+  - Graceful handling without ClickUp list ID (1 test)
 - `database.service.spec.ts` - Database operations (5 tests)
 
 **Run**: `npm test` (in life-assistant-api/)
