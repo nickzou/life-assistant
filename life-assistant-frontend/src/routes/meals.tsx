@@ -242,7 +242,7 @@ function MealsPage() {
     setError(null);
     try {
       await api.post(`/grocy/recipes/${meal.recipe_id}/consume`, {
-        servings: meal.servings || 1,
+        servings: meal.recipe_servings || 1,
       });
       // Mark as done after successful consumption
       markMealDone(meal.id);
@@ -584,7 +584,7 @@ function MealsPage() {
                 Consume Recipe?
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                This will deduct ingredients from your Grocy stock for "{consumingMeal.recipe?.name || 'this recipe'}" ({consumingMeal.servings || 1} serving{(consumingMeal.servings || 1) !== 1 ? 's' : ''}).
+                This will deduct ingredients from your Grocy stock for "{consumingMeal.recipe?.name || 'this recipe'}" ({consumingMeal.recipe_servings || 1} serving{(consumingMeal.recipe_servings || 1) !== 1 ? 's' : ''}).
               </p>
               <div className="flex gap-3">
                 <button

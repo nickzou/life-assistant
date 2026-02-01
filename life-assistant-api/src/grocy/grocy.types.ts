@@ -46,7 +46,7 @@ export interface MealPlanItem {
   recipe_id?: number;
   product_id?: number;
   note?: string;
-  servings?: number;
+  recipe_servings?: number;
   section_id?: number;
   done?: number; // 0 or 1
 }
