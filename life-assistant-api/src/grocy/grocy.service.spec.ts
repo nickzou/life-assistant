@@ -335,7 +335,12 @@ describe('GrocyService', () => {
     it('should return empty map when no recipes have product_id', () => {
       const recipes: Recipe[] = [
         { id: 1, name: 'Simple Recipe', base_servings: 1, desired_servings: 1 },
-        { id: 2, name: 'Another Recipe', base_servings: 2, desired_servings: 2 },
+        {
+          id: 2,
+          name: 'Another Recipe',
+          base_servings: 2,
+          desired_servings: 2,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
       expect(result.size).toBe(0);
@@ -343,8 +348,20 @@ describe('GrocyService', () => {
 
     it('should map product_id to recipe for homemade products', () => {
       const recipes: Recipe[] = [
-        { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
-        { id: 6, name: 'Thai Yellow Curry', base_servings: 4, desired_servings: 4, product_id: 149 },
+        {
+          id: 5,
+          name: 'Char Siu Chicken',
+          base_servings: 2,
+          desired_servings: 2,
+          product_id: 157,
+        },
+        {
+          id: 6,
+          name: 'Thai Yellow Curry',
+          base_servings: 4,
+          desired_servings: 4,
+          product_id: 149,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
 
@@ -355,9 +372,25 @@ describe('GrocyService', () => {
 
     it('should only include recipes with product_id set', () => {
       const recipes: Recipe[] = [
-        { id: 1, name: 'Regular Recipe', base_servings: 1, desired_servings: 1 },
-        { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
-        { id: 7, name: 'Another Regular', base_servings: 1, desired_servings: 1 },
+        {
+          id: 1,
+          name: 'Regular Recipe',
+          base_servings: 1,
+          desired_servings: 1,
+        },
+        {
+          id: 5,
+          name: 'Char Siu Chicken',
+          base_servings: 2,
+          desired_servings: 2,
+          product_id: 157,
+        },
+        {
+          id: 7,
+          name: 'Another Regular',
+          base_servings: 1,
+          desired_servings: 1,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
 
@@ -369,12 +402,214 @@ describe('GrocyService', () => {
     it('should handle recipe with product_id of 0', () => {
       // Edge case: product_id of 0 is falsy but valid
       const recipes: Recipe[] = [
-        { id: 1, name: 'Recipe Zero', base_servings: 1, desired_servings: 1, product_id: 0 },
+        {
+          id: 1,
+          name: 'Recipe Zero',
+          base_servings: 1,
+          desired_servings: 1,
+          product_id: 0,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
 
       // product_id: 0 is falsy, so it won't be added (this is expected behavior)
       expect(result.size).toBe(0);
+    });
+  });
+
+  describe('createMealPlanItem', () => {
+    it('should POST to /objects/meal_plan and return the created item', async () => {
+      const mockCreatedId = 42;
+      const mockCreatedItem = {
+        id: mockCreatedId,
+        day: '2026-01-27',
+        type: 'recipe',
+        recipe_id: 5,
+        section_id: 1,
+        servings: 2,
+      };
+
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { created_object_id: mockCreatedId },
+      });
+      mockAxiosInstance.get.mockResolvedValue({ data: mockCreatedItem });
+
+      const result = await service.createMealPlanItem({
+        day: '2026-01-27',
+        recipe_id: 5,
+        section_id: 1,
+        servings: 2,
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/objects/meal_plan', {
+        day: '2026-01-27',
+        type: 'recipe',
+        recipe_id: 5,
+        section_id: 1,
+        servings: 2,
+      });
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        `/objects/meal_plan/${mockCreatedId}`,
+      );
+      expect(result).toEqual(mockCreatedItem);
+    });
+
+    it('should use default values for optional fields', async () => {
+      const mockCreatedId = 43;
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { created_object_id: mockCreatedId },
+      });
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { id: mockCreatedId, day: '2026-01-27', recipe_id: 5 },
+      });
+
+      await service.createMealPlanItem({
+        day: '2026-01-27',
+        recipe_id: 5,
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/objects/meal_plan', {
+        day: '2026-01-27',
+        type: 'recipe',
+        recipe_id: 5,
+        section_id: null,
+        servings: 1,
+      });
+    });
+  });
+
+  describe('deleteMealPlanItem', () => {
+    beforeEach(() => {
+      mockAxiosInstance.delete = jest.fn();
+    });
+
+    it('should DELETE to /objects/meal_plan/:id', async () => {
+      mockAxiosInstance.delete.mockResolvedValue({});
+
+      await service.deleteMealPlanItem(42);
+
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
+        '/objects/meal_plan/42',
+      );
+    });
+  });
+
+  describe('consumeRecipe', () => {
+    it('should POST to /recipes/:id/consume', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.consumeRecipe(5);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/recipes/5/consume',
+        null,
+        { params: undefined },
+      );
+    });
+
+    it('should include servings parameter when provided', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.consumeRecipe(5, 2);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/recipes/5/consume',
+        null,
+        { params: { servings: 2 } },
+      );
+    });
+  });
+
+  describe('getRecipesForSelection', () => {
+    it('should return recipes with positive IDs and normal type', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Spaghetti', base_servings: 2, type: 'normal' },
+        { id: 2, name: 'Salad', base_servings: 1, type: 'normal' },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toEqual([
+        { id: 1, name: 'Spaghetti', picture_url: undefined, base_servings: 2 },
+        { id: 2, name: 'Salad', picture_url: undefined, base_servings: 1 },
+      ]);
+    });
+
+    it('should filter out recipes with negative IDs', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Spaghetti', base_servings: 2 },
+        { id: -1, name: '2026-01-27', base_servings: 1 },
+        { id: -2, name: '2026-01-28', base_servings: 1 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Spaghetti');
+    });
+
+    it('should filter out recipes with mealplan-* types', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Spaghetti', base_servings: 2, type: 'normal' },
+        { id: 2, name: 'Week Plan', base_servings: 1, type: 'mealplan-week' },
+        { id: 3, name: 'Day Plan', base_servings: 1, type: 'mealplan-day' },
+        {
+          id: 4,
+          name: 'Shadow Plan',
+          base_servings: 1,
+          type: 'mealplan-shadow',
+        },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Spaghetti');
+    });
+
+    it('should filter out both negative IDs and mealplan types', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Real Recipe', base_servings: 2, type: 'normal' },
+        { id: -1, name: '2026-01-27', base_servings: 1, type: 'mealplan-day' },
+        { id: 2, name: 'Week Shadow', base_servings: 1, type: 'mealplan-shadow' },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+  });
+
+  describe('updateMealPlanItemDone', () => {
+    beforeEach(() => {
+      mockAxiosInstance.put = jest.fn();
+    });
+
+    it('should update meal plan item to done status', async () => {
+      mockAxiosInstance.put.mockResolvedValue({});
+
+      await service.updateMealPlanItemDone(42, true);
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/objects/meal_plan/42',
+        { done: 1 },
+      );
+    });
+
+    it('should update meal plan item to not done status', async () => {
+      mockAxiosInstance.put.mockResolvedValue({});
+
+      await service.updateMealPlanItemDone(42, false);
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/objects/meal_plan/42',
+        { done: 0 },
+      );
     });
   });
 
@@ -532,7 +767,13 @@ describe('GrocyService', () => {
 
         // Recipe 5 produces product 157
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -572,7 +813,13 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -612,7 +859,13 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -650,7 +903,13 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -662,16 +921,30 @@ describe('GrocyService', () => {
         // First call - uses 2, leaves 1
         const visited1 = new Set<number>();
         service.resolveRecipeIngredients(
-          1, 1, ingredientsByRecipe, nestingsByRecipe, recipeMap,
-          homemadeProductMap, stockMap, homemadeStockUsed, visited1,
+          1,
+          1,
+          ingredientsByRecipe,
+          nestingsByRecipe,
+          recipeMap,
+          homemadeProductMap,
+          stockMap,
+          homemadeStockUsed,
+          visited1,
         );
         expect(homemadeStockUsed.get(157)).toBe(2);
 
         // Second call - only 1 left, need to make 1 more
         const visited2 = new Set<number>();
         const result = service.resolveRecipeIngredients(
-          1, 1, ingredientsByRecipe, nestingsByRecipe, recipeMap,
-          homemadeProductMap, stockMap, homemadeStockUsed, visited2,
+          1,
+          1,
+          ingredientsByRecipe,
+          nestingsByRecipe,
+          recipeMap,
+          homemadeProductMap,
+          stockMap,
+          homemadeStockUsed,
+          visited2,
         );
 
         expect(homemadeStockUsed.get(157)).toBe(3); // 2 + 1 = 3 used total
@@ -694,8 +967,18 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
-          { id: 7, name: 'Buttered Bagel and Coffee', base_servings: 1, desired_servings: 1 },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 7,
+            name: 'Buttered Bagel and Coffee',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = new Map<number, Recipe>();
@@ -737,9 +1020,24 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 2, name: 'Cup of Coffee', base_servings: 1, desired_servings: 1 },
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
-          { id: 7, name: 'Buttered Bagel and Coffee', base_servings: 1, desired_servings: 1 },
+          {
+            id: 2,
+            name: 'Cup of Coffee',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 7,
+            name: 'Buttered Bagel and Coffee',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = new Map<number, Recipe>();
@@ -777,8 +1075,18 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
-          { id: 10, name: 'Double Bagel', base_servings: 1, desired_servings: 1 },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 10,
+            name: 'Double Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = new Map<number, Recipe>();
@@ -861,8 +1169,19 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
-          { id: 11, name: 'Char Siu on Rice', base_servings: 1, desired_servings: 1 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
+          {
+            id: 11,
+            name: 'Char Siu on Rice',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -906,7 +1225,12 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
           { id: 7, name: 'Breakfast', base_servings: 1, desired_servings: 1 },
         ];
         const recipeMap = createRecipeMap(recipes);

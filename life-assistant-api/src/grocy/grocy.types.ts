@@ -48,6 +48,7 @@ export interface MealPlanItem {
   note?: string;
   servings?: number;
   section_id?: number;
+  done?: number; // 0 or 1
 }
 
 export interface MealPlanSection {
@@ -109,6 +110,7 @@ export interface Recipe {
   base_servings: number;
   desired_servings: number;
   product_id?: number;
+  type?: string; // 'normal' for real recipes, 'mealplan-day'/'mealplan-week'/'mealplan-shadow' for internal entries
 }
 
 /**
@@ -140,4 +142,31 @@ export interface SmartGenerateShoppingListResponse {
  */
 export interface AddItemsToShoppingListRequest {
   items: SmartShoppingListItem[];
+}
+
+/**
+ * DTO for creating a new meal plan item
+ */
+export interface CreateMealPlanItemDto {
+  day: string; // YYYY-MM-DD format
+  recipe_id: number;
+  section_id?: number;
+  servings?: number;
+}
+
+/**
+ * Lightweight recipe info for selection dropdowns
+ */
+export interface RecipeSelectionItem {
+  id: number;
+  name: string;
+  picture_url?: string;
+  base_servings: number;
+}
+
+/**
+ * DTO for consuming a recipe (deducting ingredients from stock)
+ */
+export interface ConsumeRecipeRequest {
+  servings?: number;
 }

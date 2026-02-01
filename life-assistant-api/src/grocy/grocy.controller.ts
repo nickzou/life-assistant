@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Res,
@@ -19,6 +20,10 @@ import {
   ShoppingList,
   SmartGenerateShoppingListResponse,
   AddItemsToShoppingListRequest,
+  CreateMealPlanItemDto,
+  RecipeSelectionItem,
+  ConsumeRecipeRequest,
+  MealPlanItem,
 } from './grocy.types';
 
 @Controller('grocy')
@@ -136,6 +141,79 @@ export class GrocyController {
       endDate,
       meals: enrichedMealPlan,
     };
+  }
+
+  /**
+   * Create a new meal plan item
+   * POST /grocy/meal-plan
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('meal-plan')
+  async createMealPlanItem(
+    @Body() body: CreateMealPlanItemDto,
+  ): Promise<MealPlanItem> {
+    this.logger.log(`Creating meal plan item for ${body.day}`);
+    return this.grocyService.createMealPlanItem(body);
+  }
+
+  /**
+   * Delete a meal plan item
+   * DELETE /grocy/meal-plan/:id
+   */
+  @UseGuards(JwtAuthGuard)
+  @Delete('meal-plan/:id')
+  async deleteMealPlanItem(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean }> {
+    this.logger.log(`Deleting meal plan item ${id}`);
+    await this.grocyService.deleteMealPlanItem(parseInt(id, 10));
+    return { success: true };
+  }
+
+  /**
+   * Update meal plan item done status
+   * PATCH /grocy/meal-plan/:id/done
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('meal-plan/:id/done')
+  async updateMealPlanItemDone(
+    @Param('id') id: string,
+    @Body() body: { done: boolean },
+  ): Promise<{ success: boolean }> {
+    this.logger.log(`Updating meal plan item ${id} done status`);
+    await this.grocyService.updateMealPlanItemDone(
+      parseInt(id, 10),
+      body.done,
+    );
+    return { success: true };
+  }
+
+  /**
+   * Consume a recipe (deduct ingredients from stock)
+   * POST /grocy/recipes/:recipeId/consume
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('recipes/:recipeId/consume')
+  async consumeRecipe(
+    @Param('recipeId') recipeId: string,
+    @Body() body: ConsumeRecipeRequest,
+  ): Promise<{ success: boolean }> {
+    this.logger.log(`Consuming recipe ${recipeId}`);
+    await this.grocyService.consumeRecipe(
+      parseInt(recipeId, 10),
+      body.servings,
+    );
+    return { success: true };
+  }
+
+  /**
+   * Get recipes for selection dropdown
+   * GET /grocy/recipes/selection
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('recipes/selection')
+  async getRecipesForSelection(): Promise<RecipeSelectionItem[]> {
+    return this.grocyService.getRecipesForSelection();
   }
 
   /**

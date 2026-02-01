@@ -16,13 +16,22 @@ This document outlines the testing strategy for Life Assistant, covering both th
 
 **Stack**: Jest + NestJS Testing utilities
 
-**Current Coverage** (70 tests):
+**Current Coverage** (113 tests):
+- `app.controller.spec.ts` - App controller (1 test)
 - `date.utils.spec.ts` - Date formatting utilities (8 tests)
 - `auth.service.spec.ts` - JWT authentication logic (10 tests)
 - `webhooks.service.spec.ts` - Webhook handling and verification (19 tests)
 - `sync.service.spec.ts` - Wrike ↔ ClickUp sync orchestration (11 tests)
 - `clickup.service.spec.ts` - ClickUp API and stats methods (12 tests)
-- `grocy.service.spec.ts` - Grocy API integration (4 tests)
+- `grocy.service.spec.ts` - Grocy API integration (47 tests)
+  - Recipe picture handling (4 tests)
+  - Meal plan date range fetching (1 test)
+  - Recipe fulfillment and shopping list (8 tests)
+  - Meal plan CRUD operations (7 tests) - **NEW**
+  - Recipe consumption (2 tests) - **NEW**
+  - Recipe selection filtering (4 tests) - **NEW**
+  - Homemade product resolution (5 tests)
+  - Recipe ingredient resolution (16 tests)
 - `database.service.spec.ts` - Database operations (5 tests)
 
 **Run**: `npm test` (in life-assistant-api/)

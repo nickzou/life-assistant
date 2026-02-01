@@ -1,29 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '../components/ProtectedRoute';
-import { api, API_BASE_URL } from '../lib/api';
+import { MealCard } from '../components/MealCard';
+import type { MealPlanItem } from '../components/MealCard';
+import { api } from '../lib/api';
 import { formatDateString } from '../lib/date.utils';
-
-interface Recipe {
-  id: number;
-  name: string;
-  description?: string;
-  picture_file_name?: string;
-  picture_url?: string;
-}
-
-interface MealPlanItem {
-  id: number;
-  day: string;
-  type: string;
-  recipe_id?: number;
-  recipe?: Recipe;
-  product_id?: number;
-  note?: string;
-  servings?: number;
-  section_id?: number;
-  section_name?: string | null;
-}
 
 interface ShoppingListItem {
   id: number;
@@ -216,33 +197,6 @@ function ShoppingPage() {
     }
   };
 
-  const getMealSectionLabel = (meal: MealPlanItem) => {
-    // Use section_name if available, otherwise fall back to type
-    if (meal.section_name) {
-      return meal.section_name;
-    }
-    // Fallback for older data without section_name
-    const types: Record<string, string> = {
-      breakfast: 'Breakfast',
-      lunch: 'Lunch',
-      dinner: 'Dinner',
-      snack: 'Snack',
-    };
-    return types[meal.type] || meal.type;
-  };
-
-  const getMealSectionColor = (meal: MealPlanItem) => {
-    const section = (meal.section_name || meal.type || '').toLowerCase();
-    const colors: Record<string, string> = {
-      breakfast: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-      lunch: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      dinner: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-      'meal prep': 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200',
-      snack: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
-    };
-    return colors[section] || 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-  };
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
     return date.toLocaleDateString('en-US', {
@@ -372,38 +326,9 @@ function ShoppingPage() {
                       {formatDate(day)}
                     </h3>
                     <div className="space-y-2">
-                      {mealsByDay[day].map((meal) => {
-                        const imageUrl = meal.recipe?.picture_url
-                          ? `${API_BASE_URL}${meal.recipe.picture_url}?token=${localStorage.getItem('auth_token')}`
-                          : null;
-
-                        return (
-                          <div
-                            key={meal.id}
-                            className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded"
-                          >
-                            {imageUrl && (
-                              <img
-                                src={imageUrl}
-                                alt={meal.recipe?.name || 'Recipe'}
-                                className="w-12 h-12 object-cover rounded flex-shrink-0"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display =
-                                    'none';
-                                }}
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full mr-2 ${getMealSectionColor(meal)}`}>
-                                {getMealSectionLabel(meal)}
-                              </span>
-                              <span className="text-sm text-gray-900 dark:text-white">
-                                {meal.recipe?.name || meal.note || 'Unnamed meal'}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {mealsByDay[day].map((meal) => (
+                        <MealCard key={meal.id} meal={meal} />
+                      ))}
                     </div>
                   </div>
                 ))}
