@@ -393,6 +393,7 @@ function MealsPage() {
                       <MealCard
                         key={meal.id}
                         meal={meal}
+                        layout="stacked"
                         isDone={meal.done === 1 || doneMeals.has(meal.id)}
                         onConsume={() => setConsumingMeal(meal)}
                         onMarkDone={() => markMealDone(meal.id)}

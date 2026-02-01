@@ -25,6 +25,7 @@ interface MealPlanItem {
 interface MealCardProps {
   meal: MealPlanItem;
   isDone?: boolean;
+  layout?: 'horizontal' | 'stacked';
   onConsume?: () => void;
   onMarkDone?: () => void;
   onUnmarkDone?: () => void;
@@ -57,6 +58,7 @@ function getMealSectionColor(meal: MealPlanItem): string {
 export function MealCard({
   meal,
   isDone = false,
+  layout = 'horizontal',
   onConsume,
   onMarkDone,
   onUnmarkDone,
@@ -68,6 +70,7 @@ export function MealCard({
 
   const hasActions = onConsume || onMarkDone || onUnmarkDone || onDelete;
   const hasCompletionActions = onConsume || onMarkDone;
+  const isStacked = layout === 'stacked';
 
   return (
     <div
@@ -77,7 +80,7 @@ export function MealCard({
     >
       {/* Done checkmark overlay */}
       {isDone && (
-        <div className="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+        <div className="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center z-10">
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
           </svg>
@@ -89,20 +92,20 @@ export function MealCard({
         {getMealSectionLabel(meal)}
       </span>
 
-      {/* Recipe image and name */}
-      <div className="flex items-start gap-2">
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt={meal.recipe?.name || 'Recipe'}
-            className="w-10 h-10 object-cover rounded flex-shrink-0"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium text-gray-900 dark:text-white truncate ${
+      {/* Recipe image and name - stacked layout */}
+      {isStacked ? (
+        <div className="flex flex-col">
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt={meal.recipe?.name || 'Recipe'}
+              className="w-full aspect-video object-cover rounded mb-2"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
+          <p className={`text-sm font-medium text-gray-900 dark:text-white ${
             isDone ? 'line-through' : ''
           }`}>
             {meal.recipe?.name || meal.note || 'Unnamed meal'}
@@ -113,7 +116,33 @@ export function MealCard({
             </p>
           )}
         </div>
-      </div>
+      ) : (
+        /* Recipe image and name - horizontal layout */
+        <div className="flex items-start gap-2">
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt={meal.recipe?.name || 'Recipe'}
+              className="w-10 h-10 object-cover rounded flex-shrink-0"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-medium text-gray-900 dark:text-white truncate ${
+              isDone ? 'line-through' : ''
+            }`}>
+              {meal.recipe?.name || meal.note || 'Unnamed meal'}
+            </p>
+            {meal.servings && meal.servings !== 1 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {meal.servings} servings
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Action buttons - only render if at least one action is provided */}
       {hasActions && (
