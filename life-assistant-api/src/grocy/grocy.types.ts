@@ -110,6 +110,7 @@ export interface Recipe {
   base_servings: number;
   desired_servings: number;
   product_id?: number;
+  type?: string; // 'normal' for real recipes, 'mealplan-day'/'mealplan-week'/'mealplan-shadow' for internal entries
 }
 
 /**

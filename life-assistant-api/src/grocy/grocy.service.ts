@@ -734,14 +734,22 @@ export class GrocyService implements OnModuleInit {
 
   /**
    * Get lightweight recipe list for selection dropdowns
+   * Filters out internal Grocy meal plan entries (negative IDs, mealplan-* types)
    */
   async getRecipesForSelection(): Promise<RecipeSelectionItem[]> {
     const recipes = await this.getAllRecipes();
-    return recipes.map((recipe) => ({
-      id: recipe.id,
-      name: recipe.name,
-      picture_url: undefined, // Will be populated by controller if needed
-      base_servings: recipe.base_servings,
-    }));
+    return recipes
+      .filter((recipe) => {
+        // Filter out internal meal plan entries
+        if (recipe.id < 0) return false;
+        if (recipe.type?.startsWith('mealplan-')) return false;
+        return true;
+      })
+      .map((recipe) => ({
+        id: recipe.id,
+        name: recipe.name,
+        picture_url: undefined, // Will be populated by controller if needed
+        base_servings: recipe.base_servings,
+      }));
   }
 }
