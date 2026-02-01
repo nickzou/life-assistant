@@ -214,6 +214,7 @@ curl -X POST http://localhost:3000/auth/login \
 7. **CORS**: API needs `CORS_ORIGIN` set to frontend URL in production
 8. **Password Special Characters**: When seeding users via CLI, special characters (`!$'"`) need shell escaping or use single quotes
 9. **Frontend API URL**: `VITE_API_URL` is baked in at build time, not runtime
+10. **Zoxide cd alias**: User has `cd` aliased to zoxide's `z` command. This doesn't work in non-interactive shells (like Claude Code's Bash tool), causing `cd:1: command not found: __zoxide_z` errors. Use absolute paths or wrap in `bash -c 'cd "..." && ...'` when directory changes are needed.
 
 ## Current State
 

@@ -4,7 +4,7 @@
 
 **Last Updated:** January 2026
 
-**Current Phase:** Phase 1 - Task Sync Module (Complete)
+**Current Phase:** Phase 1 Complete, Phase 2 In Progress (Grocy Integration)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -12,19 +12,19 @@
 | **Database Module** | ✅ Complete | TypeORM entities for TaskMapping, SyncLog, User; migrations working |
 | **Wrike Module** | ✅ Complete | API client, test endpoints, user ID caching, webhook management |
 | **ClickUp Module** | ✅ Complete | API client, test endpoints, user ID caching, webhook management, tag operations |
+| **Grocy Module** | ✅ Complete | Smart shopping list generator with homemade product resolution |
 | **Webhooks Module** | ✅ Complete | Bidirectional event processing, tag-based loop prevention |
 | **Sync Module** | ✅ Complete | Bidirectional sync: Wrike ↔ ClickUp with dates, status mapping, auto-assignment |
+| **Auth Module** | ✅ Complete | JWT authentication with bcrypt password hashing |
+| **React Frontend** | ✅ Complete | TanStack Router, shopping list page, webhook status page |
 | **Staging Deployment** | ✅ Complete | Docker, CI/CD via GitHub Actions, deployed to staging environment |
-| **Production Deployment** | ⏳ Pending | Infrastructure ready, awaiting promotion from staging |
-| **API Module** | ❌ Not Started | REST API for frontend |
-| **Auth Module** | ❌ Not Started | JWT authentication |
-| **React Frontend** | ❌ Not Started | Custom quick views and automation triggers (not a task manager) |
+| **Production Deployment** | ✅ Complete | Docker, deployed to production environment |
 
 **Next Steps:**
 1. Promote staging to production when ready
 2. Create API Module for frontend (quick views, automation triggers)
 3. Add React frontend for custom views and automation flows
-4. Additional life automation modules (meal prep, habits, etc.)
+4. Additional life automation modules (habits, etc.)
 
 ## Overview
 
@@ -241,7 +241,58 @@ graph TB
 - Modules can be tested in isolation
 - Services are injectable and mockable
 
-### 3. Database Module (`src/database/`)
+### 3. Grocy Module (`src/grocy/`)
+
+**Implementation Status: ✅ Completed**
+
+**GrocyService** (`grocy.service.ts`)
+- Injectable NestJS service implementing OnModuleInit
+- Wraps Grocy REST API
+- **Core Methods:**
+  - `getSystemInfo()` - Verify API connection
+  - `getMealPlan()`, `getMealPlanForDateRange()` - Fetch meal plan data
+  - `getRecipes()`, `getRecipe(id)` - Fetch recipe data
+  - `getRecipeIngredients()` - Fetch all recipe ingredients (`recipes_pos`)
+  - `getRecipeNestings()` - Fetch included/nested recipes
+  - `getStock()` - Fetch current stock levels
+  - `getProducts()`, `getQuantityUnits()` - Fetch reference data
+- **Smart Shopping List Methods:**
+  - `generateSmartShoppingList(startDate, endDate)` - Main algorithm
+  - `resolveRecipeIngredients()` - Recursive ingredient resolution
+  - `buildHomemadeProductMap()` - Identify recipes that produce products
+  - `addItemsToShoppingList()` - Add items to Grocy shopping list
+  - `getHomemadeProducts()` - List all homemade products (debug)
+- Handles authentication via GROCY-API-KEY header
+
+**GrocyController** (`grocy.controller.ts`)
+- **Protected Endpoints (require JWT):**
+  - `GET /grocy/meal-plan/today` - Today's meals with recipe details
+  - `GET /grocy/meal-plan/date/:date` - Meals for specific date
+  - `GET /grocy/meal-plan/range/:start/:end` - Meals for date range
+  - `GET /grocy/shopping-list` - Current Grocy shopping list
+  - `POST /grocy/shopping-list/generate` - Generate smart shopping list
+  - `POST /grocy/shopping-list/add-items` - Add items to Grocy
+  - `GET /grocy/recipes/:id/picture` - Proxy for recipe images
+- **Test Endpoints (no auth):**
+  - `GET /grocy/test/info` - System info
+  - `GET /grocy/test/products`, `/stock`, `/recipes`, `/meal-plan`
+  - `GET /grocy/test/shopping-list/:start/:end` - Test smart generation
+  - `GET /grocy/test/homemade-products` - List homemade products
+  - `GET /grocy/test/recipe-nestings` - List recipe nestings
+  - `GET /grocy/test/recipes/:id/ingredients` - Recipe ingredients
+
+**GrocyModule** (`grocy.module.ts`)
+- Exports GrocyService for use by other modules
+- Imports ConfigModule for environment variables
+
+**Key Features:**
+- Recursive resolution of homemade products to base ingredients
+- Smart stock checking before resolving (uses existing stock first)
+- Support for Grocy's "Included recipes" feature (nested recipes)
+- Aggregated stock support (parent products with sub-products)
+- Servings multiplier calculation for accurate quantities
+
+### 4. Database Module (`src/database/`)
 
 **Implementation Status: ✅ Completed**
 
@@ -1052,6 +1103,133 @@ Reschedule Leaderboard
 
 ---
 
+### Shopping List Generator (`/shopping`)
+
+**Status:** ✅ Implemented
+
+**Purpose:** Generate accurate shopping lists from Grocy meal plans by calculating what ingredients are needed and subtracting current stock. Intelligently resolves "homemade" products to their base purchasable ingredients.
+
+#### Features Implemented
+
+**Core Functionality:**
+- ✅ Accept a date range (start date, end date)
+- ✅ Output list of products to buy with quantities
+- ✅ Recursive resolution of homemade products to base ingredients
+- ✅ Smart stock checking for homemade products before resolving
+- ✅ Support for included/nested recipes (Grocy's "Included recipes" feature)
+- ✅ Aggregated stock support (parent products accumulate sub-product stock)
+- ✅ Add calculated items to Grocy's shopping list
+
+**Data Fetching:**
+- ✅ Meal plan entries for the specified date range
+- ✅ All recipes (with `product_id` for homemade detection)
+- ✅ Recipe ingredients (`recipes_pos` table)
+- ✅ Recipe nestings (`recipes_nestings` table for included recipes)
+- ✅ Current stock levels (using `amount_aggregated` for parent products)
+- ✅ Products and quantity units for display
+
+#### Smart Resolution Algorithm
+
+The shopping list generator uses a recursive algorithm that:
+
+1. **Processes each meal in the date range**
+2. **For each recipe ingredient:**
+   - If it's a **homemade product** (another recipe produces it):
+     - Check if we have it in stock (`amount_aggregated`)
+     - If **in stock**: use from stock, don't resolve to base ingredients
+     - If **partially in stock**: use what's available, resolve the deficit
+     - If **not in stock**: recursively resolve to base purchasable ingredients
+   - If it's a **purchasable product**: add to the shopping list
+3. **Processes included recipes** (nested recipes via `recipes_nestings`)
+4. **Aggregates quantities** across all meals
+5. **Subtracts stock** from needed amounts
+6. **Returns only items** where `to_buy > 0`
+
+**Example:**
+- Recipe "Air Fryer Char Siu Chicken on Rice" uses "Char Siu Chicken" (homemade product)
+- If Char Siu Chicken is in stock → use it, shopping list shows only rice
+- If Char Siu Chicken is NOT in stock → resolve to chicken thighs, soy sauce, etc.
+
+#### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/grocy/shopping-list/generate` | POST | Generate smart shopping list for date range |
+| `/grocy/shopping-list/add-items` | POST | Add calculated items to Grocy shopping list |
+| `/grocy/test/shopping-list/:start/:end` | GET | Test endpoint (no auth) |
+| `/grocy/test/homemade-products` | GET | List all homemade products |
+| `/grocy/test/recipe-nestings` | GET | List all recipe nestings |
+| `/grocy/test/recipes/:id/ingredients` | GET | Get recipe ingredients |
+
+#### Response Format
+
+```typescript
+interface SmartGenerateShoppingListResponse {
+  startDate: string;
+  endDate: string;
+  recipesProcessed: number;
+  homemadeProductsResolved: number;  // Count of homemade products that needed resolution
+  items: SmartShoppingListItem[];
+}
+
+interface SmartShoppingListItem {
+  product_id: number;
+  product_name: string;
+  needed_amount: number;    // Total needed for all meals
+  stock_amount: number;     // Current stock (aggregated)
+  to_buy_amount: number;    // needed - stock
+  qu_id: number;
+  qu_name?: string;
+}
+```
+
+#### Grocy API Endpoints Used
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /objects/meal_plan` | Meal plans with `day`, `recipe_id`, `recipe_servings` |
+| `GET /objects/recipes` | Recipes with `product_id`, `base_servings` |
+| `GET /objects/recipes_pos` | Recipe ingredients |
+| `GET /objects/recipes_nestings` | Included/nested recipes |
+| `GET /stock` | Current stock with `amount` and `amount_aggregated` |
+| `GET /objects/products` | Product details |
+| `GET /objects/quantity_units` | Unit definitions |
+| `POST /stock/shoppinglist/add-product` | Add item to Grocy shopping list |
+
+#### Key Data Relationships
+
+**Recipe → Product (homemade items):**
+- If `recipe.product_id` is set, making that recipe produces that product
+- Example: Recipe "Air Fryer Char Siu Chicken" (id:5) → produces Product "Char Siu Chicken" (id:157)
+- Algorithm checks stock before resolving to base ingredients
+
+**Recipe Nestings (included recipes):**
+- `recipes_nestings.recipe_id` → parent recipe
+- `recipes_nestings.includes_recipe_id` → included sub-recipe
+- `recipes_nestings.servings` → how many servings of sub-recipe to include
+- Example: "Buttered Bagel and Coffee" includes "Buttered Bagel" and "Cup of Coffee"
+
+**Aggregated Stock:**
+- `stock.amount` → direct stock of the product
+- `stock.amount_aggregated` → includes stock from sub-products (parent product feature)
+- Example: "Jasmine Rice" (generic) aggregates stock from "Dainty Jasmine Rice" (brand)
+- Algorithm uses `amount_aggregated` when available
+
+#### Technical Notes
+
+- Circular dependency detection prevents infinite loops in nested recipes
+- Homemade product stock is tracked across all meals to handle partial usage
+- Servings multipliers are calculated from `meal.servings / recipe.base_servings`
+- Only purchasable items appear in the final list (homemade products are resolved)
+
+#### Out of Scope
+
+- Unit conversion between different measurement systems
+- Price estimation
+- Shopping location grouping
+
+---
+
 ## Future Enhancements
 
 ### Phase 1: Task Sync Module (Complete)
@@ -1117,7 +1295,6 @@ life-assistant/
 │   │   │   ├── wrike.service.ts
 │   │   │   ├── wrike.controller.ts (test endpoints)
 │   │   │   ├── wrike.module.ts
-│   │   │   ├── dto/           # (empty - to be implemented)
 │   │   │   └── types/
 │   │   │       └── wrike-api.types.ts
 │   │   ├── clickup/           # ✅ ClickUp integration module
@@ -1126,58 +1303,67 @@ life-assistant/
 │   │   │   ├── clickup.module.ts
 │   │   │   └── types/
 │   │   │       └── clickup-api.types.ts
-│   │   ├── webhooks/          # ✅ Webhooks module (NEW!)
+│   │   ├── grocy/             # ✅ Grocy integration module
+│   │   │   ├── grocy.service.ts
+│   │   │   ├── grocy.controller.ts
+│   │   │   ├── grocy.module.ts
+│   │   │   └── grocy.types.ts
+│   │   ├── webhooks/          # ✅ Webhooks module
 │   │   │   ├── webhooks.controller.ts
 │   │   │   ├── webhooks.service.ts
-│   │   │   ├── webhooks.module.ts
-│   │   │   └── dto/           # (empty - to be implemented)
+│   │   │   └── webhooks.module.ts
 │   │   ├── database/          # ✅ Database entities & module
 │   │   │   ├── entities/
 │   │   │   │   ├── task-mapping.entity.ts
 │   │   │   │   ├── sync-log.entity.ts
 │   │   │   │   └── user.entity.ts
+│   │   │   ├── migrations/
 │   │   │   ├── database.service.ts
 │   │   │   └── database.module.ts
-│   │   ├── sync/              # ✅ Implemented
+│   │   ├── sync/              # ✅ Sync module
 │   │   │   ├── sync.service.ts
 │   │   │   └── sync.module.ts
-│   │   ├── api/               # ❌ NOT YET IMPLEMENTED
-│   │   │   ├── api.controller.ts
-│   │   │   ├── api.service.ts
-│   │   │   ├── api.module.ts
-│   │   │   └── dto/
-│   │   ├── auth/              # ❌ NOT YET IMPLEMENTED
+│   │   ├── auth/              # ✅ Auth module
 │   │   │   ├── auth.service.ts
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── auth.module.ts
 │   │   │   ├── guards/
+│   │   │   │   └── jwt-auth.guard.ts
 │   │   │   └── strategies/
+│   │   │       └── jwt.strategy.ts
 │   │   ├── app.controller.ts
 │   │   ├── app.service.ts
 │   │   ├── app.module.ts
 │   │   └── main.ts
-│   ├── test/
-│   │   └── app.e2e-spec.ts
 │   ├── .env.example
 │   ├── Dockerfile
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── frontend/                   # ❌ NOT YET IMPLEMENTED
+├── life-assistant-frontend/    # ✅ React frontend
 │   ├── src/
 │   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/          # API client
-│   │   ├── hooks/
-│   │   ├── types/             # Shared with backend
+│   │   │   └── ProtectedRoute.tsx
+│   │   ├── contexts/
+│   │   │   └── AuthContext.tsx
+│   │   ├── routes/            # TanStack Router file-based routes
+│   │   │   ├── index.tsx      # Home page
+│   │   │   ├── login.tsx      # Login page
+│   │   │   ├── shopping.tsx   # Shopping list generator
+│   │   │   └── webhooks.tsx   # Webhook status
+│   │   ├── lib/
+│   │   │   └── api.ts         # Axios API client
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── public/
+│   ├── Dockerfile
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── design.md                   # Architecture documentation
-├── docker-compose.yml          # ✅ PostgreSQL setup
+├── deployment/                 # Docker Compose for prod/staging
+├── DESIGN.md                   # Architecture documentation
+├── CLAUDE.md                   # Claude Code context
+├── docker-compose.yml          # ✅ Development environment
 └── README.md
 ```
 
