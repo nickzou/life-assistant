@@ -387,26 +387,24 @@ function ShoppingPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {generatedItems.length > 0 ? 'Generated Shopping List' : 'Current Shopping List'}
+                Shopping List
               </h2>
-              {generatedItems.length === 0 && (
-                <button
-                  onClick={handleAddMissingProducts}
-                  disabled={addingMissing}
-                  className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                  title="Add products below their minimum stock level"
-                >
-                  {addingMissing ? 'Adding...' : 'Restock Low Items'}
-                </button>
-              )}
+              <button
+                onClick={handleAddMissingProducts}
+                disabled={addingMissing}
+                className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                title="Add products below their minimum stock level"
+              >
+                {addingMissing ? 'Adding...' : 'Restock Low Items'}
+              </button>
             </div>
 
             {/* Generated Items (from smart generation) */}
             {generatedItems.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                  <h3 className="font-medium text-gray-900 dark:text-white">
-                    Items to Buy ({generatedItems.length})
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg shadow mb-4">
+                <div className="p-4 border-b border-blue-200 dark:border-blue-800 flex items-center justify-between">
+                  <h3 className="font-medium text-blue-900 dark:text-blue-100">
+                    From Meal Plan ({generatedItems.length})
                   </h3>
                   <button
                     onClick={handleAddToGrocy}
@@ -416,7 +414,7 @@ function ShoppingPage() {
                     {addingToGrocy ? 'Adding...' : 'Add to Grocy'}
                   </button>
                 </div>
-                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                <ul className="divide-y divide-blue-200 dark:divide-blue-800">
                   {generatedItems.map((item) => (
                     <li
                       key={item.product_id}
@@ -447,7 +445,7 @@ function ShoppingPage() {
               </div>
             )}
 
-            {generatedItems.length === 0 && pendingItems.length > 0 && (
+            {pendingItems.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 className="font-medium text-gray-900 dark:text-white">
@@ -475,7 +473,7 @@ function ShoppingPage() {
               </div>
             )}
 
-            {generatedItems.length === 0 && doneItems.length > 0 && (
+            {doneItems.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow opacity-60">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 className="font-medium text-gray-900 dark:text-white">
