@@ -235,6 +235,52 @@ export class ClickUpController {
   }
 
   /**
+   * Setup webhook for current environment (uses configured workspace ID)
+   * POST /clickup/webhooks/setup
+   * Body: { "baseUrl": "https://your-server.com" }
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('webhooks/setup')
+  async setupWebhookAuto(@Body() body: { baseUrl: string }) {
+    try {
+      const teamId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+      if (!teamId) {
+        return {
+          success: false,
+          error: 'CLICKUP_WORKSPACE_ID not configured',
+        };
+      }
+
+      if (!body.baseUrl) {
+        return {
+          success: false,
+          error: 'baseUrl is required',
+        };
+      }
+
+      const hookUrl = `${body.baseUrl}/webhooks/clickup`;
+
+      this.logger.log(`Setting up webhook for team ${teamId}: ${hookUrl}`);
+
+      const webhook = await this.clickUpService.createWebhook(teamId, hookUrl);
+
+      return {
+        success: true,
+        message: 'Webhook registered successfully',
+        webhook,
+        hookUrl,
+      };
+    } catch (error) {
+      this.logger.error('Failed to setup webhook:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        details: error.response?.data,
+      };
+    }
+  }
+
+  /**
    * Setup webhook for current environment
    * POST /clickup/webhooks/:teamId/setup
    * Body: { "baseUrl": "https://your-server.com" } (optional)

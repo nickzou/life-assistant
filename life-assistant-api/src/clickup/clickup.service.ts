@@ -274,7 +274,7 @@ export class ClickUpService implements OnModuleInit {
         `/team/${teamId}/webhook`,
         {
           endpoint: hookUrl,
-          events: ['taskUpdated', 'taskStatusUpdated', 'taskDueDateUpdated'],
+          events: ['taskCreated', 'taskUpdated', 'taskStatusUpdated', 'taskDueDateUpdated'],
         },
       );
       return response.data;

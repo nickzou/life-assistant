@@ -6,9 +6,11 @@ import {
   Post,
   Delete,
   Body,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WrikeService } from './wrike.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('wrike')
 export class WrikeController {
@@ -89,14 +91,20 @@ export class WrikeController {
   /**
    * Setup webhook for current environment
    * POST /wrike/webhooks/setup
-   * Body: { "baseUrl": "https://your-server.com" } (optional, auto-detects from ngrok)
+   * Body: { "baseUrl": "https://your-server.com" }
    */
+  @UseGuards(JwtAuthGuard)
   @Post('webhooks/setup')
-  async setupWebhook(@Body() body: { baseUrl?: string }) {
+  async setupWebhook(@Body() body: { baseUrl: string }) {
     try {
-      // Use provided baseUrl or construct from ngrok
-      const baseUrl = body.baseUrl || 'https://e2ab384a1a9f.ngrok.app';
-      const hookUrl = `${baseUrl}/webhooks/wrike`;
+      if (!body.baseUrl) {
+        return {
+          success: false,
+          error: 'baseUrl is required',
+        };
+      }
+
+      const hookUrl = `${body.baseUrl}/webhooks/wrike`;
 
       this.logger.log(`Setting up webhook for: ${hookUrl}`);
 
