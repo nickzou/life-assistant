@@ -108,7 +108,7 @@ function RootLayout() {
       <main className={isLoginPage ? '' : 'p-4'}>
         <Outlet />
       </main>
-      <TanStackRouterDevtools />
+      {import.meta.env.DEV && <TanStackRouterDevtools />}
     </div>
   )
 }
