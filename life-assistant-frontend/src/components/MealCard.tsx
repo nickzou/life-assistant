@@ -24,11 +24,11 @@ interface MealPlanItem {
 
 interface MealCardProps {
   meal: MealPlanItem;
-  isDone: boolean;
-  onConsume: () => void;
-  onMarkDone: () => void;
-  onUnmarkDone: () => void;
-  onDelete: () => void;
+  isDone?: boolean;
+  onConsume?: () => void;
+  onMarkDone?: () => void;
+  onUnmarkDone?: () => void;
+  onDelete?: () => void;
 }
 
 function getMealSectionLabel(meal: MealPlanItem): string {
@@ -56,7 +56,7 @@ function getMealSectionColor(meal: MealPlanItem): string {
 
 export function MealCard({
   meal,
-  isDone,
+  isDone = false,
   onConsume,
   onMarkDone,
   onUnmarkDone,
@@ -65,6 +65,9 @@ export function MealCard({
   const imageUrl = meal.recipe?.picture_url
     ? `${API_BASE_URL}${meal.recipe.picture_url}?token=${localStorage.getItem('auth_token')}`
     : null;
+
+  const hasActions = onConsume || onMarkDone || onUnmarkDone || onDelete;
+  const hasCompletionActions = onConsume || onMarkDone;
 
   return (
     <div
@@ -112,43 +115,52 @@ export function MealCard({
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-col @[180px]:flex-row gap-1 mt-2">
-        {!isDone ? (
-          <div className="flex gap-1 flex-1">
+      {/* Action buttons - only render if at least one action is provided */}
+      {hasActions && (
+        <div className="flex flex-col @[180px]:flex-row gap-1 mt-2">
+          {!isDone && hasCompletionActions && (
+            <div className="flex gap-1 flex-1">
+              {onConsume && (
+                <button
+                  onClick={onConsume}
+                  className="flex-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                  title="Consume (deduct ingredients from stock)"
+                >
+                  Consume
+                </button>
+              )}
+              {onMarkDone && (
+                <button
+                  onClick={onMarkDone}
+                  className="flex-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  title="Mark as done (visual only)"
+                >
+                  Done
+                </button>
+              )}
+            </div>
+          )}
+          {isDone && onUnmarkDone && (
             <button
-              onClick={onConsume}
-              className="flex-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-              title="Consume (deduct ingredients from stock)"
+              onClick={onUnmarkDone}
+              className="flex-1 px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
             >
-              Consume
+              Undo
             </button>
+          )}
+          {onDelete && (
             <button
-              onClick={onMarkDone}
-              className="flex-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              title="Mark as done (visual only)"
+              onClick={onDelete}
+              className="w-full @[180px]:w-auto p-1.5 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center justify-center"
+              title="Remove from plan"
             >
-              Done
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={onUnmarkDone}
-            className="flex-1 px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-          >
-            Undo
-          </button>
-        )}
-        <button
-          onClick={onDelete}
-          className="w-full @[180px]:w-auto p-1.5 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center justify-center"
-          title="Remove from plan"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
