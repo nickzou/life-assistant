@@ -201,7 +201,7 @@ export class MealPrepService {
           custom_fields?: Array<{ id: string; value: any }>;
         } = {
           name: `Defrost ${defrostItem}`,
-          tags: ['meal prep', 'defrost'],
+          tags: ['meal prep'],
           due_date: mealDueDate,
         };
 
