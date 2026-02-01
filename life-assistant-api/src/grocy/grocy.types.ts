@@ -46,7 +46,7 @@ export interface MealPlanItem {
   recipe_id?: number;
   product_id?: number;
   note?: string;
-  servings?: number;
+  recipe_servings?: number;
   section_id?: number;
   done?: number; // 0 or 1
 }
@@ -152,6 +152,9 @@ export interface CreateMealPlanItemDto {
   recipe_id: number;
   section_id?: number;
   servings?: number;
+  createClickUpTasks?: boolean; // Whether to create ClickUp tasks (default: true)
+  recipeName?: string; // Recipe name for ClickUp task title
+  sectionName?: string; // Section name for ClickUp tag (e.g., "breakfast", "lunch", "dinner")
 }
 
 /**

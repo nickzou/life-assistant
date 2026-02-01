@@ -1322,6 +1322,61 @@ interface MealPlanSection {
   - Snack → Cyan
   - Other → Blue (default)
 
+#### ClickUp Task Integration
+
+**Status:** ✅ Implemented
+
+When adding meals to the plan, users can optionally create ClickUp tasks for meal prep. This provides visibility of upcoming meals in ClickUp's daily task view.
+
+**MealPrepService** (`src/meal-prep/meal-prep.service.ts`)
+- Manages recipe prep configurations (defrost requirements)
+- Creates ClickUp tasks when adding meals to the plan
+- Deletes ClickUp tasks when removing meals (preserves completed tasks)
+- Lazy caches ClickUp custom field options for Time of Day field
+
+**Database Entities:**
+- `RecipePrepConfig` - Stores per-recipe prep requirements (defrost settings)
+- `MealPlanTaskMapping` - Links Grocy meal plan items to ClickUp task IDs
+
+**Task Creation Logic:**
+1. **Main Task** - Created for every meal when checkbox is checked
+   - Name: Recipe name (e.g., "Char Siu Chicken")
+   - Tags: `meal prep`, `meal`, and section name (e.g., `dinner`)
+   - Due date: Meal date
+   - Time of Day custom field: Based on section (Breakfast→Morning, Lunch→Mid Day, Dinner→Evening)
+
+2. **Defrost Task** - Created if recipe has defrost config enabled
+   - Name: "Defrost {item}" (e.g., "Defrost chicken thighs")
+   - Tags: `meal prep`
+   - Due date: Same as meal date
+   - Time of Day: Early Morning
+
+**Task Deletion Logic:**
+- When deleting a meal, checks each associated ClickUp task
+- Completed tasks are preserved (not deleted from ClickUp)
+- Incomplete tasks are deleted from ClickUp
+- Meal is always deleted from Grocy regardless of ClickUp task status
+
+**API Endpoints:**
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/grocy/recipes/:id/prep-config` | GET | Get prep config for a recipe |
+| `/grocy/recipes/:id/prep-config` | PUT | Save prep config for a recipe |
+| `/grocy/meal-plan/sections` | GET | Get all meal plan sections |
+
+**Configuration:**
+```bash
+CLICKUP_MEALS_LIST_ID=<list_id>  # ClickUp list for meal prep tasks
+```
+
+**Frontend:**
+- Checkbox in Add Meal modal: "Create prep tasks in ClickUp" (default: checked)
+- Settings panel (gear icon) for configuring recipe defrost requirements
+- Delete confirmation mentions that associated ClickUp tasks will be deleted
+
+---
+
 #### Interactive Shopping List
 
 Users can check/uncheck shopping list items directly from the frontend, syncing the done status to Grocy without adding items to stock.

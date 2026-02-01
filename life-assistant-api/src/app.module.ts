@@ -8,6 +8,7 @@ import { ClickUpModule } from './clickup/clickup.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { GrocyModule } from './grocy/grocy.module';
 import { AuthModule } from './auth/auth.module';
+import { MealPrepModule } from './meal-prep/meal-prep.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AuthModule } from './auth/auth.module';
     ClickUpModule,
     WebhooksModule,
     GrocyModule,
+    MealPrepModule,
   ],
   controllers: [AppController],
   providers: [AppService],

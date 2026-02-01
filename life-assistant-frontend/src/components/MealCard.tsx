@@ -16,7 +16,7 @@ interface MealPlanItem {
   recipe?: Recipe;
   product_id?: number;
   note?: string;
-  servings?: number;
+  recipe_servings?: number;
   section_id?: number;
   section_name?: string | null;
   done?: number; // 0 or 1 from Grocy
@@ -110,9 +110,9 @@ export function MealCard({
           }`}>
             {meal.recipe?.name || meal.note || 'Unnamed meal'}
           </p>
-          {meal.servings && meal.servings !== 1 && (
+          {meal.recipe_servings && meal.recipe_servings !== 1 && (
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {meal.servings} servings
+              {meal.recipe_servings} servings
             </p>
           )}
         </div>
@@ -135,9 +135,9 @@ export function MealCard({
             }`}>
               {meal.recipe?.name || meal.note || 'Unnamed meal'}
             </p>
-            {meal.servings && meal.servings !== 1 && (
+            {meal.recipe_servings && meal.recipe_servings !== 1 && (
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {meal.servings} servings
+                {meal.recipe_servings} servings
               </p>
             )}
           </div>
