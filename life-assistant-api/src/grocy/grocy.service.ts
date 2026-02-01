@@ -7,6 +7,7 @@ import {
   ShoppingListItem,
   EnrichedShoppingListItem,
   MealPlanItem,
+  MealPlanSection,
   Product,
   QuantityUnit,
   RecipeIngredient,
@@ -97,6 +98,16 @@ export class GrocyService implements OnModuleInit {
   async getMealPlanForDate(date: string): Promise<any[]> {
     const response = await this.axiosInstance.get(
       `/objects/meal_plan?query[]=day=${date}`,
+    );
+    return response.data;
+  }
+
+  /**
+   * Get all meal plan sections
+   */
+  async getMealPlanSections(): Promise<MealPlanSection[]> {
+    const response = await this.axiosInstance.get<MealPlanSection[]>(
+      '/objects/meal_plan_sections',
     );
     return response.data;
   }
@@ -602,6 +613,21 @@ export class GrocyService implements OnModuleInit {
 
     this.logger.log(`Added ${added} items to shopping list (${failed} failed)`);
     return { added, failed };
+  }
+
+  /**
+   * Add products that are below their defined minimum stock amount to the shopping list
+   * This replicates Grocy's "Add products that are below defined min. stock amount" feature
+   */
+  async addMissingProductsToShoppingList(
+    listId?: number,
+  ): Promise<void> {
+    this.logger.log(
+      `Adding products below min stock to shopping list${listId ? ` (list ${listId})` : ''}`,
+    );
+    await this.axiosInstance.post('/stock/shoppinglist/add-missing-products', {
+      ...(listId !== undefined && { list_id: listId }),
+    });
   }
 
   /**

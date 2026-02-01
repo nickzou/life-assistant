@@ -47,6 +47,14 @@ export interface MealPlanItem {
   product_id?: number;
   note?: string;
   servings?: number;
+  section_id?: number;
+}
+
+export interface MealPlanSection {
+  id: number;
+  name: string | null;
+  sort_number: number;
+  time_info?: string | null;
 }
 
 export interface GenerateShoppingListRequest {

@@ -21,6 +21,8 @@ interface MealPlanItem {
   product_id?: number;
   note?: string;
   servings?: number;
+  section_id?: number;
+  section_name?: string | null;
 }
 
 interface ShoppingListItem {
@@ -97,6 +99,7 @@ function ShoppingPage() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [addingToGrocy, setAddingToGrocy] = useState(false);
+  const [addingMissing, setAddingMissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -181,14 +184,35 @@ function ShoppingPage() {
     }
   };
 
-  const getMealTypeLabel = (type: string) => {
+  const handleAddMissingProducts = async () => {
+    setAddingMissing(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await api.post('/grocy/shopping-list/add-missing-products', {});
+      setSuccessMessage('Added low-stock items to shopping list');
+      // Refresh the current shopping list
+      await fetchShoppingList();
+    } catch {
+      setError('Failed to add low-stock items');
+    } finally {
+      setAddingMissing(false);
+    }
+  };
+
+  const getMealSectionLabel = (meal: MealPlanItem) => {
+    // Use section_name if available, otherwise fall back to type
+    if (meal.section_name) {
+      return meal.section_name;
+    }
+    // Fallback for older data without section_name
     const types: Record<string, string> = {
       breakfast: 'Breakfast',
       lunch: 'Lunch',
       dinner: 'Dinner',
       snack: 'Snack',
     };
-    return types[type] || type;
+    return types[meal.type] || meal.type;
   };
 
   const formatDate = (dateStr: string) => {
@@ -343,7 +367,7 @@ function ShoppingPage() {
                             )}
                             <div className="flex-1 min-w-0">
                               <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mr-2">
-                                {getMealTypeLabel(meal.type)}
+                                {getMealSectionLabel(meal)}
                               </span>
                               <span className="text-sm text-gray-900 dark:text-white">
                                 {meal.recipe?.name || meal.note || 'Unnamed meal'}
@@ -361,9 +385,21 @@ function ShoppingPage() {
 
           {/* Shopping List Section */}
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              {generatedItems.length > 0 ? 'Generated Shopping List' : 'Current Shopping List'}
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {generatedItems.length > 0 ? 'Generated Shopping List' : 'Current Shopping List'}
+              </h2>
+              {generatedItems.length === 0 && (
+                <button
+                  onClick={handleAddMissingProducts}
+                  disabled={addingMissing}
+                  className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  title="Add products below their minimum stock level"
+                >
+                  {addingMissing ? 'Adding...' : 'Restock Low Items'}
+                </button>
+              )}
+            </div>
 
             {/* Generated Items (from smart generation) */}
             {generatedItems.length > 0 && (

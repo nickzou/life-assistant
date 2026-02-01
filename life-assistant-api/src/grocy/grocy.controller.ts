@@ -34,19 +34,26 @@ export class GrocyController {
   @Get('meal-plan/today')
   async getTodaysMealPlan() {
     const today = getTodayString();
-    const mealPlan = await this.grocyService.getMealPlanForDate(today);
+    const [mealPlan, sections] = await Promise.all([
+      this.grocyService.getMealPlanForDate(today),
+      this.grocyService.getMealPlanSections(),
+    ]);
 
-    // Enrich with recipe details
+    // Build section lookup map
+    const sectionMap = new Map(sections.map((s) => [s.id, s.name]));
+
+    // Enrich with recipe details and section names
     const enrichedMealPlan = await Promise.all(
       mealPlan.map(async (meal: any) => {
+        const section_name = sectionMap.get(meal.section_id) || null;
         if (meal.recipe_id) {
           const recipe = await this.grocyService.getRecipe(meal.recipe_id);
           if (recipe.picture_file_name) {
             recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
           }
-          return { ...meal, recipe };
+          return { ...meal, recipe, section_name };
         }
-        return meal;
+        return { ...meal, section_name };
       }),
     );
 
@@ -63,18 +70,25 @@ export class GrocyController {
   @UseGuards(JwtAuthGuard)
   @Get('meal-plan/date/:date')
   async getMealPlanByDate(@Param('date') date: string) {
-    const mealPlan = await this.grocyService.getMealPlanForDate(date);
+    const [mealPlan, sections] = await Promise.all([
+      this.grocyService.getMealPlanForDate(date),
+      this.grocyService.getMealPlanSections(),
+    ]);
+
+    // Build section lookup map
+    const sectionMap = new Map(sections.map((s) => [s.id, s.name]));
 
     const enrichedMealPlan = await Promise.all(
       mealPlan.map(async (meal: any) => {
+        const section_name = sectionMap.get(meal.section_id) || null;
         if (meal.recipe_id) {
           const recipe = await this.grocyService.getRecipe(meal.recipe_id);
           if (recipe.picture_file_name) {
             recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
           }
-          return { ...meal, recipe };
+          return { ...meal, recipe, section_name };
         }
-        return meal;
+        return { ...meal, section_name };
       }),
     );
 
@@ -94,21 +108,25 @@ export class GrocyController {
     @Param('startDate') startDate: string,
     @Param('endDate') endDate: string,
   ) {
-    const mealPlan = await this.grocyService.getMealPlanForDateRange(
-      startDate,
-      endDate,
-    );
+    const [mealPlan, sections] = await Promise.all([
+      this.grocyService.getMealPlanForDateRange(startDate, endDate),
+      this.grocyService.getMealPlanSections(),
+    ]);
+
+    // Build section lookup map
+    const sectionMap = new Map(sections.map((s) => [s.id, s.name]));
 
     const enrichedMealPlan = await Promise.all(
       mealPlan.map(async (meal: any) => {
+        const section_name = sectionMap.get(meal.section_id) || null;
         if (meal.recipe_id) {
           const recipe = await this.grocyService.getRecipe(meal.recipe_id);
           if (recipe.picture_file_name) {
             recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
           }
-          return { ...meal, recipe };
+          return { ...meal, recipe, section_name };
         }
-        return meal;
+        return { ...meal, section_name };
       }),
     );
 
@@ -166,6 +184,20 @@ export class GrocyController {
   ): Promise<{ added: number; failed: number }> {
     this.logger.log(`Adding ${body.items.length} items to Grocy shopping list`);
     return this.grocyService.addItemsToShoppingList(body.items);
+  }
+
+  /**
+   * Add products below their minimum stock amount to the shopping list
+   * POST /grocy/shopping-list/add-missing-products
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('shopping-list/add-missing-products')
+  async addMissingProductsToShoppingList(
+    @Body() body: { listId?: number },
+  ): Promise<{ success: boolean }> {
+    this.logger.log('Adding products below min stock to shopping list');
+    await this.grocyService.addMissingProductsToShoppingList(body.listId);
+    return { success: true };
   }
 
   /**
