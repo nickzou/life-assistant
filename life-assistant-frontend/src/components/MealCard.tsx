@@ -19,6 +19,7 @@ interface MealPlanItem {
   servings?: number;
   section_id?: number;
   section_name?: string | null;
+  done?: number; // 0 or 1 from Grocy
 }
 
 interface MealCardProps {

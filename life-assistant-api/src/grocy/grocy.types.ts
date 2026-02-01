@@ -48,6 +48,7 @@ export interface MealPlanItem {
   note?: string;
   servings?: number;
   section_id?: number;
+  done?: number; // 0 or 1
 }
 
 export interface MealPlanSection {

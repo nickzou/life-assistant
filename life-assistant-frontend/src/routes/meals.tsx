@@ -393,7 +393,7 @@ function MealsPage() {
                       <MealCard
                         key={meal.id}
                         meal={meal}
-                        isDone={doneMeals.has(meal.id)}
+                        isDone={meal.done === 1 || doneMeals.has(meal.id)}
                         onConsume={() => setConsumingMeal(meal)}
                         onMarkDone={() => markMealDone(meal.id)}
                         onUnmarkDone={() => unmarkMealDone(meal.id)}
