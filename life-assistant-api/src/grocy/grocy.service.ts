@@ -15,6 +15,8 @@ import {
   Recipe,
   SmartShoppingListItem,
   SmartGenerateShoppingListResponse,
+  CreateMealPlanItemDto,
+  RecipeSelectionItem,
 } from './grocy.types';
 
 @Injectable()
@@ -290,8 +292,9 @@ export class GrocyService implements OnModuleInit {
    * Get all recipe ingredients (recipes_pos table)
    */
   async getRecipeIngredients(): Promise<RecipeIngredient[]> {
-    const response =
-      await this.axiosInstance.get<RecipeIngredient[]>('/objects/recipes_pos');
+    const response = await this.axiosInstance.get<RecipeIngredient[]>(
+      '/objects/recipes_pos',
+    );
     return response.data;
   }
 
@@ -299,8 +302,7 @@ export class GrocyService implements OnModuleInit {
    * Get all recipes with full details including product_id
    */
   async getAllRecipes(): Promise<Recipe[]> {
-    const response =
-      await this.axiosInstance.get<Recipe[]>('/objects/recipes');
+    const response = await this.axiosInstance.get<Recipe[]>('/objects/recipes');
     return response.data;
   }
 
@@ -421,7 +423,8 @@ export class GrocyService implements OnModuleInit {
 
       // Calculate multiplier: nesting.servings is how many servings of the included recipe to use
       const nestedMultiplier =
-        (nesting.servings * servingsMultiplier) / (includedRecipe.base_servings || 1);
+        (nesting.servings * servingsMultiplier) /
+        (includedRecipe.base_servings || 1);
 
       const nestedIngredients = this.resolveRecipeIngredients(
         nesting.includes_recipe_id,
@@ -461,16 +464,23 @@ export class GrocyService implements OnModuleInit {
     );
 
     // Fetch all data in parallel
-    const [meals, recipes, ingredients, nestings, stock, products, quantityUnits] =
-      await Promise.all([
-        this.getMealPlanForDateRange(startDate, endDate),
-        this.getAllRecipes(),
-        this.getRecipeIngredients(),
-        this.getRecipeNestings(),
-        this.getStock(),
-        this.getAllProducts(),
-        this.getQuantityUnits(),
-      ]);
+    const [
+      meals,
+      recipes,
+      ingredients,
+      nestings,
+      stock,
+      products,
+      quantityUnits,
+    ] = await Promise.all([
+      this.getMealPlanForDateRange(startDate, endDate),
+      this.getAllRecipes(),
+      this.getRecipeIngredients(),
+      this.getRecipeNestings(),
+      this.getStock(),
+      this.getAllProducts(),
+      this.getQuantityUnits(),
+    ]);
 
     // Build lookup maps
     const recipeMap = new Map(recipes.map((r) => [r.id, r]));
@@ -632,9 +642,7 @@ export class GrocyService implements OnModuleInit {
    * Add products that are below their defined minimum stock amount to the shopping list
    * This replicates Grocy's "Add products that are below defined min. stock amount" feature
    */
-  async addMissingProductsToShoppingList(
-    listId?: number,
-  ): Promise<void> {
+  async addMissingProductsToShoppingList(listId?: number): Promise<void> {
     this.logger.log(
       `Adding products below min stock to shopping list${listId ? ` (list ${listId})` : ''}`,
     );
@@ -647,7 +655,12 @@ export class GrocyService implements OnModuleInit {
    * Get all homemade products (products that are produced by recipes)
    */
   async getHomemadeProducts(): Promise<
-    { product_id: number; product_name: string; recipe_id: number; recipe_name: string }[]
+    {
+      product_id: number;
+      product_name: string;
+      recipe_id: number;
+      recipe_name: string;
+    }[]
   > {
     const [recipes, products] = await Promise.all([
       this.getAllRecipes(),
@@ -655,7 +668,12 @@ export class GrocyService implements OnModuleInit {
     ]);
 
     const productMap = new Map(products.map((p) => [p.id, p]));
-    const result: { product_id: number; product_name: string; recipe_id: number; recipe_name: string }[] = [];
+    const result: {
+      product_id: number;
+      product_name: string;
+      recipe_id: number;
+      recipe_name: string;
+    }[] = [];
 
     for (const recipe of recipes) {
       if (recipe.product_id) {
@@ -670,5 +688,60 @@ export class GrocyService implements OnModuleInit {
     }
 
     return result;
+  }
+
+  /**
+   * Create a new meal plan item
+   */
+  async createMealPlanItem(data: CreateMealPlanItemDto): Promise<MealPlanItem> {
+    this.logger.log(
+      `Creating meal plan item for ${data.day}, recipe ${data.recipe_id}`,
+    );
+    const response = await this.axiosInstance.post('/objects/meal_plan', {
+      day: data.day,
+      type: 'recipe',
+      recipe_id: data.recipe_id,
+      section_id: data.section_id || null,
+      servings: data.servings || 1,
+    });
+    // Grocy returns the created object ID, fetch the full object
+    const createdId = response.data.created_object_id;
+    const getResponse = await this.axiosInstance.get<MealPlanItem>(
+      `/objects/meal_plan/${createdId}`,
+    );
+    return getResponse.data;
+  }
+
+  /**
+   * Delete a meal plan item
+   */
+  async deleteMealPlanItem(id: number): Promise<void> {
+    this.logger.log(`Deleting meal plan item ${id}`);
+    await this.axiosInstance.delete(`/objects/meal_plan/${id}`);
+  }
+
+  /**
+   * Consume a recipe (deduct ingredients from stock)
+   */
+  async consumeRecipe(recipeId: number, servings?: number): Promise<void> {
+    this.logger.log(
+      `Consuming recipe ${recipeId} with ${servings || 'default'} servings`,
+    );
+    await this.axiosInstance.post(`/recipes/${recipeId}/consume`, null, {
+      params: servings ? { servings } : undefined,
+    });
+  }
+
+  /**
+   * Get lightweight recipe list for selection dropdowns
+   */
+  async getRecipesForSelection(): Promise<RecipeSelectionItem[]> {
+    const recipes = await this.getAllRecipes();
+    return recipes.map((recipe) => ({
+      id: recipe.id,
+      name: recipe.name,
+      picture_url: undefined, // Will be populated by controller if needed
+      base_servings: recipe.base_servings,
+    }));
   }
 }

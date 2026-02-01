@@ -335,7 +335,12 @@ describe('GrocyService', () => {
     it('should return empty map when no recipes have product_id', () => {
       const recipes: Recipe[] = [
         { id: 1, name: 'Simple Recipe', base_servings: 1, desired_servings: 1 },
-        { id: 2, name: 'Another Recipe', base_servings: 2, desired_servings: 2 },
+        {
+          id: 2,
+          name: 'Another Recipe',
+          base_servings: 2,
+          desired_servings: 2,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
       expect(result.size).toBe(0);
@@ -343,8 +348,20 @@ describe('GrocyService', () => {
 
     it('should map product_id to recipe for homemade products', () => {
       const recipes: Recipe[] = [
-        { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
-        { id: 6, name: 'Thai Yellow Curry', base_servings: 4, desired_servings: 4, product_id: 149 },
+        {
+          id: 5,
+          name: 'Char Siu Chicken',
+          base_servings: 2,
+          desired_servings: 2,
+          product_id: 157,
+        },
+        {
+          id: 6,
+          name: 'Thai Yellow Curry',
+          base_servings: 4,
+          desired_servings: 4,
+          product_id: 149,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
 
@@ -355,9 +372,25 @@ describe('GrocyService', () => {
 
     it('should only include recipes with product_id set', () => {
       const recipes: Recipe[] = [
-        { id: 1, name: 'Regular Recipe', base_servings: 1, desired_servings: 1 },
-        { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
-        { id: 7, name: 'Another Regular', base_servings: 1, desired_servings: 1 },
+        {
+          id: 1,
+          name: 'Regular Recipe',
+          base_servings: 1,
+          desired_servings: 1,
+        },
+        {
+          id: 5,
+          name: 'Char Siu Chicken',
+          base_servings: 2,
+          desired_servings: 2,
+          product_id: 157,
+        },
+        {
+          id: 7,
+          name: 'Another Regular',
+          base_servings: 1,
+          desired_servings: 1,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
 
@@ -369,7 +402,13 @@ describe('GrocyService', () => {
     it('should handle recipe with product_id of 0', () => {
       // Edge case: product_id of 0 is falsy but valid
       const recipes: Recipe[] = [
-        { id: 1, name: 'Recipe Zero', base_servings: 1, desired_servings: 1, product_id: 0 },
+        {
+          id: 1,
+          name: 'Recipe Zero',
+          base_servings: 1,
+          desired_servings: 1,
+          product_id: 0,
+        },
       ];
       const result = service.buildHomemadeProductMap(recipes);
 
@@ -532,7 +571,13 @@ describe('GrocyService', () => {
 
         // Recipe 5 produces product 157
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -572,7 +617,13 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -612,7 +663,13 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -650,7 +707,13 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -662,16 +725,30 @@ describe('GrocyService', () => {
         // First call - uses 2, leaves 1
         const visited1 = new Set<number>();
         service.resolveRecipeIngredients(
-          1, 1, ingredientsByRecipe, nestingsByRecipe, recipeMap,
-          homemadeProductMap, stockMap, homemadeStockUsed, visited1,
+          1,
+          1,
+          ingredientsByRecipe,
+          nestingsByRecipe,
+          recipeMap,
+          homemadeProductMap,
+          stockMap,
+          homemadeStockUsed,
+          visited1,
         );
         expect(homemadeStockUsed.get(157)).toBe(2);
 
         // Second call - only 1 left, need to make 1 more
         const visited2 = new Set<number>();
         const result = service.resolveRecipeIngredients(
-          1, 1, ingredientsByRecipe, nestingsByRecipe, recipeMap,
-          homemadeProductMap, stockMap, homemadeStockUsed, visited2,
+          1,
+          1,
+          ingredientsByRecipe,
+          nestingsByRecipe,
+          recipeMap,
+          homemadeProductMap,
+          stockMap,
+          homemadeStockUsed,
+          visited2,
         );
 
         expect(homemadeStockUsed.get(157)).toBe(3); // 2 + 1 = 3 used total
@@ -694,8 +771,18 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
-          { id: 7, name: 'Buttered Bagel and Coffee', base_servings: 1, desired_servings: 1 },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 7,
+            name: 'Buttered Bagel and Coffee',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = new Map<number, Recipe>();
@@ -737,9 +824,24 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 2, name: 'Cup of Coffee', base_servings: 1, desired_servings: 1 },
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
-          { id: 7, name: 'Buttered Bagel and Coffee', base_servings: 1, desired_servings: 1 },
+          {
+            id: 2,
+            name: 'Cup of Coffee',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 7,
+            name: 'Buttered Bagel and Coffee',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = new Map<number, Recipe>();
@@ -777,8 +879,18 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
-          { id: 10, name: 'Double Bagel', base_servings: 1, desired_servings: 1 },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
+          {
+            id: 10,
+            name: 'Double Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = new Map<number, Recipe>();
@@ -861,8 +973,19 @@ describe('GrocyService', () => {
         const nestingsByRecipe = new Map<number, RecipeNesting[]>();
 
         const recipes: Recipe[] = [
-          { id: 5, name: 'Char Siu Chicken', base_servings: 2, desired_servings: 2, product_id: 157 },
-          { id: 11, name: 'Char Siu on Rice', base_servings: 1, desired_servings: 1 },
+          {
+            id: 5,
+            name: 'Char Siu Chicken',
+            base_servings: 2,
+            desired_servings: 2,
+            product_id: 157,
+          },
+          {
+            id: 11,
+            name: 'Char Siu on Rice',
+            base_servings: 1,
+            desired_servings: 1,
+          },
         ];
         const recipeMap = createRecipeMap(recipes);
         const homemadeProductMap = service.buildHomemadeProductMap(recipes);
@@ -906,7 +1029,12 @@ describe('GrocyService', () => {
         const nestingsByRecipe = createNestingsByRecipe(nestings);
 
         const recipes: Recipe[] = [
-          { id: 3, name: 'Buttered Bagel', base_servings: 1, desired_servings: 1 },
+          {
+            id: 3,
+            name: 'Buttered Bagel',
+            base_servings: 1,
+            desired_servings: 1,
+          },
           { id: 7, name: 'Breakfast', base_servings: 1, desired_servings: 1 },
         ];
         const recipeMap = createRecipeMap(recipes);
