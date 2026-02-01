@@ -154,6 +154,7 @@ export interface CreateMealPlanItemDto {
   servings?: number;
   createClickUpTasks?: boolean; // Whether to create ClickUp tasks (default: true)
   recipeName?: string; // Recipe name for ClickUp task title
+  sectionName?: string; // Section name for ClickUp tag (e.g., "breakfast", "lunch", "dinner")
 }
 
 /**

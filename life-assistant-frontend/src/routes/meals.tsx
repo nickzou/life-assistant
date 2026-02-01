@@ -188,6 +188,8 @@ function MealsPage() {
 
     const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
     const recipeName = selectedRecipe?.name || `Recipe ${selectedRecipeId}`;
+    const selectedSection = sections.find((s) => s.id === selectedSectionId);
+    const sectionName = selectedSection?.name || undefined;
 
     setAddingMeal(true);
     setError(null);
@@ -199,6 +201,7 @@ function MealsPage() {
         servings: mealServings,
         createClickUpTasks,
         recipeName,
+        sectionName,
       });
       const taskMessage = createClickUpTasks ? ' with ClickUp tasks' : '';
       setSuccessMessage(`Meal added successfully${taskMessage}`);

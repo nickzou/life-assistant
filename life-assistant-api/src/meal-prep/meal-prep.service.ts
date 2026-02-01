@@ -160,10 +160,17 @@ export class MealPrepService {
       const mealDate = new Date(mealData.day + 'T12:00:00');
       const mealDueDate = mealDate.getTime();
 
+      // Build tags for main task
+      const mainTags = ['meal prep', 'meal'];
+      if (mealData.sectionName) {
+        // Add section name as tag (lowercase to match existing tags)
+        mainTags.push(mealData.sectionName.toLowerCase());
+      }
+
       // Create main task
       const mainTask = await this.clickUpService.createTask(this.mealsListId, {
         name: recipeName,
-        tags: ['meal prep', 'meal'],
+        tags: mainTags,
         due_date: mealDueDate,
       });
       clickUpTasks.push(mainTask.id);
