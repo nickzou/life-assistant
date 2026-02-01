@@ -67,7 +67,7 @@ export function MealCard({
 
   return (
     <div
-      className={`relative rounded-md p-2 transition-opacity ${
+      className={`@container relative rounded-md p-2 transition-opacity ${
         isDone ? 'opacity-60 bg-gray-100 dark:bg-gray-700' : 'bg-gray-50 dark:bg-gray-700'
       }`}
     >
@@ -112,9 +112,9 @@ export function MealCard({
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-1 mt-2">
+      <div className="flex flex-col @[180px]:flex-row gap-1 mt-2">
         {!isDone ? (
-          <>
+          <div className="flex gap-1 flex-1">
             <button
               onClick={onConsume}
               className="flex-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
@@ -129,7 +129,7 @@ export function MealCard({
             >
               Done
             </button>
-          </>
+          </div>
         ) : (
           <button
             onClick={onUnmarkDone}
@@ -140,7 +140,7 @@ export function MealCard({
         )}
         <button
           onClick={onDelete}
-          className="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+          className="w-full @[180px]:w-auto p-1.5 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center justify-center"
           title="Remove from plan"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
