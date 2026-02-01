@@ -26,7 +26,7 @@ export class MealPrepService {
 
   // Cached custom field info (fetched lazily)
   private timeOfDayFieldId: string | null = null;
-  private timeOfDayEarlyMorningId: string | null = null;
+  private timeOfDayOptions: Map<string, string> = new Map(); // name -> id
   private customFieldsFetched = false;
 
   constructor(
@@ -68,22 +68,15 @@ export class MealPrepService {
       if (timeOfDayField) {
         this.timeOfDayFieldId = timeOfDayField.id;
 
-        // Find "Early Morning" option by name
+        // Cache all options by lowercase name
         const options = timeOfDayField.type_config?.options || [];
-        const earlyMorningOption = options.find(
-          (o: any) => o.name.toLowerCase() === 'early morning',
-        );
-
-        if (earlyMorningOption) {
-          this.timeOfDayEarlyMorningId = earlyMorningOption.id;
-          this.logger.log(
-            `Found Time of Day field (${this.timeOfDayFieldId}) with Early Morning option (${this.timeOfDayEarlyMorningId})`,
-          );
-        } else {
-          this.logger.warn(
-            'Time of Day field found but no "Early Morning" option',
-          );
+        for (const option of options) {
+          this.timeOfDayOptions.set(option.name.toLowerCase(), option.id);
         }
+
+        this.logger.log(
+          `Found Time of Day field (${this.timeOfDayFieldId}) with ${this.timeOfDayOptions.size} options`,
+        );
       } else {
         this.logger.warn('No "Time of Day" custom field found on Meals list');
       }
@@ -167,12 +160,48 @@ export class MealPrepService {
         mainTags.push(mealData.sectionName.toLowerCase());
       }
 
-      // Create main task
-      const mainTask = await this.clickUpService.createTask(this.mealsListId, {
+      // Ensure custom fields are cached for Time of Day
+      await this.ensureCustomFieldsCached();
+
+      // Map section to Time of Day value
+      const sectionToTimeOfDay: Record<string, string> = {
+        breakfast: 'morning',
+        lunch: 'mid day',
+        dinner: 'evening',
+      };
+
+      // Build main task data
+      const mainTaskData: {
+        name: string;
+        tags: string[];
+        due_date: number;
+        custom_fields?: Array<{ id: string; value: any }>;
+      } = {
         name: recipeName,
         tags: mainTags,
         due_date: mealDueDate,
-      });
+      };
+
+      // Add Time of Day custom field based on section
+      if (this.timeOfDayFieldId && mealData.sectionName) {
+        const timeOfDayName =
+          sectionToTimeOfDay[mealData.sectionName.toLowerCase()];
+        const timeOfDayOptionId = timeOfDayName
+          ? this.timeOfDayOptions.get(timeOfDayName)
+          : null;
+
+        if (timeOfDayOptionId) {
+          mainTaskData.custom_fields = [
+            { id: this.timeOfDayFieldId, value: timeOfDayOptionId },
+          ];
+        }
+      }
+
+      // Create main task
+      const mainTask = await this.clickUpService.createTask(
+        this.mealsListId,
+        mainTaskData,
+      );
       clickUpTasks.push(mainTask.id);
 
       // Save main task mapping
@@ -190,9 +219,6 @@ export class MealPrepService {
       if (prepConfig?.requires_defrost) {
         const defrostItem = prepConfig.defrost_item || 'protein';
 
-        // Ensure we have custom field info cached
-        await this.ensureCustomFieldsCached();
-
         // Build task data - same due date as meal, use Time of Day field for ordering
         const defrostTaskData: {
           name: string;
@@ -205,13 +231,11 @@ export class MealPrepService {
           due_date: mealDueDate,
         };
 
-        // Add Time of Day custom field if available (Early Morning for defrost tasks)
-        if (this.timeOfDayFieldId && this.timeOfDayEarlyMorningId) {
+        // Add Time of Day custom field (Early Morning for defrost tasks)
+        const earlyMorningId = this.timeOfDayOptions.get('early morning');
+        if (this.timeOfDayFieldId && earlyMorningId) {
           defrostTaskData.custom_fields = [
-            {
-              id: this.timeOfDayFieldId,
-              value: this.timeOfDayEarlyMorningId,
-            },
+            { id: this.timeOfDayFieldId, value: earlyMorningId },
           ];
         }
 
