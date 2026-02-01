@@ -106,10 +106,11 @@ life-assistant/
 - **Routes**: TanStack Router file-based routing
   - `/login` - Login page
   - `/` - Home (protected)
-  - `/webhooks` - Webhook status monitoring (protected)
+  - `/webhooks` - Webhook status monitoring and registration (protected)
 - **AuthContext**: Manages JWT token storage and auth state
 - **ProtectedRoute**: HOC to guard authenticated routes
 - **API client**: Axios with JWT interceptor
+- **Webhook Management UI**: Register/delete webhooks for Wrike or ClickUp from the `/webhooks` page
 
 ## Critical Implementation Details
 

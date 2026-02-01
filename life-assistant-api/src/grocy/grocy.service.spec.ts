@@ -477,7 +477,7 @@ describe('GrocyService', () => {
           day: '2026-01-27',
           type: 'recipe',
           recipe_id: 5,
-          section_id: null,
+          section_id: -1,
           recipe_servings: 1,
         },
       );

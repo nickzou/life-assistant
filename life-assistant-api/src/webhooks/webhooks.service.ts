@@ -182,6 +182,23 @@ export class WebhooksService {
       await this.handleTaskCreated(task_id);
     }
 
+    // Handle taskUpdated when Grocy ID custom field is set - also add to meal plan
+    if (event === 'taskUpdated' && task_id && history_items) {
+      const grocyIdFieldChange = history_items.find(
+        (item: any) =>
+          item.field === 'custom_field' &&
+          item.custom_field?.name?.toLowerCase() === this.GROCY_ID_FIELD_NAME &&
+          item.after && // Field was set to a value
+          !item.before, // Field was not previously set (new value)
+      );
+      if (grocyIdFieldChange) {
+        this.logger.log(
+          `Grocy ID field set on task ${task_id}, adding to meal plan...`,
+        );
+        await this.handleTaskCreated(task_id);
+      }
+    }
+
     // Handle task completion - consume recipe
     if (event === 'taskStatusUpdated' && task_id) {
       await this.handleTaskStatusUpdate(task_id, history_items);

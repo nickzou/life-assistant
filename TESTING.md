@@ -16,14 +16,15 @@ This document outlines the testing strategy for Life Assistant, covering both th
 
 **Stack**: Jest + NestJS Testing utilities
 
-**Current Coverage** (137 tests):
+**Current Coverage** (143 tests):
 - `app.controller.spec.ts` - App controller (1 test)
 - `date.utils.spec.ts` - Date formatting utilities (8 tests)
 - `auth.service.spec.ts` - JWT authentication logic (10 tests)
-- `webhooks.service.spec.ts` - Webhook handling and verification (25 tests)
-  - Wrike webhook handling (13 tests)
-  - ClickUp webhook handling and auto-consume (8 tests)
+- `webhooks.service.spec.ts` - Webhook handling and verification (31 tests)
+  - Wrike webhook handling (11 tests)
+  - ClickUp webhook handling and auto-consume (13 tests)
   - Webhook status aggregation (4 tests)
+  - Webhook deletion (3 tests)
 - `sync.service.spec.ts` - Wrike ↔ ClickUp sync orchestration (11 tests)
 - `clickup.service.spec.ts` - ClickUp API and stats methods (12 tests)
 - `grocy.service.spec.ts` - Grocy API integration (47 tests)

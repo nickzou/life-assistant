@@ -179,8 +179,8 @@ graph TB
   - `GET /wrike/test/task/:taskId` - Get specific task
   - `GET /wrike/test/folders` - List all folders
   - `GET /wrike/test/me` - Get current authenticated user info
-- **Webhook Management Endpoints:**
-  - `POST /wrike/webhooks/setup` - Auto-register webhook for current environment (supports ngrok)
+- **Webhook Management Endpoints (JWT Protected):**
+  - `POST /wrike/webhooks/setup` - Register webhook for specified base URL (requires `baseUrl` in body)
   - `GET /wrike/webhooks` - List all registered webhooks
   - `DELETE /wrike/webhooks/:webhookId` - Delete a webhook
 - Perfect for preview deployments and multi-environment setups
@@ -226,7 +226,8 @@ graph TB
   - `GET /clickup/test/lists/:spaceId` - List all lists in space
   - `POST /clickup/test/create-task` - Create test task
 - **Webhook Management Endpoints:**
-  - `POST /clickup/webhooks/:teamId/setup` - Auto-register webhook for current environment
+  - `POST /clickup/webhooks/setup` - Register webhook using configured workspace ID (JWT protected, requires `baseUrl` in body)
+  - `POST /clickup/webhooks/:teamId/setup` - Register webhook for specific team (legacy)
   - `GET /clickup/webhooks/:teamId` - List all registered webhooks for team
   - `DELETE /clickup/webhooks/:webhookId` - Delete a webhook
 - **Note:** Webhook event processing handled by WebhooksModule
@@ -449,11 +450,17 @@ export class User {
   - Fully integrated with SyncService
 - **ClickUp Webhook Processing (`handleClickUpWebhook`):**
   - Handles ClickUp webhook events
-  - **Auto-Consume Feature** (✅ Implemented):
-    - Listens for `taskStatusUpdated` events where status type becomes `done` or `closed`
-    - Fetches task details and checks for "Grocy ID" custom field
-    - If present, triggers auto-consume: creates meal plan entry → consumes recipe → marks as done
-    - Enables automations like completing "Protein Shake" task to automatically deduct ingredients from Grocy stock
+  - **Grocy Auto-Consume Feature** (✅ Implemented):
+    - Two-phase workflow triggered by "Grocy ID" custom field on ClickUp tasks:
+    - **Phase 1 - Add to Meal Plan:**
+      - Triggers on `taskCreated` event with "Grocy ID" custom field set
+      - Also triggers on `taskUpdated` event when "Grocy ID" field is initially set
+      - Creates meal plan entry in Grocy for today's date
+    - **Phase 2 - Consume Recipe:**
+      - Triggers on `taskStatusUpdated` events where status type becomes `done` or `closed`
+      - Fetches task details and checks for "Grocy ID" custom field
+      - If present, consumes recipe (deducts ingredients from stock) and marks meal plan entry as done
+    - **Use Case:** ClickUp automation creates "Protein Shake" task after workout → appears in meal plan → user completes task → ingredients automatically deducted from Grocy stock
   - **Reverse Sync** (Disabled):
     - ClickUp → Wrike sync is currently disabled to prevent issues on the Wrike side
 
@@ -474,6 +481,18 @@ export class User {
 - Handles deletion events for cleanup
 - Avoids unnecessary API calls and database operations
 - Solves timing issue with Wrike GUI (create → assign workflow)
+
+**Frontend Webhook Management** (`/webhooks` route):
+- Displays status of all registered webhooks from both Wrike and ClickUp
+- Summary cards showing total, active, and suspended webhook counts
+- Table view with source (Wrike/ClickUp), URL, and status badges
+- **Webhook Registration:**
+  - Platform selector (ClickUp or Wrike dropdown)
+  - Base URL input (e.g., ngrok URL for local testing)
+  - Automatically appends `/webhooks/{platform}` endpoint
+  - Protected by JWT authentication
+- **Webhook Deletion:** Delete button per webhook with confirmation
+- Useful for managing webhooks across environments (local, staging, production)
 
 ### 5. Sync Module (`src/sync/`)
 
@@ -1560,7 +1579,7 @@ life-assistant/
 │   │   │   ├── index.tsx      # Home page
 │   │   │   ├── login.tsx      # Login page
 │   │   │   ├── shopping.tsx   # Shopping list generator
-│   │   │   └── webhooks.tsx   # Webhook status
+│   │   │   └── webhooks.tsx   # Webhook status & registration
 │   │   ├── lib/
 │   │   │   └── api.ts         # Axios API client
 │   │   ├── App.tsx

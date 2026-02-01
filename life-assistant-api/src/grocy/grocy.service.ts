@@ -698,7 +698,7 @@ export class GrocyService implements OnModuleInit {
       day: data.day,
       type: 'recipe',
       recipe_id: data.recipe_id,
-      section_id: data.section_id || null,
+      section_id: data.section_id ?? -1,
       recipe_servings: data.servings || 1,
     };
     this.logger.log(

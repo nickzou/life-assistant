@@ -20,15 +20,28 @@ interface WebhookStatusResponse {
   };
 }
 
+interface SetupWebhookResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  hookUrl?: string;
+}
+
 export const Route = createFileRoute('/webhooks')({
   component: WebhooksPage,
 });
+
+type WebhookPlatform = 'clickup' | 'wrike';
 
 function WebhooksPage() {
   const [data, setData] = useState<WebhookStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [registering, setRegistering] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
+  const [platform, setPlatform] = useState<WebhookPlatform>('clickup');
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -48,6 +61,7 @@ function WebhooksPage() {
 
     setDeleting(id);
     setError(null);
+    setSuccessMessage(null);
     try {
       await api.delete(`/webhooks/${source}/${id}`);
       await fetchStatus();
@@ -55,6 +69,39 @@ function WebhooksPage() {
       setError('Failed to delete webhook');
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const registerWebhook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!baseUrl.trim()) {
+      setError('Please enter a base URL');
+      return;
+    }
+
+    setRegistering(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const endpoint = platform === 'clickup'
+        ? '/clickup/webhooks/setup'
+        : '/wrike/webhooks/setup';
+
+      const response = await api.post<SetupWebhookResponse>(
+        endpoint,
+        { baseUrl: baseUrl.trim() }
+      );
+      if (response.data.success) {
+        setSuccessMessage(`${platform.charAt(0).toUpperCase() + platform.slice(1)} webhook registered: ${response.data.hookUrl}`);
+        setBaseUrl('');
+        await fetchStatus();
+      } else {
+        setError(response.data.error || 'Failed to register webhook');
+      }
+    } catch {
+      setError('Failed to register webhook');
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -77,6 +124,46 @@ function WebhooksPage() {
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
+
+        {/* Register Webhook Form */}
+        <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+            Register Webhook
+          </h2>
+          <form onSubmit={registerWebhook} className="flex gap-3">
+            <select
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value as WebhookPlatform)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="clickup">ClickUp</option>
+              <option value="wrike">Wrike</option>
+            </select>
+            <input
+              type="url"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://your-ngrok-url.ngrok.app"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              disabled={registering}
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+            >
+              {registering ? 'Registering...' : 'Register'}
+            </button>
+          </form>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Enter your base URL (e.g., ngrok URL for local testing). The webhook endpoint /webhooks/{platform} will be appended automatically.
+          </p>
+        </div>
+
+        {successMessage && (
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/50 rounded-md">
+            <p className="text-sm text-green-700 dark:text-green-200">{successMessage}</p>
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 rounded-md">
