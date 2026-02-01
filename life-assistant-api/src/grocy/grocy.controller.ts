@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Res,
@@ -153,6 +154,23 @@ export class GrocyController {
     ]);
 
     return { lists, items };
+  }
+
+  /**
+   * Update shopping list item done status
+   * PATCH /grocy/shopping-list/items/:itemId
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('shopping-list/items/:itemId')
+  async updateShoppingListItem(
+    @Param('itemId') itemId: string,
+    @Body() body: { done: boolean },
+  ): Promise<{ success: boolean }> {
+    await this.grocyService.updateShoppingListItemDone(
+      parseInt(itemId, 10),
+      body.done,
+    );
+    return { success: true };
   }
 
   /**

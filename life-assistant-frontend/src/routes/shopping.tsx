@@ -200,6 +200,22 @@ function ShoppingPage() {
     }
   };
 
+  const handleToggleItemDone = async (itemId: number, currentDone: boolean) => {
+    try {
+      await api.patch(`/grocy/shopping-list/items/${itemId}`, {
+        done: !currentDone,
+      });
+      // Update local state immediately for responsiveness
+      setShoppingList((prev) =>
+        prev.map((item) =>
+          item.id === itemId ? { ...item, done: !currentDone } : item
+        )
+      );
+    } catch {
+      setError('Failed to update item');
+    }
+  };
+
   const getMealSectionLabel = (meal: MealPlanItem) => {
     // Use section_name if available, otherwise fall back to type
     if (meal.section_name) {
@@ -213,6 +229,18 @@ function ShoppingPage() {
       snack: 'Snack',
     };
     return types[meal.type] || meal.type;
+  };
+
+  const getMealSectionColor = (meal: MealPlanItem) => {
+    const section = (meal.section_name || meal.type || '').toLowerCase();
+    const colors: Record<string, string> = {
+      breakfast: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+      lunch: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      dinner: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      'meal prep': 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200',
+      snack: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
+    };
+    return colors[section] || 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
   };
 
   const formatDate = (dateStr: string) => {
@@ -305,7 +333,7 @@ function ShoppingPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex flex-col-reverse lg:grid lg:grid-cols-2 gap-6">
           {/* Meal Plan Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -366,7 +394,7 @@ function ShoppingPage() {
                               />
                             )}
                             <div className="flex-1 min-w-0">
-                              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 mr-2">
+                              <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full mr-2 ${getMealSectionColor(meal)}`}>
                                 {getMealSectionLabel(meal)}
                               </span>
                               <span className="text-sm text-gray-900 dark:text-white">
@@ -459,7 +487,11 @@ function ShoppingPage() {
                       className="p-4 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded flex-shrink-0" />
+                        <button
+                          onClick={() => handleToggleItemDone(item.id, item.done)}
+                          className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded flex-shrink-0 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                          aria-label="Mark as done"
+                        />
                         <span className="text-gray-900 dark:text-white">
                           {item.product_name || item.note || 'Unknown item'}
                         </span>
@@ -487,7 +519,11 @@ function ShoppingPage() {
                       className="p-4 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-5 h-5 bg-green-500 rounded flex-shrink-0 flex items-center justify-center">
+                        <button
+                          onClick={() => handleToggleItemDone(item.id, item.done)}
+                          className="w-5 h-5 bg-green-500 rounded flex-shrink-0 flex items-center justify-center hover:bg-green-600 transition-colors"
+                          aria-label="Mark as not done"
+                        >
                           <svg
                             className="w-3 h-3 text-white"
                             fill="none"
@@ -501,7 +537,7 @@ function ShoppingPage() {
                               d="M5 13l4 4L19 7"
                             />
                           </svg>
-                        </div>
+                        </button>
                         <span className="text-gray-500 dark:text-gray-400 line-through">
                           {item.product_name || item.note || 'Unknown item'}
                         </span>

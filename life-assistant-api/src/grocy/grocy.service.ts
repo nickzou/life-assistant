@@ -229,6 +229,19 @@ export class GrocyService implements OnModuleInit {
   }
 
   /**
+   * Update shopping list item done status
+   * This marks the item as checked off without adding to stock
+   */
+  async updateShoppingListItemDone(
+    itemId: number,
+    done: boolean,
+  ): Promise<void> {
+    await this.axiosInstance.put(`/objects/shopping_list/${itemId}`, {
+      done: done ? 1 : 0,
+    });
+  }
+
+  /**
    * Get all products (for enriching shopping list items)
    */
   async getAllProducts(): Promise<Product[]> {
