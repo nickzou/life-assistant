@@ -145,7 +145,9 @@ function MealsPage() {
   const fetchSections = async () => {
     try {
       const response = await api.get<MealPlanSection[]>('/grocy/meal-plan/sections');
-      setSections(response.data.sort((a, b) => a.sort_number - b.sort_number));
+      // Filter out internal Grocy sections (negative IDs)
+      const realSections = response.data.filter((s) => s.id > 0);
+      setSections(realSections.sort((a, b) => a.sort_number - b.sort_number));
     } catch {
       console.error('Failed to fetch sections');
     }

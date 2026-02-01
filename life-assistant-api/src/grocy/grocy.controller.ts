@@ -465,6 +465,14 @@ export class GrocyController {
   }
 
   /**
+   * Test endpoint - get meal plan sections
+   */
+  @Get('test/sections')
+  async getTestSections() {
+    return this.grocyService.getMealPlanSections();
+  }
+
+  /**
    * Test endpoint - get all chores
    */
   @Get('test/chores')
