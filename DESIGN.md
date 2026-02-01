@@ -1244,6 +1244,56 @@ interface SmartShoppingListItem {
 - Servings multipliers are calculated from `meal.servings / recipe.base_servings`
 - Only purchasable items appear in the final list (homemade products are resolved)
 
+#### Weekly Meal Plan View
+
+**Status:** ✅ Implemented
+
+The meals page (`/meals`) provides a 7-day weekly view for meal planning with the following features:
+
+**UI Components:**
+- **WeekNavigation** - Navigate between weeks (prev/next/today buttons) with week range display
+- **Weekly Grid** - 7-column grid on desktop (lg:grid-cols-7), stacked cards on mobile
+- **MealCard** - Reusable component with two layouts:
+  - `horizontal` (default) - Compact layout with 40x40px thumbnail
+  - `stacked` - Full-width 16:9 aspect ratio image with stacked content
+- **AddMealModal** - Modal for adding meals with recipe selection, section, and servings
+
+**MealCard Features:**
+- Section badge with color coding (Breakfast=amber, Lunch=green, Dinner=purple, Meal Prep=rose, Snack=cyan)
+- Recipe image, name, and servings display
+- Optional action buttons (all callbacks optional for reusability):
+  - **Consume** - Deducts ingredients from Grocy stock
+  - **Done** - Marks meal as done (visual only)
+  - **Delete** - Removes meal from plan
+- Done state visual (checkmark overlay, reduced opacity, strikethrough)
+- Container queries for responsive button layout (`@container`, `@[180px]:flex-row`)
+
+**Completion Tracking:**
+- Uses Grocy's native `done` field (0 or 1) for persistence
+- Also supports localStorage fallback for backward compatibility
+- Done status syncs back to Grocy via `PATCH /grocy/meal-plan/:id/done`
+
+**Date Utilities** (`date.utils.ts`):
+- `getStartOfWeek(date)` - Returns Sunday of the week containing the date
+- `getWeekDates(startDate)` - Returns array of 7 YYYY-MM-DD strings
+- `formatWeekRange(startDate)` - Returns formatted range like "Jan 27 - Feb 2, 2026"
+
+#### Meal Plan CRUD API
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/grocy/meal-plan` | POST | Create a new meal plan item |
+| `/grocy/meal-plan/:id` | DELETE | Remove a meal plan item |
+| `/grocy/meal-plan/:id/done` | PATCH | Update meal plan item done status |
+| `/grocy/recipes/:recipeId/consume` | POST | Consume a recipe (deduct ingredients from stock) |
+| `/grocy/recipes/selection` | GET | Get lightweight recipe list for dropdown |
+
+**Recipe Selection Filtering:**
+- Filters out internal Grocy meal plan entries:
+  - Recipes with negative IDs (internal date entries)
+  - Recipes with `type` starting with `mealplan-` (mealplan-day, mealplan-week, mealplan-shadow)
+- Returns only real recipes for the dropdown
+
 #### Meal Plan Sections
 
 Grocy supports custom meal plan sections (Breakfast, Lunch, Dinner, Meal Prep, etc.). The API enriches meal plan responses with section names.

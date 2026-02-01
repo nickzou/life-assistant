@@ -417,6 +417,202 @@ describe('GrocyService', () => {
     });
   });
 
+  describe('createMealPlanItem', () => {
+    it('should POST to /objects/meal_plan and return the created item', async () => {
+      const mockCreatedId = 42;
+      const mockCreatedItem = {
+        id: mockCreatedId,
+        day: '2026-01-27',
+        type: 'recipe',
+        recipe_id: 5,
+        section_id: 1,
+        servings: 2,
+      };
+
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { created_object_id: mockCreatedId },
+      });
+      mockAxiosInstance.get.mockResolvedValue({ data: mockCreatedItem });
+
+      const result = await service.createMealPlanItem({
+        day: '2026-01-27',
+        recipe_id: 5,
+        section_id: 1,
+        servings: 2,
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/objects/meal_plan', {
+        day: '2026-01-27',
+        type: 'recipe',
+        recipe_id: 5,
+        section_id: 1,
+        servings: 2,
+      });
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        `/objects/meal_plan/${mockCreatedId}`,
+      );
+      expect(result).toEqual(mockCreatedItem);
+    });
+
+    it('should use default values for optional fields', async () => {
+      const mockCreatedId = 43;
+      mockAxiosInstance.post.mockResolvedValue({
+        data: { created_object_id: mockCreatedId },
+      });
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { id: mockCreatedId, day: '2026-01-27', recipe_id: 5 },
+      });
+
+      await service.createMealPlanItem({
+        day: '2026-01-27',
+        recipe_id: 5,
+      });
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/objects/meal_plan', {
+        day: '2026-01-27',
+        type: 'recipe',
+        recipe_id: 5,
+        section_id: null,
+        servings: 1,
+      });
+    });
+  });
+
+  describe('deleteMealPlanItem', () => {
+    beforeEach(() => {
+      mockAxiosInstance.delete = jest.fn();
+    });
+
+    it('should DELETE to /objects/meal_plan/:id', async () => {
+      mockAxiosInstance.delete.mockResolvedValue({});
+
+      await service.deleteMealPlanItem(42);
+
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
+        '/objects/meal_plan/42',
+      );
+    });
+  });
+
+  describe('consumeRecipe', () => {
+    it('should POST to /recipes/:id/consume', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.consumeRecipe(5);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/recipes/5/consume',
+        null,
+        { params: undefined },
+      );
+    });
+
+    it('should include servings parameter when provided', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.consumeRecipe(5, 2);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/recipes/5/consume',
+        null,
+        { params: { servings: 2 } },
+      );
+    });
+  });
+
+  describe('getRecipesForSelection', () => {
+    it('should return recipes with positive IDs and normal type', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Spaghetti', base_servings: 2, type: 'normal' },
+        { id: 2, name: 'Salad', base_servings: 1, type: 'normal' },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toEqual([
+        { id: 1, name: 'Spaghetti', picture_url: undefined, base_servings: 2 },
+        { id: 2, name: 'Salad', picture_url: undefined, base_servings: 1 },
+      ]);
+    });
+
+    it('should filter out recipes with negative IDs', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Spaghetti', base_servings: 2 },
+        { id: -1, name: '2026-01-27', base_servings: 1 },
+        { id: -2, name: '2026-01-28', base_servings: 1 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Spaghetti');
+    });
+
+    it('should filter out recipes with mealplan-* types', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Spaghetti', base_servings: 2, type: 'normal' },
+        { id: 2, name: 'Week Plan', base_servings: 1, type: 'mealplan-week' },
+        { id: 3, name: 'Day Plan', base_servings: 1, type: 'mealplan-day' },
+        {
+          id: 4,
+          name: 'Shadow Plan',
+          base_servings: 1,
+          type: 'mealplan-shadow',
+        },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Spaghetti');
+    });
+
+    it('should filter out both negative IDs and mealplan types', async () => {
+      const mockRecipes = [
+        { id: 1, name: 'Real Recipe', base_servings: 2, type: 'normal' },
+        { id: -1, name: '2026-01-27', base_servings: 1, type: 'mealplan-day' },
+        { id: 2, name: 'Week Shadow', base_servings: 1, type: 'mealplan-shadow' },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
+
+      const result = await service.getRecipesForSelection();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+  });
+
+  describe('updateMealPlanItemDone', () => {
+    beforeEach(() => {
+      mockAxiosInstance.put = jest.fn();
+    });
+
+    it('should update meal plan item to done status', async () => {
+      mockAxiosInstance.put.mockResolvedValue({});
+
+      await service.updateMealPlanItemDone(42, true);
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/objects/meal_plan/42',
+        { done: 1 },
+      );
+    });
+
+    it('should update meal plan item to not done status', async () => {
+      mockAxiosInstance.put.mockResolvedValue({});
+
+      await service.updateMealPlanItemDone(42, false);
+
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        '/objects/meal_plan/42',
+        { done: 0 },
+      );
+    });
+  });
+
   describe('resolveRecipeIngredients', () => {
     // Helper to create test data
     const createIngredientsByRecipe = (

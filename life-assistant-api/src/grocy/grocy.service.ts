@@ -733,6 +733,16 @@ export class GrocyService implements OnModuleInit {
   }
 
   /**
+   * Update meal plan item done status
+   */
+  async updateMealPlanItemDone(id: number, done: boolean): Promise<void> {
+    this.logger.log(`Updating meal plan item ${id} done status to ${done}`);
+    await this.axiosInstance.put(`/objects/meal_plan/${id}`, {
+      done: done ? 1 : 0,
+    });
+  }
+
+  /**
    * Get lightweight recipe list for selection dropdowns
    * Filters out internal Grocy meal plan entries (negative IDs, mealplan-* types)
    */

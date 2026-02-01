@@ -171,6 +171,24 @@ export class GrocyController {
   }
 
   /**
+   * Update meal plan item done status
+   * PATCH /grocy/meal-plan/:id/done
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('meal-plan/:id/done')
+  async updateMealPlanItemDone(
+    @Param('id') id: string,
+    @Body() body: { done: boolean },
+  ): Promise<{ success: boolean }> {
+    this.logger.log(`Updating meal plan item ${id} done status`);
+    await this.grocyService.updateMealPlanItemDone(
+      parseInt(id, 10),
+      body.done,
+    );
+    return { success: true };
+  }
+
+  /**
    * Consume a recipe (deduct ingredients from stock)
    * POST /grocy/recipes/:recipeId/consume
    */
