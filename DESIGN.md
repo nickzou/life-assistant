@@ -251,6 +251,7 @@ graph TB
 - **Core Methods:**
   - `getSystemInfo()` - Verify API connection
   - `getMealPlan()`, `getMealPlanForDateRange()` - Fetch meal plan data
+  - `getMealPlanSections()` - Fetch meal plan sections (Breakfast, Lunch, etc.)
   - `getRecipes()`, `getRecipe(id)` - Fetch recipe data
   - `getRecipeIngredients()` - Fetch all recipe ingredients (`recipes_pos`)
   - `getRecipeNestings()` - Fetch included/nested recipes
@@ -261,17 +262,21 @@ graph TB
   - `resolveRecipeIngredients()` - Recursive ingredient resolution
   - `buildHomemadeProductMap()` - Identify recipes that produce products
   - `addItemsToShoppingList()` - Add items to Grocy shopping list
+  - `addMissingProductsToShoppingList()` - Add products below min stock
+  - `updateShoppingListItemDone()` - Toggle item done status
   - `getHomemadeProducts()` - List all homemade products (debug)
 - Handles authentication via GROCY-API-KEY header
 
 **GrocyController** (`grocy.controller.ts`)
 - **Protected Endpoints (require JWT):**
-  - `GET /grocy/meal-plan/today` - Today's meals with recipe details
-  - `GET /grocy/meal-plan/date/:date` - Meals for specific date
-  - `GET /grocy/meal-plan/range/:start/:end` - Meals for date range
+  - `GET /grocy/meal-plan/today` - Today's meals with recipe details and section names
+  - `GET /grocy/meal-plan/date/:date` - Meals for specific date with section names
+  - `GET /grocy/meal-plan/range/:start/:end` - Meals for date range with section names
   - `GET /grocy/shopping-list` - Current Grocy shopping list
   - `POST /grocy/shopping-list/generate` - Generate smart shopping list
   - `POST /grocy/shopping-list/add-items` - Add items to Grocy
+  - `POST /grocy/shopping-list/add-missing-products` - Add products below min stock
+  - `PATCH /grocy/shopping-list/items/:itemId` - Toggle item done status
   - `GET /grocy/recipes/:id/picture` - Proxy for recipe images
 - **Test Endpoints (no auth):**
   - `GET /grocy/test/info` - System info
@@ -291,6 +296,9 @@ graph TB
 - Support for Grocy's "Included recipes" feature (nested recipes)
 - Aggregated stock support (parent products with sub-products)
 - Servings multiplier calculation for accurate quantities
+- Meal plan sections with enriched responses (Breakfast, Lunch, Dinner, Meal Prep)
+- Interactive shopping list (check/uncheck items syncs to Grocy)
+- Restock low items (add products below min stock)
 
 ### 4. Database Module (`src/database/`)
 
@@ -1119,9 +1127,13 @@ Reschedule Leaderboard
 - ✅ Support for included/nested recipes (Grocy's "Included recipes" feature)
 - ✅ Aggregated stock support (parent products accumulate sub-product stock)
 - ✅ Add calculated items to Grocy's shopping list
+- ✅ Restock low items (add products below minimum stock to shopping list)
+- ✅ Interactive checkboxes to mark items done/undone (syncs to Grocy)
+- ✅ Meal plan sections with color-coded badges (Breakfast, Lunch, Dinner, Meal Prep)
 
 **Data Fetching:**
 - ✅ Meal plan entries for the specified date range
+- ✅ Meal plan sections for display labels (Breakfast, Lunch, etc.)
 - ✅ All recipes (with `product_id` for homemade detection)
 - ✅ Recipe ingredients (`recipes_pos` table)
 - ✅ Recipe nestings (`recipes_nestings` table for included recipes)
@@ -1154,8 +1166,14 @@ The shopping list generator uses a recursive algorithm that:
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
+| `/grocy/shopping-list` | GET | Get current Grocy shopping list with enriched items |
 | `/grocy/shopping-list/generate` | POST | Generate smart shopping list for date range |
 | `/grocy/shopping-list/add-items` | POST | Add calculated items to Grocy shopping list |
+| `/grocy/shopping-list/add-missing-products` | POST | Add products below min stock to shopping list |
+| `/grocy/shopping-list/items/:itemId` | PATCH | Toggle shopping list item done status |
+| `/grocy/meal-plan/today` | GET | Get today's meal plan with section names |
+| `/grocy/meal-plan/date/:date` | GET | Get meal plan for specific date |
+| `/grocy/meal-plan/range/:start/:end` | GET | Get meal plan for date range |
 | `/grocy/test/shopping-list/:start/:end` | GET | Test endpoint (no auth) |
 | `/grocy/test/homemade-products` | GET | List all homemade products |
 | `/grocy/test/recipe-nestings` | GET | List all recipe nestings |
@@ -1187,14 +1205,18 @@ interface SmartShoppingListItem {
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /objects/meal_plan` | Meal plans with `day`, `recipe_id`, `recipe_servings` |
+| `GET /objects/meal_plan` | Meal plans with `day`, `recipe_id`, `recipe_servings`, `section_id` |
+| `GET /objects/meal_plan_sections` | Meal plan sections (Breakfast, Lunch, etc.) |
 | `GET /objects/recipes` | Recipes with `product_id`, `base_servings` |
 | `GET /objects/recipes_pos` | Recipe ingredients |
 | `GET /objects/recipes_nestings` | Included/nested recipes |
+| `GET /objects/shopping_list` | Shopping list items with `done` status |
 | `GET /stock` | Current stock with `amount` and `amount_aggregated` |
 | `GET /objects/products` | Product details |
 | `GET /objects/quantity_units` | Unit definitions |
 | `POST /stock/shoppinglist/add-product` | Add item to Grocy shopping list |
+| `POST /stock/shoppinglist/add-missing-products` | Add products below min stock |
+| `PUT /objects/shopping_list/:id` | Update shopping list item (done status) |
 
 #### Key Data Relationships
 
@@ -1221,6 +1243,90 @@ interface SmartShoppingListItem {
 - Homemade product stock is tracked across all meals to handle partial usage
 - Servings multipliers are calculated from `meal.servings / recipe.base_servings`
 - Only purchasable items appear in the final list (homemade products are resolved)
+
+#### Meal Plan Sections
+
+Grocy supports custom meal plan sections (Breakfast, Lunch, Dinner, Meal Prep, etc.). The API enriches meal plan responses with section names.
+
+**Service Method:**
+- `getMealPlanSections()` - Fetches all sections from `/objects/meal_plan_sections`
+
+**Data Structure:**
+```typescript
+interface MealPlanSection {
+  id: number;
+  name: string | null;
+  sort_number: number;
+  time_info?: string | null;
+}
+```
+
+**Enrichment:**
+- Meal plan endpoints fetch sections in parallel with meals
+- Each meal item includes `section_name` based on its `section_id`
+- Frontend displays color-coded badges:
+  - Breakfast → Amber
+  - Lunch → Green
+  - Dinner → Purple
+  - Meal Prep → Rose
+  - Snack → Cyan
+  - Other → Blue (default)
+
+#### Interactive Shopping List
+
+Users can check/uncheck shopping list items directly from the frontend, syncing the done status to Grocy without adding items to stock.
+
+**Service Method:**
+- `updateShoppingListItemDone(itemId, done)` - Updates via `PUT /objects/shopping_list/:id`
+
+**API Endpoint:**
+```
+PATCH /grocy/shopping-list/items/:itemId
+Body: { done: boolean }
+Response: { success: boolean }
+```
+
+**Frontend Behavior:**
+- Clicking an unchecked item marks it done in Grocy
+- Clicking a checked item marks it undone
+- Local state updates immediately for responsiveness
+- Items move between "To Buy" and "Done" sections
+
+#### Restock Low Items
+
+Replicates Grocy's "Add products that are below defined min. stock amount" feature.
+
+**Service Method:**
+- `addMissingProductsToShoppingList(listId?)` - Calls `POST /stock/shoppinglist/add-missing-products`
+
+**API Endpoint:**
+```
+POST /grocy/shopping-list/add-missing-products
+Body: { listId?: number }  // defaults to list 1
+Response: { success: boolean }
+```
+
+**Frontend:**
+- "Restock Low Items" button (amber colored) in shopping list header
+- Adds all products below their defined minimum stock to the shopping list
+- Refreshes shopping list after adding
+
+#### Frontend Features
+
+**Layout:**
+- Two-column layout on desktop (meal plan left, shopping list right)
+- Mobile-first: shopping list appears above meal plan on small screens
+- Uses `flex-col-reverse lg:grid lg:grid-cols-2` for responsive behavior
+
+**Generated Items Display:**
+- Generated items appear in a distinct blue section ("From Meal Plan")
+- Existing shopping list ("To Buy" / "Done") always visible below
+- Prevents confusion when generating new items
+
+**Visual Design:**
+- Color-coded meal section badges
+- Interactive checkboxes with hover effects
+- Separate styling for generated vs existing items
 
 #### Out of Scope
 
