@@ -448,19 +448,18 @@ export class User {
     - `TaskDeleted` → Deletes ClickUp task and mapping
   - Fully integrated with SyncService
 - **ClickUp Webhook Processing (`handleClickUpWebhook`):**
-  - Handles ClickUp webhook events for reverse sync
-  - **Event Type Filtering** - Only processes:
-    - `taskUpdated` - General task updates
-    - `taskStatusUpdated` - Status changes
-    - `taskDueDateUpdated` - Due date changes
-    - `taskStartDateUpdated` - Start date changes
-  - Fetches full task details from ClickUp API
-  - Calls `syncService.syncClickUpToWrike()` for reverse sync
-  - Fully integrated with SyncService
+  - Handles ClickUp webhook events
+  - **Auto-Consume Feature** (✅ Implemented):
+    - Listens for `taskStatusUpdated` events where status type becomes `done` or `closed`
+    - Fetches task details and checks for "Grocy ID" custom field
+    - If present, triggers auto-consume: creates meal plan entry → consumes recipe → marks as done
+    - Enables automations like completing "Protein Shake" task to automatically deduct ingredients from Grocy stock
+  - **Reverse Sync** (Disabled):
+    - ClickUp → Wrike sync is currently disabled to prevent issues on the Wrike side
 
 **WebhooksModule** (`webhooks.module.ts`)
 - Exports WebhooksService
-- Imports WrikeModule, ClickUpModule, and SyncModule for full bidirectional integration
+- Imports WrikeModule, ClickUpModule, SyncModule, and GrocyModule for full integration
 
 **Design Decision:** Dedicated WebhooksModule
 - Separates webhook handling from integration modules
