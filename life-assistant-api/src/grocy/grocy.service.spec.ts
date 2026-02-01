@@ -441,13 +441,16 @@ describe('GrocyService', () => {
         servings: 2,
       });
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/objects/meal_plan', {
-        day: '2026-01-27',
-        type: 'recipe',
-        recipe_id: 5,
-        section_id: 1,
-        servings: 2,
-      });
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/objects/meal_plan',
+        {
+          day: '2026-01-27',
+          type: 'recipe',
+          recipe_id: 5,
+          section_id: 1,
+          servings: 2,
+        },
+      );
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         `/objects/meal_plan/${mockCreatedId}`,
       );
@@ -468,13 +471,16 @@ describe('GrocyService', () => {
         recipe_id: 5,
       });
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/objects/meal_plan', {
-        day: '2026-01-27',
-        type: 'recipe',
-        recipe_id: 5,
-        section_id: null,
-        servings: 1,
-      });
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/objects/meal_plan',
+        {
+          day: '2026-01-27',
+          type: 'recipe',
+          recipe_id: 5,
+          section_id: null,
+          servings: 1,
+        },
+      );
     });
   });
 
@@ -574,7 +580,12 @@ describe('GrocyService', () => {
       const mockRecipes = [
         { id: 1, name: 'Real Recipe', base_servings: 2, type: 'normal' },
         { id: -1, name: '2026-01-27', base_servings: 1, type: 'mealplan-day' },
-        { id: 2, name: 'Week Shadow', base_servings: 1, type: 'mealplan-shadow' },
+        {
+          id: 2,
+          name: 'Week Shadow',
+          base_servings: 1,
+          type: 'mealplan-shadow',
+        },
       ];
       mockAxiosInstance.get.mockResolvedValue({ data: mockRecipes });
 

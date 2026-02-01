@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { MealCard } from '../components/MealCard';
+import { RecipePrepSettings } from '../components/RecipePrepSettings';
 import type { MealPlanItem } from '../components/MealCard';
 import { api } from '../lib/api';
 import {
@@ -100,6 +101,7 @@ function MealsPage() {
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [mealServings, setMealServings] = useState<number>(1);
+  const [createClickUpTasks, setCreateClickUpTasks] = useState<boolean>(true);
 
   // Delete confirmation state
   const [deletingMealId, setDeletingMealId] = useState<number | null>(null);
@@ -107,6 +109,9 @@ function MealsPage() {
   // Consume confirmation state
   const [consumingMeal, setConsumingMeal] = useState<MealPlanItem | null>(null);
   const [isConsuming, setIsConsuming] = useState(false);
+
+  // Settings modal state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const fetchMealPlan = useCallback(async () => {
     setLoading(true);
@@ -180,6 +185,7 @@ function MealsPage() {
     setSelectedRecipeId(null);
     setSelectedSectionId(sections.length > 0 ? sections[0].id : null);
     setMealServings(1);
+    setCreateClickUpTasks(true);
     setIsAddModalOpen(true);
   };
 
@@ -191,6 +197,9 @@ function MealsPage() {
   const handleAddMeal = async () => {
     if (!selectedDateForAdd || !selectedRecipeId) return;
 
+    const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
+    const recipeName = selectedRecipe?.name || `Recipe ${selectedRecipeId}`;
+
     setAddingMeal(true);
     setError(null);
     try {
@@ -199,8 +208,11 @@ function MealsPage() {
         recipe_id: selectedRecipeId,
         section_id: selectedSectionId,
         servings: mealServings,
+        createClickUpTasks,
+        recipeName,
       });
-      setSuccessMessage('Meal added successfully');
+      const taskMessage = createClickUpTasks ? ' with ClickUp tasks' : '';
+      setSuccessMessage(`Meal added successfully${taskMessage}`);
       closeAddModal();
       await fetchMealPlan();
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -329,6 +341,18 @@ function MealsPage() {
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              aria-label="Recipe prep settings"
+              title="Recipe prep settings"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </button>
           </div>
@@ -493,6 +517,23 @@ function MealsPage() {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
+
+                {/* ClickUp tasks checkbox */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="createClickUpTasks"
+                    checked={createClickUpTasks}
+                    onChange={(e) => setCreateClickUpTasks(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                  />
+                  <label
+                    htmlFor="createClickUpTasks"
+                    className="text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    Create prep tasks in ClickUp
+                  </label>
+                </div>
               </div>
 
               {/* Modal buttons */}
@@ -522,8 +563,11 @@ function MealsPage() {
               <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                 Remove Meal?
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                This will remove the meal from your plan. This action cannot be undone.
+              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                This will remove the meal from your plan.
+              </p>
+              <p className="text-gray-500 dark:text-gray-500 text-sm mb-4">
+                Associated ClickUp tasks will also be deleted (completed tasks will be kept).
               </p>
               <div className="flex gap-3">
                 <button
@@ -572,6 +616,12 @@ function MealsPage() {
             </div>
           </div>
         )}
+
+        {/* Recipe Prep Settings Modal */}
+        <RecipePrepSettings
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
       </div>
     </ProtectedRoute>
   );

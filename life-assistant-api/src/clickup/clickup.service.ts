@@ -133,6 +133,9 @@ export class ClickUpService implements OnModuleInit {
       description?: string;
       status?: string;
       priority?: number;
+      due_date?: number; // Unix timestamp in milliseconds
+      tags?: string[];
+      custom_fields?: Array<{ id: string; value: any }>;
     },
   ): Promise<ClickUpTask> {
     try {
