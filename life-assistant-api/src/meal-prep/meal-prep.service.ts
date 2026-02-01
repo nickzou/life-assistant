@@ -23,8 +23,11 @@ export interface DeleteMealWithTasksResult {
 export class MealPrepService {
   private readonly logger = new Logger(MealPrepService.name);
   private readonly mealsListId: string | undefined;
-  private readonly timeOfDayFieldId: string | undefined;
-  private readonly timeOfDayEarlyMorning: string | undefined;
+
+  // Cached custom field info (fetched lazily)
+  private timeOfDayFieldId: string | null = null;
+  private timeOfDayEarlyMorningId: string | null = null;
+  private customFieldsFetched = false;
 
   constructor(
     @InjectRepository(RecipePrepConfig)
@@ -36,18 +39,59 @@ export class MealPrepService {
     private configService: ConfigService,
   ) {
     this.mealsListId = this.configService.get<string>('CLICKUP_MEALS_LIST_ID');
-    this.timeOfDayFieldId = this.configService.get<string>(
-      'CLICKUP_TIME_OF_DAY_FIELD_ID',
-    );
-    this.timeOfDayEarlyMorning = this.configService.get<string>(
-      'CLICKUP_TIME_OF_DAY_EARLY_MORNING',
-    );
 
     if (!this.mealsListId) {
       this.logger.warn(
         'CLICKUP_MEALS_LIST_ID not configured - ClickUp task creation will be disabled',
       );
     }
+  }
+
+  /**
+   * Lazily fetch and cache custom field info for the meals list
+   */
+  private async ensureCustomFieldsCached(): Promise<void> {
+    if (this.customFieldsFetched || !this.mealsListId) {
+      return;
+    }
+
+    try {
+      const fields = await this.clickUpService.getListCustomFields(
+        this.mealsListId,
+      );
+
+      // Find "Time of Day" field by name
+      const timeOfDayField = fields.find(
+        (f: any) => f.name.toLowerCase() === 'time of day',
+      );
+
+      if (timeOfDayField) {
+        this.timeOfDayFieldId = timeOfDayField.id;
+
+        // Find "Early Morning" option by name
+        const options = timeOfDayField.type_config?.options || [];
+        const earlyMorningOption = options.find(
+          (o: any) => o.name.toLowerCase() === 'early morning',
+        );
+
+        if (earlyMorningOption) {
+          this.timeOfDayEarlyMorningId = earlyMorningOption.id;
+          this.logger.log(
+            `Found Time of Day field (${this.timeOfDayFieldId}) with Early Morning option (${this.timeOfDayEarlyMorningId})`,
+          );
+        } else {
+          this.logger.warn(
+            'Time of Day field found but no "Early Morning" option',
+          );
+        }
+      } else {
+        this.logger.warn('No "Time of Day" custom field found on Meals list');
+      }
+    } catch (error) {
+      this.logger.error(`Failed to fetch custom fields: ${error.message}`);
+    }
+
+    this.customFieldsFetched = true;
   }
 
   /**
@@ -139,6 +183,9 @@ export class MealPrepService {
       if (prepConfig?.requires_defrost) {
         const defrostItem = prepConfig.defrost_item || 'protein';
 
+        // Ensure we have custom field info cached
+        await this.ensureCustomFieldsCached();
+
         // Build task data - same due date as meal, use Time of Day field for ordering
         const defrostTaskData: {
           name: string;
@@ -151,12 +198,12 @@ export class MealPrepService {
           due_date: mealDueDate,
         };
 
-        // Add Time of Day custom field if configured (Early Morning for defrost tasks)
-        if (this.timeOfDayFieldId && this.timeOfDayEarlyMorning) {
+        // Add Time of Day custom field if available (Early Morning for defrost tasks)
+        if (this.timeOfDayFieldId && this.timeOfDayEarlyMorningId) {
           defrostTaskData.custom_fields = [
             {
               id: this.timeOfDayFieldId,
-              value: this.timeOfDayEarlyMorning,
+              value: this.timeOfDayEarlyMorningId,
             },
           ];
         }

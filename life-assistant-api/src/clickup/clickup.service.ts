@@ -166,6 +166,23 @@ export class ClickUpService implements OnModuleInit {
   }
 
   /**
+   * Get custom fields for a list
+   */
+  async getListCustomFields(listId: string): Promise<any[]> {
+    try {
+      this.logger.log(`Fetching custom fields for list: ${listId}`);
+      const response = await this.axiosInstance.get(`/list/${listId}/field`);
+      return response.data.fields || [];
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch custom fields for list ${listId}:`,
+        error.message,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Get all lists in a space
    */
   async getListsInSpace(spaceId: string): Promise<ClickUpListsResponse> {
