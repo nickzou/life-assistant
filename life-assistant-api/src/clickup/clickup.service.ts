@@ -274,7 +274,12 @@ export class ClickUpService implements OnModuleInit {
         `/team/${teamId}/webhook`,
         {
           endpoint: hookUrl,
-          events: ['taskCreated', 'taskUpdated', 'taskStatusUpdated', 'taskDueDateUpdated'],
+          events: [
+            'taskCreated',
+            'taskUpdated',
+            'taskStatusUpdated',
+            'taskDueDateUpdated',
+          ],
         },
       );
       return response.data;
@@ -332,6 +337,27 @@ export class ClickUpService implements OnModuleInit {
       this.logger.error(
         `Failed to remove tag "${tagName}" from task ${taskId}:`,
         error.message,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Set a custom field value on a task
+   */
+  async setCustomField(
+    taskId: string,
+    fieldId: string,
+    value: any,
+  ): Promise<void> {
+    try {
+      this.logger.log(`Setting custom field ${fieldId} on task ${taskId}`);
+      await this.axiosInstance.post(`/task/${taskId}/field/${fieldId}`, {
+        value,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to set custom field on task ${taskId}: ${error.message}`,
       );
       throw error;
     }

@@ -30,6 +30,7 @@ interface MealCardProps {
   onMarkDone?: () => void;
   onUnmarkDone?: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
 
 function getMealSectionLabel(meal: MealPlanItem): string {
@@ -63,12 +64,13 @@ export function MealCard({
   onMarkDone,
   onUnmarkDone,
   onDelete,
+  onEdit,
 }: MealCardProps) {
   const imageUrl = meal.recipe?.picture_url
     ? `${API_BASE_URL}${meal.recipe.picture_url}?token=${localStorage.getItem('auth_token')}`
     : null;
 
-  const hasActions = onConsume || onMarkDone || onUnmarkDone || onDelete;
+  const hasActions = onConsume || onMarkDone || onUnmarkDone || onDelete || onEdit;
   const hasCompletionActions = onConsume || onMarkDone;
   const isStacked = layout === 'stacked';
 
@@ -175,6 +177,17 @@ export function MealCard({
               className="flex-1 px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
             >
               Undo
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="w-full @[180px]:w-auto p-1.5 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center justify-center"
+              title="Edit meal"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
             </button>
           )}
           {onDelete && (

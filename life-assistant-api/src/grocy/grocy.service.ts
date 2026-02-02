@@ -701,11 +701,12 @@ export class GrocyService implements OnModuleInit {
       section_id: data.section_id ?? -1,
       recipe_servings: data.servings || 1,
     };
-    this.logger.log(
-      `Creating meal plan item: ${JSON.stringify(payload)}`,
-    );
+    this.logger.log(`Creating meal plan item: ${JSON.stringify(payload)}`);
     try {
-      const response = await this.axiosInstance.post('/objects/meal_plan', payload);
+      const response = await this.axiosInstance.post(
+        '/objects/meal_plan',
+        payload,
+      );
       // Grocy returns the created object ID, fetch the full object
       const createdId = response.data.created_object_id;
       const getResponse = await this.axiosInstance.get<MealPlanItem>(
@@ -713,7 +714,9 @@ export class GrocyService implements OnModuleInit {
       );
       return getResponse.data;
     } catch (error) {
-      this.logger.error(`Grocy API error: ${JSON.stringify(error.response?.data)}`);
+      this.logger.error(
+        `Grocy API error: ${JSON.stringify(error.response?.data)}`,
+      );
       throw error;
     }
   }
@@ -746,6 +749,17 @@ export class GrocyService implements OnModuleInit {
     await this.axiosInstance.put(`/objects/meal_plan/${id}`, {
       done: done ? 1 : 0,
     });
+  }
+
+  /**
+   * Update a meal plan item
+   */
+  async updateMealPlanItem(
+    id: number,
+    data: { section_id?: number; recipe_servings?: number },
+  ): Promise<void> {
+    this.logger.log(`Updating meal plan item ${id}: ${JSON.stringify(data)}`);
+    await this.axiosInstance.put(`/objects/meal_plan/${id}`, data);
   }
 
   /**
