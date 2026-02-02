@@ -338,10 +338,21 @@ function MealsPage() {
     };
   };
 
-  // Group meals by day
+  // Group meals by day and sort by section (Breakfast, Lunch, Dinner)
+  const sectionOrder: Record<string, number> = {
+    breakfast: 1,
+    lunch: 2,
+    dinner: 3,
+  };
   const mealsByDay: Record<string, MealPlanItem[]> = {};
   weekDates.forEach((date) => {
-    mealsByDay[date] = mealPlan.filter((meal) => meal.day === date);
+    mealsByDay[date] = mealPlan
+      .filter((meal) => meal.day === date)
+      .sort((a, b) => {
+        const aOrder = sectionOrder[(a.section_name || '').toLowerCase()] || 99;
+        const bOrder = sectionOrder[(b.section_name || '').toLowerCase()] || 99;
+        return aOrder - bOrder;
+      });
   });
 
   return (
