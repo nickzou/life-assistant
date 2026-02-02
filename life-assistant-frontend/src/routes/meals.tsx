@@ -305,14 +305,13 @@ function MealsPage() {
     setIsEditing(true);
     setError(null);
     try {
-      const oldSection = sections.find((s) => s.id === editingMeal.section_id);
       const newSection = sections.find((s) => s.id === editSectionId);
 
       await api.patch(`/grocy/meal-plan/${editingMeal.id}`, {
         section_id: editSectionId,
         sectionName: newSection?.name,
         servings: editServings,
-        oldSectionName: oldSection?.name,
+        oldSectionName: editingMeal.section_name,
       });
 
       setSuccessMessage('Meal updated successfully');
