@@ -340,10 +340,7 @@ export class WebhooksService {
   /**
    * Consume a meal: deduct from stock and mark today's meal plan entry as done
    */
-  private async consumeMeal(
-    recipeId: number,
-    taskName: string,
-  ): Promise<void> {
+  private async consumeMeal(recipeId: number, taskName: string): Promise<void> {
     const today = getTodayString();
 
     try {
@@ -367,9 +364,7 @@ export class WebhooksService {
         );
       }
 
-      this.logger.log(
-        `✅ Consumed "${taskName}" (recipe ${recipeId})`,
-      );
+      this.logger.log(`✅ Consumed "${taskName}" (recipe ${recipeId})`);
     } catch (error) {
       this.logger.error(
         `Failed to consume recipe ${recipeId}: ${error.message}`,

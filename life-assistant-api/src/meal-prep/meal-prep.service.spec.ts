@@ -121,27 +121,42 @@ describe('MealPrepService', () => {
 
   describe('savePrepConfig', () => {
     it('should update existing config', async () => {
-      const existingConfig = { id: 1, grocy_recipe_id: 5, requires_defrost: false };
+      const existingConfig = {
+        id: 1,
+        grocy_recipe_id: 5,
+        requires_defrost: false,
+      };
       const updatedConfig = { ...existingConfig, requires_defrost: true };
 
       mockPrepConfigRepo.findOne.mockResolvedValue(existingConfig);
       mockPrepConfigRepo.update.mockResolvedValue({});
       mockPrepConfigRepo.findOneOrFail.mockResolvedValue(updatedConfig);
 
-      const result = await service.savePrepConfig(5, { requires_defrost: true });
+      const result = await service.savePrepConfig(5, {
+        requires_defrost: true,
+      });
 
-      expect(mockPrepConfigRepo.update).toHaveBeenCalledWith(1, { requires_defrost: true });
+      expect(mockPrepConfigRepo.update).toHaveBeenCalledWith(1, {
+        requires_defrost: true,
+      });
       expect(result).toEqual(updatedConfig);
     });
 
     it('should create new config when none exists', async () => {
-      const newConfig = { grocy_recipe_id: 10, requires_defrost: true, defrost_item: 'pork' };
+      const newConfig = {
+        grocy_recipe_id: 10,
+        requires_defrost: true,
+        defrost_item: 'pork',
+      };
 
       mockPrepConfigRepo.findOne.mockResolvedValue(null);
       mockPrepConfigRepo.create.mockReturnValue(newConfig);
       mockPrepConfigRepo.save.mockResolvedValue({ id: 2, ...newConfig });
 
-      const result = await service.savePrepConfig(10, { requires_defrost: true, defrost_item: 'pork' });
+      const result = await service.savePrepConfig(10, {
+        requires_defrost: true,
+        defrost_item: 'pork',
+      });
 
       expect(mockPrepConfigRepo.create).toHaveBeenCalledWith({
         grocy_recipe_id: 10,
@@ -189,9 +204,15 @@ describe('MealPrepService', () => {
     });
 
     it('should create meal without ClickUp tasks when createClickUpTasks is false', async () => {
-      const result = await service.createMealWithTasks(mockMealData, false, 'Spaghetti');
+      const result = await service.createMealWithTasks(
+        mockMealData,
+        false,
+        'Spaghetti',
+      );
 
-      expect(mockGrocyService.createMealPlanItem).toHaveBeenCalledWith(mockMealData);
+      expect(mockGrocyService.createMealPlanItem).toHaveBeenCalledWith(
+        mockMealData,
+      );
       expect(mockClickUpService.createTask).not.toHaveBeenCalled();
       expect(result.mealPlanItem).toEqual(mockCreatedMeal);
       expect(result.clickUpTasks).toHaveLength(0);
@@ -201,14 +222,23 @@ describe('MealPrepService', () => {
       mockClickUpService.createTask.mockResolvedValue({ id: 'task-abc' });
       mockPrepConfigRepo.findOne.mockResolvedValue(null);
 
-      const result = await service.createMealWithTasks(mockMealData, true, 'Spaghetti');
+      const result = await service.createMealWithTasks(
+        mockMealData,
+        true,
+        'Spaghetti',
+      );
 
-      expect(mockGrocyService.createMealPlanItem).toHaveBeenCalledWith(mockMealData);
-      expect(mockClickUpService.createTask).toHaveBeenCalledWith('test-list-id', expect.objectContaining({
-        name: 'Spaghetti',
-        tags: ['meal prep', 'meal', 'dinner'],
-        due_date: expect.any(Number),
-      }));
+      expect(mockGrocyService.createMealPlanItem).toHaveBeenCalledWith(
+        mockMealData,
+      );
+      expect(mockClickUpService.createTask).toHaveBeenCalledWith(
+        'test-list-id',
+        expect.objectContaining({
+          name: 'Spaghetti',
+          tags: ['meal prep', 'meal', 'dinner'],
+          due_date: expect.any(Number),
+        }),
+      );
       expect(mockTaskMappingRepo.save).toHaveBeenCalledWith({
         meal_plan_item_id: 42,
         clickup_task_id: 'task-abc',
@@ -223,9 +253,12 @@ describe('MealPrepService', () => {
 
       await service.createMealWithTasks(mockMealData, true, 'Spaghetti');
 
-      expect(mockClickUpService.createTask).toHaveBeenCalledWith('test-list-id', expect.objectContaining({
-        custom_fields: [{ id: 'field-123', value: 'opt-evening' }],
-      }));
+      expect(mockClickUpService.createTask).toHaveBeenCalledWith(
+        'test-list-id',
+        expect.objectContaining({
+          custom_fields: [{ id: 'field-123', value: 'opt-evening' }],
+        }),
+      );
     });
 
     it('should create defrost task when recipe has defrost config', async () => {
@@ -237,16 +270,24 @@ describe('MealPrepService', () => {
         defrost_item: 'chicken thighs',
       });
 
-      const result = await service.createMealWithTasks(mockMealData, true, 'Char Siu Chicken');
+      const result = await service.createMealWithTasks(
+        mockMealData,
+        true,
+        'Char Siu Chicken',
+      );
 
       expect(mockClickUpService.createTask).toHaveBeenCalledTimes(2);
 
       // Verify defrost task
-      expect(mockClickUpService.createTask).toHaveBeenNthCalledWith(2, 'test-list-id', expect.objectContaining({
-        name: 'Defrost chicken thighs',
-        tags: ['meal prep'],
-        custom_fields: [{ id: 'field-123', value: 'opt-early' }],
-      }));
+      expect(mockClickUpService.createTask).toHaveBeenNthCalledWith(
+        2,
+        'test-list-id',
+        expect.objectContaining({
+          name: 'Defrost chicken thighs',
+          tags: ['meal prep'],
+          custom_fields: [{ id: 'field-123', value: 'opt-early' }],
+        }),
+      );
 
       expect(result.clickUpTasks).toEqual(['task-main', 'task-defrost']);
     });
@@ -262,16 +303,26 @@ describe('MealPrepService', () => {
 
       await service.createMealWithTasks(mockMealData, true, 'Recipe');
 
-      expect(mockClickUpService.createTask).toHaveBeenNthCalledWith(2, 'test-list-id', expect.objectContaining({
-        name: 'Defrost protein',
-      }));
+      expect(mockClickUpService.createTask).toHaveBeenNthCalledWith(
+        2,
+        'test-list-id',
+        expect.objectContaining({
+          name: 'Defrost protein',
+        }),
+      );
     });
 
     it('should continue even if ClickUp task creation fails', async () => {
-      mockClickUpService.createTask.mockRejectedValue(new Error('ClickUp API error'));
+      mockClickUpService.createTask.mockRejectedValue(
+        new Error('ClickUp API error'),
+      );
       mockPrepConfigRepo.findOne.mockResolvedValue(null);
 
-      const result = await service.createMealWithTasks(mockMealData, true, 'Recipe');
+      const result = await service.createMealWithTasks(
+        mockMealData,
+        true,
+        'Recipe',
+      );
 
       expect(result.mealPlanItem).toEqual(mockCreatedMeal);
       expect(result.clickUpTasks).toHaveLength(0);
@@ -281,11 +332,21 @@ describe('MealPrepService', () => {
   describe('deleteMealWithTasks', () => {
     it('should delete meal and associated ClickUp tasks', async () => {
       const mappings = [
-        { meal_plan_item_id: 42, clickup_task_id: 'task-main', task_type: 'main' },
-        { meal_plan_item_id: 42, clickup_task_id: 'task-defrost', task_type: 'defrost' },
+        {
+          meal_plan_item_id: 42,
+          clickup_task_id: 'task-main',
+          task_type: 'main',
+        },
+        {
+          meal_plan_item_id: 42,
+          clickup_task_id: 'task-defrost',
+          task_type: 'defrost',
+        },
       ];
       mockTaskMappingRepo.find.mockResolvedValue(mappings);
-      mockClickUpService.getTask.mockResolvedValue({ status: { type: 'open' } });
+      mockClickUpService.getTask.mockResolvedValue({
+        status: { type: 'open' },
+      });
       mockClickUpService.deleteTask.mockResolvedValue({});
       mockGrocyService.deleteMealPlanItem.mockResolvedValue({});
 
@@ -293,7 +354,9 @@ describe('MealPrepService', () => {
 
       expect(mockClickUpService.deleteTask).toHaveBeenCalledTimes(2);
       expect(mockGrocyService.deleteMealPlanItem).toHaveBeenCalledWith(42);
-      expect(mockTaskMappingRepo.delete).toHaveBeenCalledWith({ meal_plan_item_id: 42 });
+      expect(mockTaskMappingRepo.delete).toHaveBeenCalledWith({
+        meal_plan_item_id: 42,
+      });
       expect(result).toEqual({
         grocyDeleted: true,
         clickUpTasksDeleted: 2,
@@ -303,10 +366,16 @@ describe('MealPrepService', () => {
 
     it('should skip deletion of completed ClickUp tasks', async () => {
       const mappings = [
-        { meal_plan_item_id: 42, clickup_task_id: 'task-main', task_type: 'main' },
+        {
+          meal_plan_item_id: 42,
+          clickup_task_id: 'task-main',
+          task_type: 'main',
+        },
       ];
       mockTaskMappingRepo.find.mockResolvedValue(mappings);
-      mockClickUpService.getTask.mockResolvedValue({ status: { type: 'done' } });
+      mockClickUpService.getTask.mockResolvedValue({
+        status: { type: 'done' },
+      });
       mockGrocyService.deleteMealPlanItem.mockResolvedValue({});
 
       const result = await service.deleteMealWithTasks(42);
@@ -321,8 +390,16 @@ describe('MealPrepService', () => {
 
     it('should handle mixed completed and incomplete tasks', async () => {
       const mappings = [
-        { meal_plan_item_id: 42, clickup_task_id: 'task-main', task_type: 'main' },
-        { meal_plan_item_id: 42, clickup_task_id: 'task-defrost', task_type: 'defrost' },
+        {
+          meal_plan_item_id: 42,
+          clickup_task_id: 'task-main',
+          task_type: 'main',
+        },
+        {
+          meal_plan_item_id: 42,
+          clickup_task_id: 'task-defrost',
+          task_type: 'defrost',
+        },
       ];
       mockTaskMappingRepo.find.mockResolvedValue(mappings);
       mockClickUpService.getTask
@@ -334,7 +411,9 @@ describe('MealPrepService', () => {
       const result = await service.deleteMealWithTasks(42);
 
       expect(mockClickUpService.deleteTask).toHaveBeenCalledTimes(1);
-      expect(mockClickUpService.deleteTask).toHaveBeenCalledWith('task-defrost');
+      expect(mockClickUpService.deleteTask).toHaveBeenCalledWith(
+        'task-defrost',
+      );
       expect(result).toEqual({
         grocyDeleted: true,
         clickUpTasksDeleted: 1,
@@ -360,11 +439,19 @@ describe('MealPrepService', () => {
 
     it('should continue if ClickUp task deletion fails', async () => {
       const mappings = [
-        { meal_plan_item_id: 42, clickup_task_id: 'task-main', task_type: 'main' },
+        {
+          meal_plan_item_id: 42,
+          clickup_task_id: 'task-main',
+          task_type: 'main',
+        },
       ];
       mockTaskMappingRepo.find.mockResolvedValue(mappings);
-      mockClickUpService.getTask.mockResolvedValue({ status: { type: 'open' } });
-      mockClickUpService.deleteTask.mockRejectedValue(new Error('Task not found'));
+      mockClickUpService.getTask.mockResolvedValue({
+        status: { type: 'open' },
+      });
+      mockClickUpService.deleteTask.mockRejectedValue(
+        new Error('Task not found'),
+      );
       mockGrocyService.deleteMealPlanItem.mockResolvedValue({});
 
       const result = await service.deleteMealWithTasks(42);
@@ -375,7 +462,9 @@ describe('MealPrepService', () => {
 
     it('should handle Grocy deletion failure', async () => {
       mockTaskMappingRepo.find.mockResolvedValue([]);
-      mockGrocyService.deleteMealPlanItem.mockRejectedValue(new Error('Grocy error'));
+      mockGrocyService.deleteMealPlanItem.mockRejectedValue(
+        new Error('Grocy error'),
+      );
 
       const result = await service.deleteMealWithTasks(42);
 
@@ -426,7 +515,11 @@ describe('MealPrepService', () => {
       const mockCreatedMeal = { id: 42, ...mockMealData };
       mockGrocyService.createMealPlanItem.mockResolvedValue(mockCreatedMeal);
 
-      const result = await service.createMealWithTasks(mockMealData, true, 'Recipe');
+      const result = await service.createMealWithTasks(
+        mockMealData,
+        true,
+        'Recipe',
+      );
 
       expect(mockClickUpService.createTask).not.toHaveBeenCalled();
       expect(result.clickUpTasks).toHaveLength(0);

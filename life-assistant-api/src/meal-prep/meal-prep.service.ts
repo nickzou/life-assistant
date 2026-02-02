@@ -341,4 +341,93 @@ export class MealPrepService {
       return false;
     }
   }
+
+  /**
+   * Update a meal plan item with optional ClickUp task updates
+   */
+  async updateMealWithTasks(
+    mealPlanItemId: number,
+    updates: { section_id?: number; sectionName?: string; servings?: number },
+    oldSectionName?: string,
+  ): Promise<void> {
+    // 1. Update meal in Grocy
+    const grocyUpdates: { section_id?: number; recipe_servings?: number } = {};
+    if (updates.section_id !== undefined) {
+      grocyUpdates.section_id = updates.section_id;
+    }
+    if (updates.servings !== undefined) {
+      grocyUpdates.recipe_servings = updates.servings;
+    }
+
+    if (Object.keys(grocyUpdates).length > 0) {
+      await this.grocyService.updateMealPlanItem(mealPlanItemId, grocyUpdates);
+    }
+
+    // 2. Update ClickUp task tags if section changed
+    if (
+      updates.sectionName &&
+      oldSectionName &&
+      updates.sectionName !== oldSectionName
+    ) {
+      const mappings = await this.taskMappingRepo.find({
+        where: { meal_plan_item_id: mealPlanItemId, task_type: 'main' },
+      });
+
+      for (const mapping of mappings) {
+        try {
+          // Remove old section tag
+          await this.clickUpService.removeTag(
+            mapping.clickup_task_id,
+            oldSectionName.toLowerCase(),
+          );
+          // Add new section tag
+          await this.clickUpService.addTag(
+            mapping.clickup_task_id,
+            updates.sectionName.toLowerCase(),
+          );
+
+          // Update Time of Day custom field
+          await this.updateTimeOfDayField(
+            mapping.clickup_task_id,
+            updates.sectionName,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Failed to update tags for task ${mapping.clickup_task_id}: ${error.message}`,
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Update the Time of Day custom field on a ClickUp task
+   */
+  private async updateTimeOfDayField(
+    taskId: string,
+    sectionName: string,
+  ): Promise<void> {
+    await this.ensureCustomFieldsCached();
+
+    if (!this.timeOfDayFieldId) return;
+
+    const sectionToTimeOfDay: Record<string, string> = {
+      breakfast: 'morning',
+      lunch: 'mid day',
+      dinner: 'evening',
+    };
+
+    const timeOfDayName = sectionToTimeOfDay[sectionName.toLowerCase()];
+    const timeOfDayOptionId = timeOfDayName
+      ? this.timeOfDayOptions.get(timeOfDayName)
+      : null;
+
+    if (timeOfDayOptionId) {
+      await this.clickUpService.setCustomField(
+        taskId,
+        this.timeOfDayFieldId,
+        timeOfDayOptionId,
+      );
+    }
+  }
 }

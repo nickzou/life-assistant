@@ -191,6 +191,35 @@ export class GrocyController {
   }
 
   /**
+   * Update a meal plan item
+   * PATCH /grocy/meal-plan/:id
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('meal-plan/:id')
+  async updateMealPlanItem(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      section_id?: number;
+      sectionName?: string;
+      servings?: number;
+      oldSectionName?: string;
+    },
+  ): Promise<{ success: boolean }> {
+    this.logger.log(`Updating meal plan item ${id}`);
+    await this.mealPrepService.updateMealWithTasks(
+      parseInt(id, 10),
+      {
+        section_id: body.section_id,
+        sectionName: body.sectionName,
+        servings: body.servings,
+      },
+      body.oldSectionName,
+    );
+    return { success: true };
+  }
+
+  /**
    * Update meal plan item done status
    * PATCH /grocy/meal-plan/:id/done
    */

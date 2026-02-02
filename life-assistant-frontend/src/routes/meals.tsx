@@ -106,6 +106,12 @@ function MealsPage() {
   // Delete confirmation state
   const [deletingMealId, setDeletingMealId] = useState<number | null>(null);
 
+  // Edit modal state
+  const [editingMeal, setEditingMeal] = useState<MealPlanItem | null>(null);
+  const [editSectionId, setEditSectionId] = useState<number | null>(null);
+  const [editServings, setEditServings] = useState<number>(1);
+  const [isEditing, setIsEditing] = useState(false);
+
   // Consume confirmation state
   const [consumingMeal, setConsumingMeal] = useState<MealPlanItem | null>(null);
   const [isConsuming, setIsConsuming] = useState(false);
@@ -283,6 +289,42 @@ function MealsPage() {
     });
   };
 
+  const openEditModal = (meal: MealPlanItem) => {
+    setEditingMeal(meal);
+    setEditSectionId(meal.section_id ?? null);
+    setEditServings(meal.recipe_servings || 1);
+  };
+
+  const closeEditModal = () => {
+    setEditingMeal(null);
+  };
+
+  const handleEditMeal = async () => {
+    if (!editingMeal) return;
+
+    setIsEditing(true);
+    setError(null);
+    try {
+      const newSection = sections.find((s) => s.id === editSectionId);
+
+      await api.patch(`/grocy/meal-plan/${editingMeal.id}`, {
+        section_id: editSectionId,
+        sectionName: newSection?.name,
+        servings: editServings,
+        oldSectionName: editingMeal.section_name,
+      });
+
+      setSuccessMessage('Meal updated successfully');
+      closeEditModal();
+      await fetchMealPlan();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch {
+      setError('Failed to update meal');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
   const formatDayHeader = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00');
     const today = formatDateString(new Date());
@@ -296,10 +338,21 @@ function MealsPage() {
     };
   };
 
-  // Group meals by day
+  // Group meals by day and sort by section (Breakfast, Lunch, Dinner)
+  const sectionOrder: Record<string, number> = {
+    breakfast: 1,
+    lunch: 2,
+    dinner: 3,
+  };
   const mealsByDay: Record<string, MealPlanItem[]> = {};
   weekDates.forEach((date) => {
-    mealsByDay[date] = mealPlan.filter((meal) => meal.day === date);
+    mealsByDay[date] = mealPlan
+      .filter((meal) => meal.day === date)
+      .sort((a, b) => {
+        const aOrder = sectionOrder[(a.section_name || '').toLowerCase()] || 99;
+        const bOrder = sectionOrder[(b.section_name || '').toLowerCase()] || 99;
+        return aOrder - bOrder;
+      });
   });
 
   return (
@@ -415,6 +468,7 @@ function MealsPage() {
                         onMarkDone={() => markMealDone(meal.id)}
                         onUnmarkDone={() => unmarkMealDone(meal.id)}
                         onDelete={() => setDeletingMealId(meal.id)}
+                        onEdit={() => openEditModal(meal)}
                       />
                     ))}
                   </div>
@@ -603,6 +657,72 @@ function MealsPage() {
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isConsuming ? 'Consuming...' : 'Consume'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Meal Modal */}
+        {editingMeal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                Edit Meal - {editingMeal.recipe?.name || 'Unknown'}
+              </h2>
+
+              <div className="space-y-4">
+                {/* Section select */}
+                {sections.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Meal Type
+                    </label>
+                    <select
+                      value={editSectionId || ''}
+                      onChange={(e) => setEditSectionId(parseInt(e.target.value, 10) || null)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">None</option>
+                      {sections.map((section) => (
+                        <option key={section.id} value={section.id}>
+                          {section.name || `Section ${section.id}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Servings input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Servings
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editServings}
+                    onChange={(e) => setEditServings(parseInt(e.target.value, 10) || 1)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Modal buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={closeEditModal}
+                  disabled={isEditing}
+                  className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditMeal}
+                  disabled={isEditing}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isEditing ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>

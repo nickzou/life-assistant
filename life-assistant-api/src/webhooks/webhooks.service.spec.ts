@@ -425,7 +425,10 @@ describe('WebhooksService', () => {
 
         expect(clickUpService.getTask).toHaveBeenCalledWith('task-1');
         expect(grocyService.consumeRecipe).toHaveBeenCalledWith(42);
-        expect(grocyService.updateMealPlanItemDone).toHaveBeenCalledWith(100, true);
+        expect(grocyService.updateMealPlanItemDone).toHaveBeenCalledWith(
+          100,
+          true,
+        );
         // Should NOT create meal plan on completion (already created on task creation)
         expect(grocyService.createMealPlanItem).not.toHaveBeenCalled();
       });
