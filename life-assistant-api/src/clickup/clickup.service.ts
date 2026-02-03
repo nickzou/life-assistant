@@ -7,8 +7,6 @@ import {
   ClickUpSpacesResponse,
   ClickUpListsResponse,
 } from './types/clickup-api.types';
-import { getNowInTimezone, formatDateString } from '../utils/date.utils';
-
 @Injectable()
 export class ClickUpService implements OnModuleInit {
   private readonly logger = new Logger(ClickUpService.name);
@@ -363,197 +361,43 @@ export class ClickUpService implements OnModuleInit {
     }
   }
 
-  // Affirmative completion statuses (green - actually completed)
-  private readonly AFFIRMATIVE_STATUSES = [
-    'complete',
-    'completed',
-    'went',
-    'attended',
-  ];
-
-  // Statuses to exclude from total count (still in progress, shouldn't count against rate)
-  private readonly EXCLUDED_STATUSES = ['in progress'];
-
   /**
-   * Get completion stats for a specific date
+   * Get tasks within a date range for a workspace
    */
-  async getCompletionStatsForDate(
+  async getTasksByDateRange(
     workspaceId: string,
-    date: Date,
-  ): Promise<{
-    date: string;
-    total: number;
-    affirmativeCompletions: number;
-    completionRate: number;
-  }> {
-    const startOfDay = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      0,
-      0,
-      0,
-      0,
-    );
-    const endOfDay = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      23,
-      59,
-      59,
-      999,
-    );
-
+    startTime: number,
+    endTime: number,
+    options?: { includeClosed?: boolean },
+  ): Promise<any[]> {
     const response = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
       params: {
-        due_date_gt: startOfDay.getTime(),
-        due_date_lt: endOfDay.getTime(),
+        due_date_gt: startTime,
+        due_date_lt: endTime,
         subtasks: true,
-        include_closed: true,
+        include_closed: options?.includeClosed ?? false,
       },
     });
-
-    const allTasks = response.data.tasks || [];
-
-    // Filter out excluded statuses from total
-    const tasks = allTasks.filter(
-      (task: any) =>
-        !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
-    );
-
-    const affirmativeCompletions = tasks.filter((task: any) =>
-      this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
-    ).length;
-
-    const completionRate =
-      tasks.length > 0
-        ? Math.round((affirmativeCompletions / tasks.length) * 100)
-        : 0;
-
-    return {
-      date: formatDateString(startOfDay),
-      total: tasks.length,
-      affirmativeCompletions,
-      completionRate,
-    };
+    return response.data.tasks || [];
   }
 
   /**
-   * Get completion stats for the last N days
+   * Get overdue tasks (due before given time, not completed)
    */
-  async getCompletionStatsHistory(
+  async getOverdueTasks(
     workspaceId: string,
-    days: number,
-  ): Promise<
-    {
-      date: string;
-      total: number;
-      affirmativeCompletions: number;
-      completionRate: number;
-    }[]
-  > {
-    this.logger.log(`Fetching completion stats for last ${days} days`);
-    const today = getNowInTimezone();
-
-    const datePromises = Array.from({ length: days }, (_, i) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      return this.getCompletionStatsForDate(workspaceId, date);
+    beforeTime: number,
+  ): Promise<any[]> {
+    const response = await this.axiosInstance.get(`/team/${workspaceId}/task`, {
+      params: {
+        due_date_lt: beforeTime,
+        subtasks: true,
+      },
     });
-
-    return Promise.all(datePromises);
-  }
-
-  /**
-   * Get tasks due today for the workspace
-   */
-  async getTasksDueToday(workspaceId: string): Promise<{
-    total: number;
-    completed: number;
-    remaining: number;
-    overdue: number;
-    affirmativeCompletions: number;
-    completionRate: number;
-  }> {
-    try {
-      this.logger.log(`Fetching tasks due today for workspace: ${workspaceId}`);
-
-      const now = getNowInTimezone();
-      const startOfDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        0,
-        0,
-        0,
-        0,
-      );
-      const endOfDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        23,
-        59,
-        59,
-        999,
-      );
-
-      // Fetch tasks due today and overdue tasks in parallel
-      const [todayResponse, overdueResponse] = await Promise.all([
-        this.axiosInstance.get(`/team/${workspaceId}/task`, {
-          params: {
-            due_date_gt: startOfDay.getTime(),
-            due_date_lt: endOfDay.getTime(),
-            subtasks: true,
-          },
-        }),
-        this.axiosInstance.get(`/team/${workspaceId}/task`, {
-          params: {
-            due_date_lt: startOfDay.getTime(),
-            subtasks: true,
-          },
-        }),
-      ]);
-
-      const allTodayTasks = todayResponse.data.tasks || [];
-      const overdueTasks = (overdueResponse.data.tasks || []).filter(
-        (task: any) =>
-          task.status?.type !== 'done' && task.status?.type !== 'closed',
-      );
-
-      // Filter out excluded statuses for completion rate calculation
-      const todayTasks = allTodayTasks.filter(
-        (task: any) =>
-          !this.EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
-      );
-
-      const completed = todayTasks.filter(
-        (task: any) =>
-          task.status?.type === 'done' || task.status?.type === 'closed',
-      ).length;
-
-      const affirmativeCompletions = todayTasks.filter((task: any) =>
-        this.AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
-      ).length;
-
-      // Completion rate: affirmative completions / total tasks (excluding in-progress)
-      const completionRate =
-        todayTasks.length > 0
-          ? Math.round((affirmativeCompletions / todayTasks.length) * 100)
-          : 0;
-
-      return {
-        total: todayTasks.length,
-        completed,
-        remaining: todayTasks.length - completed,
-        overdue: overdueTasks.length,
-        affirmativeCompletions,
-        completionRate,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to fetch tasks due today:`, error.message);
-      throw error;
-    }
+    const tasks = response.data.tasks || [];
+    return tasks.filter(
+      (task: any) =>
+        task.status?.type !== 'done' && task.status?.type !== 'closed',
+    );
   }
 }
