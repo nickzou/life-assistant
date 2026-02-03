@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
+import { ClickUpStatsService } from './clickup-stats.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('clickup')
@@ -18,6 +19,7 @@ export class ClickUpController {
 
   constructor(
     private readonly clickUpService: ClickUpService,
+    private readonly clickUpStatsService: ClickUpStatsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -32,7 +34,7 @@ export class ClickUpController {
     if (!workspaceId) {
       throw new Error('CLICKUP_WORKSPACE_ID not configured');
     }
-    return this.clickUpService.getTasksDueToday(workspaceId);
+    return this.clickUpStatsService.getTasksDueToday(workspaceId);
   }
 
   /**
@@ -46,7 +48,7 @@ export class ClickUpController {
     if (!workspaceId) {
       throw new Error('CLICKUP_WORKSPACE_ID not configured');
     }
-    return this.clickUpService.getCompletionStatsHistory(
+    return this.clickUpStatsService.getCompletionStatsHistory(
       workspaceId,
       parseInt(days, 10),
     );
