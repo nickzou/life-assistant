@@ -454,17 +454,15 @@ export class ClickUpService implements OnModuleInit {
     }[]
   > {
     this.logger.log(`Fetching completion stats for last ${days} days`);
-    const stats = [];
     const today = getNowInTimezone();
 
-    for (let i = 0; i < days; i++) {
+    const datePromises = Array.from({ length: days }, (_, i) => {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      const dayStat = await this.getCompletionStatsForDate(workspaceId, date);
-      stats.push(dayStat);
-    }
+      return this.getCompletionStatsForDate(workspaceId, date);
+    });
 
-    return stats;
+    return Promise.all(datePromises);
   }
 
   /**
