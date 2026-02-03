@@ -499,28 +499,22 @@ export class ClickUpService implements OnModuleInit {
         999,
       );
 
-      // Fetch tasks due today
-      const todayResponse = await this.axiosInstance.get(
-        `/team/${workspaceId}/task`,
-        {
+      // Fetch tasks due today and overdue tasks in parallel
+      const [todayResponse, overdueResponse] = await Promise.all([
+        this.axiosInstance.get(`/team/${workspaceId}/task`, {
           params: {
             due_date_gt: startOfDay.getTime(),
             due_date_lt: endOfDay.getTime(),
             subtasks: true,
           },
-        },
-      );
-
-      // Fetch overdue tasks (due before today, not completed)
-      const overdueResponse = await this.axiosInstance.get(
-        `/team/${workspaceId}/task`,
-        {
+        }),
+        this.axiosInstance.get(`/team/${workspaceId}/task`, {
           params: {
             due_date_lt: startOfDay.getTime(),
             subtasks: true,
           },
-        },
-      );
+        }),
+      ]);
 
       const allTodayTasks = todayResponse.data.tasks || [];
       const overdueTasks = (overdueResponse.data.tasks || []).filter(
