@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
 import { ClickUpStatsService } from './clickup-stats.service';
+import { ClickUpTasksService } from './clickup-tasks.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('clickup')
@@ -20,11 +21,12 @@ export class ClickUpController {
   constructor(
     private readonly clickUpService: ClickUpService,
     private readonly clickUpStatsService: ClickUpStatsService,
+    private readonly clickUpTasksService: ClickUpTasksService,
     private readonly configService: ConfigService,
   ) {}
 
   /**
-   * Get tasks due today summary
+   * Get tasks due today summary (stats only)
    * GET /clickup/tasks/today
    */
   @UseGuards(JwtAuthGuard)
@@ -35,6 +37,20 @@ export class ClickUpController {
       throw new Error('CLICKUP_WORKSPACE_ID not configured');
     }
     return this.clickUpStatsService.getTasksDueToday(workspaceId);
+  }
+
+  /**
+   * Get tasks due today with full details
+   * GET /clickup/tasks/today/list
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('tasks/today/list')
+  async getTasksDueTodayList() {
+    const workspaceId = this.configService.get<string>('CLICKUP_WORKSPACE_ID');
+    if (!workspaceId) {
+      throw new Error('CLICKUP_WORKSPACE_ID not configured');
+    }
+    return this.clickUpTasksService.getTasksDueToday(workspaceId);
   }
 
   /**
