@@ -3,5 +3,5 @@ interface PageContainerProps {
 }
 
 export function PageContainer({ children }: PageContainerProps) {
-  return <div className="max-w-4xl mx-auto">{children}</div>
+  return <div className="max-w-7xl mx-auto">{children}</div>
 }
