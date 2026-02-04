@@ -1,6 +1,6 @@
 # ClickUp Module
 
-This module provides integration with the ClickUp API for task management and completion tracking.
+This module provides integration with the ClickUp API for task management, completion tracking, and daily task views.
 
 ## Architecture
 
@@ -8,8 +8,9 @@ This module provides integration with the ClickUp API for task management and co
 clickup/
 ├── clickup.module.ts           # NestJS module definition
 ├── clickup.controller.ts       # REST endpoints
-├── clickup.service.ts          # Core API client (403 lines)
-├── clickup-stats.service.ts    # Stats & analytics (178 lines)
+├── clickup.service.ts          # Core API client
+├── clickup-stats.service.ts    # Stats & analytics
+├── clickup-tasks.service.ts    # Task list with full details
 └── types/
     └── clickup-api.types.ts    # TypeScript interfaces
 ```
@@ -20,6 +21,7 @@ clickup/
 |---------|---------|
 | `ClickUpService` | Low-level API operations (CRUD, webhooks, tags) |
 | `ClickUpStatsService` | Completion stats, rate calculations, task summaries |
+| `ClickUpTasksService` | Task lists with full details for UI display |
 
 ## ClickUpService
 
@@ -95,13 +97,62 @@ Returns stats for the last N days (fetched in parallel for performance).
 **Excluded statuses** (not counted in totals):
 - `in progress`
 
+## ClickUpTasksService
+
+Service for fetching tasks with full details, designed for frontend display. Includes parent task names, Time of Day custom field with colors, and proper sorting.
+
+### Methods
+
+#### `getTasksDueToday(workspaceId)`
+Returns today's tasks and overdue tasks with full details:
+```typescript
+interface TodayTasksResponse {
+  tasks: TaskItem[];       // Tasks due today, sorted by Time of Day
+  overdueTasks: TaskItem[]; // Overdue tasks, sorted by Time of Day
+}
+
+interface TaskItem {
+  id: string;
+  name: string;
+  parentName: string | null;  // Parent task name for subtasks
+  status: {
+    status: string;
+    type: string;    // 'open', 'done', 'closed'
+    color: string;   // Hex color for UI
+  };
+  dueDate: string | null;
+  hasDueTime: boolean;  // True only if time was explicitly set
+  tags: string[];
+  timeOfDay: {
+    name: string;    // e.g., 'Morning', 'Evening'
+    color: string;   // Hex color from ClickUp
+  } | null;
+  url: string;       // Direct link to task in ClickUp
+}
+```
+
+### Time of Day Sorting
+
+Tasks are sorted by Time of Day custom field in this order:
+1. Early Morning
+2. Morning
+3. Mid Day
+4. Evening
+5. Before Bed
+6. (No Time of Day set)
+
+### Parent Task Resolution
+
+For subtasks, the service fetches parent task names in parallel with deduplication to minimize API calls.
+
 ## API Endpoints
 
 ### Protected (require JWT)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/clickup/tasks/today` | Today's task summary |
+| GET | `/clickup/tasks/today` | Today's task summary (stats only) |
+| GET | `/clickup/tasks/today/list` | Today's tasks with full details |
 | GET | `/clickup/tasks/stats/:days` | Completion history |
 | POST | `/clickup/webhooks/setup` | Register webhook |
 
@@ -135,6 +186,7 @@ CLICKUP_LIST_ID=901234         # Default list for tasks
 constructor(
   private clickUpService: ClickUpService,
   private clickUpStatsService: ClickUpStatsService,
+  private clickUpTasksService: ClickUpTasksService,
 ) {}
 
 // Create a task
@@ -147,4 +199,10 @@ const task = await this.clickUpService.createTask(listId, {
 // Get today's stats
 const stats = await this.clickUpStatsService.getTasksDueToday(workspaceId);
 console.log(`Completion rate: ${stats.completionRate}%`);
+
+// Get today's tasks with full details for UI display
+const { tasks, overdueTasks } = await this.clickUpTasksService.getTasksDueToday(workspaceId);
+tasks.forEach(task => {
+  console.log(`${task.timeOfDay?.name || 'Anytime'}: ${task.name}`);
+});
 ```
