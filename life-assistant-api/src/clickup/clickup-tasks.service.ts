@@ -13,7 +13,10 @@ export interface TaskItem {
   dueDate: string | null;
   hasDueTime: boolean;
   tags: string[];
-  timeOfDay: string | null;
+  timeOfDay: {
+    name: string;
+    color: string;
+  } | null;
   url: string;
 }
 
@@ -92,10 +95,10 @@ export class ClickUpTasksService {
   private sortByTimeOfDay(tasks: TaskItem[]): TaskItem[] {
     return tasks.sort((a, b) => {
       const aOrder = a.timeOfDay
-        ? this.TIME_OF_DAY_ORDER[a.timeOfDay.toLowerCase()] || 99
+        ? this.TIME_OF_DAY_ORDER[a.timeOfDay.name.toLowerCase()] || 99
         : 99;
       const bOrder = b.timeOfDay
-        ? this.TIME_OF_DAY_ORDER[b.timeOfDay.toLowerCase()] || 99
+        ? this.TIME_OF_DAY_ORDER[b.timeOfDay.name.toLowerCase()] || 99
         : 99;
       return aOrder - bOrder;
     });
@@ -111,13 +114,18 @@ export class ClickUpTasksService {
         field.name?.toLowerCase() === this.TIME_OF_DAY_FIELD_NAME,
     );
 
-    // Get the selected option name for dropdown fields
-    let timeOfDay: string | null = null;
+    // Get the selected option name and color for dropdown fields
+    let timeOfDay: { name: string; color: string } | null = null;
     if (timeOfDayField?.value !== undefined && timeOfDayField.type_config?.options) {
       const selectedOption = timeOfDayField.type_config.options.find(
         (opt: any) => opt.orderindex === timeOfDayField.value,
       );
-      timeOfDay = selectedOption?.name || null;
+      if (selectedOption) {
+        timeOfDay = {
+          name: selectedOption.name,
+          color: selectedOption.color,
+        };
+      }
     }
 
     return {

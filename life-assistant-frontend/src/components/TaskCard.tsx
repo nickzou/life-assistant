@@ -9,7 +9,10 @@ export interface TaskItem {
   dueDate: string | null
   hasDueTime: boolean
   tags: string[]
-  timeOfDay: string | null
+  timeOfDay: {
+    name: string
+    color: string
+  } | null
   url: string
 }
 
@@ -56,8 +59,14 @@ export function TaskCard({ task }: TaskCardProps) {
 
             {/* Time of Day */}
             {task.timeOfDay && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
-                {task.timeOfDay}
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                style={{
+                  backgroundColor: task.timeOfDay.color + '20',
+                  color: task.timeOfDay.color,
+                }}
+              >
+                {task.timeOfDay.name}
               </span>
             )}
 
