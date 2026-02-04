@@ -27,6 +27,8 @@ function Index() {
   const [tasksList, setTasksList] = useState<TasksListResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [overdueExpanded, setOverdueExpanded] = useState(true)
+  const [todayExpanded, setTodayExpanded] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,28 +105,48 @@ function Index() {
             {/* Overdue Tasks */}
             {tasksList.overdueTasks.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
-                <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-4">
-                  Overdue ({tasksList.overdueTasks.length})
-                </h2>
-                <div className="space-y-3">
-                  {tasksList.overdueTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} />
-                  ))}
-                </div>
+                <button
+                  onClick={() => setOverdueExpanded(!overdueExpanded)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <h2 className="text-xl font-semibold text-red-600 dark:text-red-400">
+                    Overdue ({tasksList.overdueTasks.length})
+                  </h2>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {overdueExpanded ? '−' : '+'}
+                  </span>
+                </button>
+                {overdueExpanded && (
+                  <div className="space-y-3 mt-4">
+                    {tasksList.overdueTasks.map((task) => (
+                      <TaskCard key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Today's Tasks */}
             {tasksList.tasks.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Today's Tasks ({tasksList.tasks.length})
-                </h2>
-                <div className="space-y-3">
-                  {tasksList.tasks.map((task) => (
-                    <TaskCard key={task.id} task={task} />
-                  ))}
-                </div>
+                <button
+                  onClick={() => setTodayExpanded(!todayExpanded)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Today's Tasks ({tasksList.tasks.length})
+                  </h2>
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {todayExpanded ? '−' : '+'}
+                  </span>
+                </button>
+                {todayExpanded && (
+                  <div className="space-y-3 mt-4">
+                    {tasksList.tasks.map((task) => (
+                      <TaskCard key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
