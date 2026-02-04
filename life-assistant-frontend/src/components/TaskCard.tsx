@@ -1,6 +1,7 @@
 export type TaskItem = {
   id: string
   name: string
+  parentName: string | null
   status: {
     status: string
     type: string
@@ -36,6 +37,11 @@ export function TaskCard({ task }: TaskCardProps) {
     >
       <div className="flex items-start justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
+          {task.parentName && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">
+              {task.parentName}
+            </p>
+          )}
           <p
             className={`text-sm sm:text-base font-medium text-gray-900 dark:text-white ${
               isCompleted ? 'line-through opacity-70' : ''

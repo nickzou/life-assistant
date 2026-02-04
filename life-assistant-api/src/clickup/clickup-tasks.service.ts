@@ -5,6 +5,7 @@ import { getNowInTimezone } from '../utils/date.utils';
 export interface TaskItem {
   id: string;
   name: string;
+  parentName: string | null;
   status: {
     status: string;
     type: string;
@@ -80,13 +81,64 @@ export class ClickUpTasksService {
       this.clickUpService.getOverdueTasks(workspaceId, startOfDay.getTime()),
     ]);
 
-    const mappedTasks = todayTasks.map((task) => this.mapTaskToItem(task));
-    const mappedOverdue = overdueTasks.map((task) => this.mapTaskToItem(task));
+    // Collect all parent IDs
+    const allTasks = [...todayTasks, ...overdueTasks];
+    const parentIds = [
+      ...new Set(
+        allTasks
+          .filter((task) => task.parent != null)
+          .map((task) => task.parent),
+      ),
+    ];
+
+    // Fetch parent task names
+    const parentNames = await this.fetchParentNames(parentIds);
+
+    const mappedTasks = todayTasks.map((task) =>
+      this.mapTaskToItem(task, parentNames),
+    );
+    const mappedOverdue = overdueTasks.map((task) =>
+      this.mapTaskToItem(task, parentNames),
+    );
 
     return {
       tasks: this.sortByTimeOfDay(mappedTasks),
       overdueTasks: this.sortByTimeOfDay(mappedOverdue),
     };
+  }
+
+  /**
+   * Fetch parent task names for given parent IDs
+   */
+  private async fetchParentNames(
+    parentIds: string[],
+  ): Promise<Map<string, string>> {
+    const parentNames = new Map<string, string>();
+
+    if (parentIds.length === 0) {
+      return parentNames;
+    }
+
+    // Fetch parent tasks in parallel
+    const parentTasks = await Promise.all(
+      parentIds.map(async (id) => {
+        try {
+          const task = await this.clickUpService.getTask(id);
+          return { id, name: task.name };
+        } catch (error) {
+          this.logger.warn(`Failed to fetch parent task ${id}: ${error.message}`);
+          return { id, name: null };
+        }
+      }),
+    );
+
+    for (const { id, name } of parentTasks) {
+      if (name) {
+        parentNames.set(id, name);
+      }
+    }
+
+    return parentNames;
   }
 
   /**
@@ -107,7 +159,10 @@ export class ClickUpTasksService {
   /**
    * Map a ClickUp task to our TaskItem format
    */
-  private mapTaskToItem(task: any): TaskItem {
+  private mapTaskToItem(
+    task: any,
+    parentNames: Map<string, string> = new Map(),
+  ): TaskItem {
     // Find Time of Day custom field
     const timeOfDayField = task.custom_fields?.find(
       (field: any) =>
@@ -131,6 +186,7 @@ export class ClickUpTasksService {
     return {
       id: task.id,
       name: task.name,
+      parentName: task.parent ? parentNames.get(task.parent) || null : null,
       status: {
         status: task.status?.status || 'unknown',
         type: task.status?.type || 'unknown',
