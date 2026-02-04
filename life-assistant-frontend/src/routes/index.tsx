@@ -21,6 +21,7 @@ interface TaskItem {
     color: string
   }
   dueDate: string | null
+  hasDueTime: boolean
   tags: string[]
   timeOfDay: string | null
   url: string
@@ -203,8 +204,8 @@ function TaskCard({ task }: { task: TaskItem }) {
           </div>
         </div>
 
-        {/* Due time */}
-        {task.dueDate && (
+        {/* Due time - only show if explicitly set */}
+        {task.dueDate && task.hasDueTime && (
           <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
             {new Date(task.dueDate).toLocaleTimeString([], {
               hour: '2-digit',

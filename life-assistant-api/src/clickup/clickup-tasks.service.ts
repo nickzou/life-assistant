@@ -11,6 +11,7 @@ export interface TaskItem {
     color: string;
   };
   dueDate: string | null;
+  hasDueTime: boolean;
   tags: string[];
   timeOfDay: string | null;
   url: string;
@@ -130,6 +131,7 @@ export class ClickUpTasksService {
       dueDate: task.due_date
         ? new Date(parseInt(task.due_date, 10)).toISOString()
         : null,
+      hasDueTime: task.due_date_time === true,
       tags: task.tags?.map((tag: any) => tag.name) || [],
       timeOfDay,
       url: task.url,
