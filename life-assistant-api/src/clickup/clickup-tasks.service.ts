@@ -28,6 +28,15 @@ export class ClickUpTasksService {
   // Custom field name for Time of Day
   private readonly TIME_OF_DAY_FIELD_NAME = 'time of day';
 
+  // Sort order for Time of Day values
+  private readonly TIME_OF_DAY_ORDER: Record<string, number> = {
+    'early morning': 1,
+    'morning': 2,
+    'mid day': 3,
+    'evening': 4,
+    'before bed': 5,
+  };
+
   constructor(private readonly clickUpService: ClickUpService) {}
 
   /**
@@ -67,10 +76,28 @@ export class ClickUpTasksService {
       this.clickUpService.getOverdueTasks(workspaceId, startOfDay.getTime()),
     ]);
 
+    const mappedTasks = todayTasks.map((task) => this.mapTaskToItem(task));
+    const mappedOverdue = overdueTasks.map((task) => this.mapTaskToItem(task));
+
     return {
-      tasks: todayTasks.map((task) => this.mapTaskToItem(task)),
-      overdueTasks: overdueTasks.map((task) => this.mapTaskToItem(task)),
+      tasks: this.sortByTimeOfDay(mappedTasks),
+      overdueTasks: this.sortByTimeOfDay(mappedOverdue),
     };
+  }
+
+  /**
+   * Sort tasks by Time of Day field
+   */
+  private sortByTimeOfDay(tasks: TaskItem[]): TaskItem[] {
+    return tasks.sort((a, b) => {
+      const aOrder = a.timeOfDay
+        ? this.TIME_OF_DAY_ORDER[a.timeOfDay.toLowerCase()] || 99
+        : 99;
+      const bOrder = b.timeOfDay
+        ? this.TIME_OF_DAY_ORDER[b.timeOfDay.toLowerCase()] || 99
+        : 99;
+      return aOrder - bOrder;
+    });
   }
 
   /**
