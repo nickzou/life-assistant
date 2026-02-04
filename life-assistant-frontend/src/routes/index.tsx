@@ -52,7 +52,7 @@ function Index() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Life Assistant</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-300 mb-8">Welcome to Life Assistant</p>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Tasks Due Today
           </h2>
@@ -102,7 +102,7 @@ function Index() {
           <div className="mt-8 space-y-6">
             {/* Overdue Tasks */}
             {tasksList.overdueTasks.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
                 <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-4">
                   Overdue ({tasksList.overdueTasks.length})
                 </h2>
@@ -116,7 +116,7 @@ function Index() {
 
             {/* Today's Tasks */}
             {tasksList.tasks.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                   Today's Tasks ({tasksList.tasks.length})
                 </h2>
