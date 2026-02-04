@@ -24,11 +24,14 @@ export const Route = createFileRoute('/')({
   component: Index,
 })
 
+type TaskFilter = 'all' | 'work' | 'personal'
+
 function Index() {
   const [stats, setStats] = useState<TasksDueToday | null>(null)
   const [tasksList, setTasksList] = useState<TasksListResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<TaskFilter>('all')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,6 +50,15 @@ function Index() {
     }
     fetchData()
   }, [])
+
+  const filterTasks = (tasks: TaskItem[]): TaskItem[] => {
+    if (filter === 'all') return tasks
+    const isWork = (task: TaskItem) => task.tags.some(tag => tag.toLowerCase() === 'work')
+    return filter === 'work' ? tasks.filter(isWork) : tasks.filter(t => !isWork(t))
+  }
+
+  const filteredTasks = tasksList ? filterTasks(tasksList.tasks) : []
+  const filteredOverdue = tasksList ? filterTasks(tasksList.overdueTasks) : []
 
   return (
     <ProtectedRoute>
@@ -99,18 +111,37 @@ function Index() {
           )}
         </div>
 
+        {/* Filter */}
+        {tasksList && (
+          <div className="mt-8 flex gap-2">
+            {(['all', 'work', 'personal'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  filter === f
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                {f === 'all' ? 'All' : f === 'work' ? 'Work' : 'Personal'}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Task List */}
         {tasksList && (
-          <div className="mt-8 space-y-6">
+          <div className="mt-6 space-y-6">
             {/* Overdue Tasks */}
-            {tasksList.overdueTasks.length > 0 && (
+            {filteredOverdue.length > 0 && (
               <Accordion
                 title="Overdue"
-                count={tasksList.overdueTasks.length}
+                count={filteredOverdue.length}
                 titleClassName="text-red-600 dark:text-red-400"
               >
                 <div className="space-y-3">
-                  {tasksList.overdueTasks.map((task) => (
+                  {filteredOverdue.map((task) => (
                     <TaskCard key={task.id} task={task} />
                   ))}
                 </div>
@@ -118,17 +149,24 @@ function Index() {
             )}
 
             {/* Today's Tasks */}
-            {tasksList.tasks.length > 0 && (
+            {filteredTasks.length > 0 && (
               <Accordion
                 title="Today's Tasks"
-                count={tasksList.tasks.length}
+                count={filteredTasks.length}
               >
                 <div className="space-y-3">
-                  {tasksList.tasks.map((task) => (
+                  {filteredTasks.map((task) => (
                     <TaskCard key={task.id} task={task} />
                   ))}
                 </div>
               </Accordion>
+            )}
+
+            {/* Empty state */}
+            {filteredTasks.length === 0 && filteredOverdue.length === 0 && (
+              <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                No {filter === 'all' ? '' : filter + ' '}tasks to show
+              </p>
             )}
           </div>
         )}
