@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Logger,
@@ -227,6 +228,42 @@ export class ClickUpController {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * Get available statuses for the configured list
+   * GET /clickup/statuses
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('statuses')
+  async getStatuses() {
+    const listId = this.configService.get<string>('CLICKUP_LIST_ID');
+    if (!listId) {
+      throw new Error('CLICKUP_LIST_ID not configured');
+    }
+    const list = await this.clickUpService.getList(listId);
+    return { statuses: list.statuses || [] };
+  }
+
+  /**
+   * Update a task (status, due date, etc.)
+   * PATCH /clickup/tasks/:taskId
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('tasks/:taskId')
+  async updateTask(
+    @Param('taskId') taskId: string,
+    @Body() body: { status?: string; due_date?: number | null },
+  ) {
+    const taskData: Record<string, unknown> = {};
+    if (body.status !== undefined) {
+      taskData.status = body.status;
+    }
+    if (body.due_date !== undefined) {
+      taskData.due_date = body.due_date ? body.due_date.toString() : null;
+    }
+    const updatedTask = await this.clickUpService.updateTask(taskId, taskData);
+    return { success: true, task: updatedTask };
   }
 
   /**
