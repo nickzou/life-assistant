@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { ProtectedRoute } from '../components/ProtectedRoute'
-import { TaskCard, TaskItem } from '../components/TaskCard'
+import { TaskCard, type TaskItem } from '../components/TaskCard'
 import { api } from '../lib/api'
 
 interface TasksDueToday {
