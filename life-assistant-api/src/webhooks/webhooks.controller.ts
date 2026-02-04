@@ -48,6 +48,9 @@ export class WebhooksController {
   /**
    * Wrike webhook endpoint
    * POST /webhooks/wrike
+   *
+   * IMPORTANT: Always returns 200 to prevent Wrike from suspending the webhook.
+   * Errors are logged but not thrown.
    */
   @Post('wrike')
   @HttpCode(200)
@@ -55,18 +58,21 @@ export class WebhooksController {
     this.logger.log('Wrike webhook received');
     this.logger.debug('Headers:', JSON.stringify(headers, null, 2));
 
-    try {
-      await this.webhooksService.handleWrikeWebhook(body);
-      return { success: true };
-    } catch (error) {
+    // Always return 200 immediately to prevent Wrike from suspending the webhook
+    // Process the webhook asynchronously
+    this.webhooksService.handleWrikeWebhook(body).catch((error) => {
       this.logger.error('Error processing Wrike webhook:', error.message);
-      throw error;
-    }
+    });
+
+    return { success: true };
   }
 
   /**
    * ClickUp webhook endpoint
    * POST /webhooks/clickup
+   *
+   * IMPORTANT: Always returns 200 to prevent ClickUp from suspending the webhook.
+   * Errors are logged but not thrown.
    */
   @Post('clickup')
   @HttpCode(200)
@@ -74,12 +80,12 @@ export class WebhooksController {
     this.logger.log('ClickUp webhook received');
     this.logger.debug('Headers:', JSON.stringify(headers, null, 2));
 
-    try {
-      await this.webhooksService.handleClickUpWebhook(body);
-      return { success: true };
-    } catch (error) {
+    // Always return 200 immediately to prevent ClickUp from suspending the webhook
+    // Process the webhook asynchronously
+    this.webhooksService.handleClickUpWebhook(body).catch((error) => {
       this.logger.error('Error processing ClickUp webhook:', error.message);
-      throw error;
-    }
+    });
+
+    return { success: true };
   }
 }

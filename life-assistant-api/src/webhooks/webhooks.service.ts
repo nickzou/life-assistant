@@ -174,8 +174,21 @@ export class WebhooksService {
       JSON.stringify(payload, null, 2),
     );
 
+    // Handle empty or malformed payloads gracefully
+    if (!payload || typeof payload !== 'object') {
+      this.logger.warn('Received empty or invalid webhook payload');
+      return;
+    }
+
     const { event, task_id, history_items } = payload;
-    this.logger.log(`Event: ${event} for task ${task_id}`);
+
+    // Handle webhook verification or ping events (no event type)
+    if (!event) {
+      this.logger.log('Received webhook ping/verification (no event type)');
+      return;
+    }
+
+    this.logger.log(`Event: ${event} for task ${task_id || 'unknown'}`);
 
     // Handle task creation - add to meal plan
     if (event === 'taskCreated' && task_id) {
