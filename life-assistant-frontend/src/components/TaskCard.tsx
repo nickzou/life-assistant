@@ -45,32 +45,34 @@ export function TaskCard({ task }: TaskCardProps) {
           >
             {task.name}
           </p>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            {/* Status badge */}
-            <span
-              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-              style={{
-                backgroundColor: task.status.color + '20',
-                color: task.status.color,
-              }}
-            >
-              {task.status.status}
-            </span>
-
-            {/* Tags */}
-            {task.tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          {/* Tags */}
+          {task.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {task.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Right side: Time of Day and Due time */}
+        {/* Right side: Status, Time of Day, and Due time */}
         <div className="flex flex-col items-end gap-2">
+          {/* Status badge */}
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+            style={{
+              backgroundColor: task.status.color + '20',
+              color: task.status.color,
+            }}
+          >
+            {task.status.status}
+          </span>
+
           {/* Time of Day */}
           {task.timeOfDay && (
             <span
