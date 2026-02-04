@@ -1,7 +1,7 @@
 # Life Assistant - Claude Code Context
 
-**Last Updated**: January 2026
-**Main Branch**: `main` (production) | **Staging Branch**: `staging`
+**Last Updated**: February 2026
+**Main Branch**: `main` (production)
 
 ## Project Overview
 
@@ -16,22 +16,22 @@ Life Assistant is a personal life automation platform. The first implemented fea
 ```
 main (stable/production)
   │
-  ├──► feature-branch ──┬──► PR to staging (test)
-  │                     │
-  │                     └──► PR to main (promote)
-  │
-  └──► staging (unstable/testing)
+  └──► feature-branch ──► PR to main
 ```
 
 **Rules:**
 1. **Always branch off `main`** - it's the stable base
-2. **PR to `staging` first** - test features in the unstable environment
-3. **PR from feature branch to `main`** - promote tested features to production (NOT staging → main)
-4. **Merge `main` → `staging`** - occasionally reset staging to stable state
+2. **PR directly to `main`** - all PRs target main by default
+3. **Deploy to staging via GitHub UI** - use workflow dispatch to test before merging
+4. **Merge to `main`** - triggers automatic production deployment
+
+**Staging Deployment:**
+- Go to Actions → Deploy → Run workflow
+- Select the feature branch to deploy to staging
+- Test at `staging.life-assistant.waffleruntime.com`
 
 **Branch purposes:**
 - `main` - Production deployments, stable code only
-- `staging` - Testing deployments, can be unstable
 - Feature branches - Short-lived, deleted after merging to main
 
 ## Architecture
