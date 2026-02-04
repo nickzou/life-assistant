@@ -57,19 +57,6 @@ export function TaskCard({ task }: TaskCardProps) {
               {task.status.status}
             </span>
 
-            {/* Time of Day */}
-            {task.timeOfDay && (
-              <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                style={{
-                  backgroundColor: task.timeOfDay.color + '20',
-                  color: task.timeOfDay.color,
-                }}
-              >
-                {task.timeOfDay.name}
-              </span>
-            )}
-
             {/* Tags */}
             {task.tags.map((tag) => (
               <span
@@ -82,15 +69,28 @@ export function TaskCard({ task }: TaskCardProps) {
           </div>
         </div>
 
-        {/* Due time - only show if explicitly set */}
-        {task.dueDate && task.hasDueTime && (
-          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-            {new Date(task.dueDate).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
-        )}
+        {/* Right side: Time of Day and Due time */}
+        <div className="flex flex-col items-end gap-2">
+          {/* Time of Day */}
+          {task.timeOfDay && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white"
+              style={{ backgroundColor: task.timeOfDay.color }}
+            >
+              {task.timeOfDay.name}
+            </span>
+          )}
+
+          {/* Due time - only show if explicitly set */}
+          {task.dueDate && task.hasDueTime && (
+            <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+              {new Date(task.dueDate).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          )}
+        </div>
       </div>
     </a>
   )
