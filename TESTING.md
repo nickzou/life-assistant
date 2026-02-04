@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Last Updated**: January 2026
+**Last Updated**: February 2026
 
 ## Overview
 
@@ -82,136 +82,139 @@ All workflows trigger on PRs to `main` or `staging`:
 
 ## Frontend Testing (React)
 
-### Stack (To Be Implemented)
+### Stack
 
-- **Unit/Component Tests**: Vitest + React Testing Library
+- **Unit/Integration Tests**: Vitest + React Testing Library
 - **API Mocking**: MSW (Mock Service Worker)
-- **E2E Tests** (optional, future): Playwright
+- **E2E Tests**: Playwright
 
 ### Test File Structure
 
 ```
 life-assistant-frontend/
 ├── src/
-│   ├── __tests__/
-│   │   ├── setup.ts              # Test setup, MSW handlers
-│   │   ├── contexts/
-│   │   │   └── AuthProvider.test.tsx
-│   │   ├── components/
-│   │   │   └── ProtectedRoute.test.tsx
-│   │   ├── hooks/
-│   │   │   └── useAuth.test.tsx
-│   │   ├── lib/
-│   │   │   ├── api.test.ts
-│   │   │   └── date.utils.test.ts
-│   │   └── routes/
-│   │       ├── login.test.tsx
-│   │       ├── index.test.tsx
-│   │       ├── stats.test.tsx
-│   │       └── meals.test.tsx
+│   ├── test/
+│   │   └── setup.ts                    # Test setup with jest-dom
+│   ├── lib/
+│   │   └── date.utils.test.ts          # Date utility unit tests
+│   ├── components/
+│   │   ├── Accordion.test.tsx          # Accordion component tests
+│   │   ├── PageContainer.test.tsx      # PageContainer component tests
+│   │   ├── ProtectedRoute.test.tsx     # Protected route tests
+│   │   └── TaskCard.test.tsx           # TaskCard component tests
+│   └── contexts/
+│       └── AuthProvider.test.tsx       # Auth context integration tests
+├── e2e/
+│   ├── auth.spec.ts                    # Authentication E2E tests
+│   ├── home.spec.ts                    # Home page E2E tests
+│   └── navigation.spec.ts              # Navigation E2E tests
+└── playwright.config.ts                # Playwright configuration
 ```
 
-### Priority 1: Core Authentication
+### Unit Tests (65 tests)
 
-**AuthProvider** (`src/contexts/AuthProvider.tsx`)
-- [ ] Token loaded from localStorage on mount
-- [ ] `/auth/me` called to validate existing token
-- [ ] Invalid token cleared, user redirected
-- [ ] `login()` stores token and sets user state
-- [ ] `logout()` clears token and user state
+**Date Utils** (`src/lib/date.utils.test.ts`) - 24 tests
+- [x] `getTodayString()` returns YYYY-MM-DD in local time
+- [x] `formatDateString()` pads months/days correctly
+- [x] `getStartOfWeek()` returns Sunday for any day
+- [x] `getWeekDates()` returns 7 consecutive dates
+- [x] `formatWeekRange()` formats date ranges correctly
+- [x] Edge cases: month/year boundaries, immutability
 
-**useAuth hook** (`src/hooks/useAuth.ts`)
-- [ ] Throws error when used outside AuthProvider
-- [ ] Returns context values correctly
+**Accordion** (`src/components/Accordion.test.tsx`) - 9 tests
+- [x] Renders title and children
+- [x] Toggles content visibility on click
+- [x] Shows count in title when provided
+- [x] Respects defaultExpanded prop
+- [x] Applies custom titleClassName
 
-**ProtectedRoute** (`src/components/ProtectedRoute.tsx`)
-- [ ] Shows loading state while `isLoading` is true
-- [ ] Redirects to `/login` when unauthenticated
-- [ ] Renders children when authenticated
+**PageContainer** (`src/components/PageContainer.test.tsx`) - 3 tests
+- [x] Renders children correctly
+- [x] Applies max-width and centering classes
 
-**API Client interceptors** (`src/lib/api.ts`)
-- [ ] Attaches Bearer token to requests
-- [ ] 401 response clears token and redirects to `/login`
+**TaskCard** (`src/components/TaskCard.test.tsx`) - 18 tests
+- [x] Renders task name and status badge
+- [x] Displays parent name when provided
+- [x] Renders tags correctly
+- [x] Shows time of day badge
+- [x] Displays due time when hasDueTime is true
+- [x] Applies completed styling (line-through) for done/closed tasks
+- [x] Applies status color to background and border
+- [x] Links to task URL with correct attributes
 
-### Priority 2: Login Flow
+### Integration Tests
 
-**Login Route** (`src/routes/login.tsx`)
-- [ ] Form submission calls API with credentials
-- [ ] Error message displays on failed login
-- [ ] Loading state disables submit button
-- [ ] Successful login redirects to `/`
-- [ ] Already-authenticated users redirected away
+**AuthProvider** (`src/contexts/AuthProvider.test.tsx`) - 6 tests
+- [x] Provides unauthenticated state when no token exists
+- [x] Validates existing token on mount via `/auth/me`
+- [x] Clears invalid token on mount
+- [x] Handles successful login (stores token, sets user)
+- [x] Handles logout (clears token and user)
+- [x] Throws error when useAuth used outside provider
 
-### Priority 3: Utility Functions
+**ProtectedRoute** (`src/components/ProtectedRoute.test.tsx`) - 5 tests
+- [x] Shows loading state while `isLoading` is true
+- [x] Redirects to `/login` when unauthenticated
+- [x] Renders children when authenticated
+- [x] Renders multiple children correctly
+- [x] Prioritizes loading state over auth check
 
-**Date Utils** (`src/lib/date.utils.ts`)
-- [ ] `getTodayString()` returns YYYY-MM-DD in local time
-- [ ] `formatDateString()` pads months/days correctly
+### E2E Tests (31 tests)
 
-### Priority 4: Data Display Routes
+**Authentication** (`e2e/auth.spec.ts`) - 7 tests
+- [x] Redirects to login when not authenticated
+- [x] Displays login form correctly
+- [x] Shows error message with invalid credentials
+- [x] Disables submit button while signing in
+- [x] Logs in successfully with valid credentials
+- [x] Logs out successfully
+- [x] Persists auth state across page refresh
 
-**Home Route** (`src/routes/index.tsx`)
-- [ ] Fetches `/clickup/tasks/today` on mount
-- [ ] Renders loading state
-- [ ] Renders error state with message
-- [ ] Displays all metrics (total, completed, remaining, overdue, completion rate)
+**Home Page** (`e2e/home.spec.ts`) - 12 tests
+- [x] Displays task statistics (completion rate, counts)
+- [x] Displays tasks in accordions (overdue, today)
+- [x] Displays task details (parent, status, tags, time of day)
+- [x] Tasks are clickable links
+- [x] Filters tasks by All/Work/Personal
+- [x] Filter buttons show active state
+- [x] Shows empty state when no tasks match filter
+- [x] Shows loading state
+- [x] Shows error state on API failure
+- [x] Accordions can be collapsed and expanded
 
-**Stats Route** (`src/routes/stats.tsx`)
-- [ ] Fetches `/clickup/tasks/stats/5` on mount
-- [ ] Date labels format correctly (Today, Yesterday, weekday)
-- [ ] Table renders historical data
-- [ ] Handles empty/error states
-- [ ] (Chart rendering covered by E2E, not unit tests)
-
-**Meals Route** (`src/routes/meals.tsx`)
-- [ ] Defaults to today's date
-- [ ] Date picker changes API endpoint
-- [ ] Meal cards render with recipe info
-- [ ] Image URLs include auth token
-- [ ] Handles missing meals gracefully
-
-### Priority 5: Navigation
-
-**Root Layout** (`src/routes/__root.tsx`)
-- [ ] Nav links visible/hidden based on auth state
-- [ ] Mobile menu toggle works
-- [ ] Logout button clears auth
-- [ ] Login page hides navbar
+**Navigation** (`e2e/navigation.spec.ts`) - 12 tests
+- [x] Shows navigation bar when authenticated
+- [x] Hides navigation bar on login page
+- [x] Shows user email in navigation
+- [x] Navigates to all pages (Home, Stats, Meals, Shopping, Webhooks)
+- [x] Redirects to login when accessing protected routes unauthenticated
+- [x] Mobile navigation menu toggles
+- [x] Mobile menu closes when navigating
+- [x] Logout button is visible and functional
 
 ### What NOT to Unit Test
 
-- Recharts rendering (use E2E or visual regression)
-- Tailwind styling (use E2E or visual regression)
+- Recharts rendering (covered by E2E visual verification)
+- Tailwind CSS styling (implementation detail)
 - TanStack Router internals
+- API response shapes (backend's responsibility)
 
-### Estimated Test Count
+### Test Count Summary
 
 | Area | Tests | Status |
 |------|-------|--------|
-| AuthProvider | 6 | Planned |
-| useAuth | 2 | Planned |
-| ProtectedRoute | 3 | Planned |
-| API interceptors | 4 | Planned |
-| Login route | 5 | Planned |
-| Date utils | 4 | Planned |
-| Home route | 4 | Planned |
-| Stats route | 4 | Planned |
-| Meals route | 5 | Planned |
-| Navigation | 4 | Planned |
-| **Total** | **~41** | |
-
----
-
-## E2E Testing (Future)
-
-For critical user journeys that span multiple pages:
-
-1. **Login Flow**: Visit site → redirect to login → enter credentials → redirect to home
-2. **Protected Routes**: Verify unauthenticated access redirects
-3. **Data Display**: Login → navigate to stats → verify chart renders
-4. **Logout**: Click logout → verify redirect to login → verify protected routes inaccessible
-
-**Recommended Stack**: Playwright
+| Date utils | 24 | Done |
+| Accordion | 9 | Done |
+| PageContainer | 3 | Done |
+| TaskCard | 18 | Done |
+| AuthProvider | 6 | Done |
+| ProtectedRoute | 5 | Done |
+| **Unit/Integration Total** | **65** | |
+| Auth E2E | 7 | Done |
+| Home E2E | 12 | Done |
+| Navigation E2E | 12 | Done |
+| **E2E Total** | **31** | |
+| **Grand Total** | **96** | |
 
 ---
 
@@ -234,18 +237,24 @@ npm run test:e2e
 npm test -- --watch
 ```
 
-### Frontend (after implementation)
+### Frontend
 ```bash
 cd life-assistant-frontend
 
-# Unit/component tests
+# Unit/integration tests (watch mode)
 npm test
 
-# Watch mode
-npm test -- --watch
+# Unit/integration tests (single run)
+npm test -- --run
 
-# E2E tests (future)
+# Unit tests with coverage
+npm run test:coverage
+
+# E2E tests
 npm run test:e2e
+
+# E2E tests with UI
+npm run test:e2e:ui
 ```
 
 ### CI
