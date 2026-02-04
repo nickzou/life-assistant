@@ -28,19 +28,17 @@ export function TaskCard({ task }: TaskCardProps) {
       href={task.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`block p-3 sm:p-4 rounded-lg border transition-colors ${
-        isCompleted
-          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-          : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-      }`}
+      className="block p-3 sm:p-4 rounded-lg border transition-colors"
+      style={{
+        backgroundColor: task.status.color + '10',
+        borderColor: task.status.color + '40',
+      }}
     >
       <div className="flex items-start justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
           <p
-            className={`text-sm sm:text-base font-medium ${
-              isCompleted
-                ? 'text-green-700 dark:text-green-300 line-through'
-                : 'text-gray-900 dark:text-white'
+            className={`text-sm sm:text-base font-medium text-gray-900 dark:text-white ${
+              isCompleted ? 'line-through opacity-70' : ''
             }`}
           >
             {task.name}
