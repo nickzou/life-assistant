@@ -23,7 +23,7 @@ export function Accordion({
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between text-left"
       >
-        <h2 className={`text-xl font-semibold ${titleClassName}`}>
+        <h2 className={`text-base sm:text-lg font-semibold ${titleClassName}`}>
           {title}
           {count !== undefined && ` (${count})`}
         </h2>
