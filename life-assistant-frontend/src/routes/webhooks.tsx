@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '../components/ProtectedRoute';
+import { PageContainer } from '../components/PageContainer';
 import { api } from '../lib/api';
 
 interface WebhookStatusItem {
@@ -111,7 +112,7 @@ function WebhooksPage() {
 
   return (
     <ProtectedRoute>
-      <div className="max-w-4xl mx-auto">
+      <PageContainer>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Webhook Status
@@ -268,7 +269,7 @@ function WebhooksPage() {
             </div>
           </>
         )}
-      </div>
+      </PageContainer>
     </ProtectedRoute>
   );
 }

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { ProtectedRoute } from '../components/ProtectedRoute'
+import { PageContainer } from '../components/PageContainer'
 import { api } from '../lib/api'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -55,7 +56,7 @@ function StatsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="max-w-4xl mx-auto">
+      <PageContainer>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
           Completion Stats
         </h1>
@@ -152,7 +153,7 @@ function StatsPage() {
           </div>
           </>
         )}
-      </div>
+      </PageContainer>
     </ProtectedRoute>
   )
 }
