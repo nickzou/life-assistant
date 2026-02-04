@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { ProtectedRoute } from '../components/ProtectedRoute'
+import { PageContainer } from '../components/PageContainer'
 import { Accordion } from '../components/Accordion'
 import { TaskCard, type TaskItem } from '../components/TaskCard'
 import { api } from '../lib/api'
@@ -49,7 +50,7 @@ function Index() {
 
   return (
     <ProtectedRoute>
-      <div className="max-w-4xl mx-auto">
+      <PageContainer>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Life Assistant</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-300 mb-8">Welcome to Life Assistant</p>
 
@@ -131,7 +132,7 @@ function Index() {
             )}
           </div>
         )}
-      </div>
+      </PageContainer>
     </ProtectedRoute>
   )
 }
