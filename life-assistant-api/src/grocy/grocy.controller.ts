@@ -13,6 +13,9 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { GrocyService } from './grocy.service';
+import { GrocyRecipeService } from './grocy-recipe.service';
+import { GrocyShoppingService } from './grocy-shopping.service';
+import { GrocyMealPlanService } from './grocy-meal-plan.service';
 import { MealPrepService } from '@meal-prep/meal-prep.service';
 import { JwtAuthGuard } from '@auth/guards/jwt-auth.guard';
 import { getTodayString } from '@utils/date';
@@ -35,6 +38,9 @@ export class GrocyController {
 
   constructor(
     private readonly grocyService: GrocyService,
+    private readonly grocyRecipeService: GrocyRecipeService,
+    private readonly grocyShoppingService: GrocyShoppingService,
+    private readonly grocyMealPlanService: GrocyMealPlanService,
     private readonly mealPrepService: MealPrepService,
   ) {}
 
@@ -47,8 +53,8 @@ export class GrocyController {
   async getTodaysMealPlan() {
     const today = getTodayString();
     const [mealPlan, sections] = await Promise.all([
-      this.grocyService.getMealPlanForDate(today),
-      this.grocyService.getMealPlanSections(),
+      this.grocyMealPlanService.getMealPlanForDate(today),
+      this.grocyMealPlanService.getMealPlanSections(),
     ]);
 
     // Build section lookup map
@@ -59,7 +65,9 @@ export class GrocyController {
       mealPlan.map(async (meal: any) => {
         const section_name = sectionMap.get(meal.section_id) || null;
         if (meal.recipe_id) {
-          const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          const recipe = await this.grocyRecipeService.getRecipe(
+            meal.recipe_id,
+          );
           if (recipe.picture_file_name) {
             recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
           }
@@ -83,8 +91,8 @@ export class GrocyController {
   @Get('meal-plan/date/:date')
   async getMealPlanByDate(@Param('date') date: string) {
     const [mealPlan, sections] = await Promise.all([
-      this.grocyService.getMealPlanForDate(date),
-      this.grocyService.getMealPlanSections(),
+      this.grocyMealPlanService.getMealPlanForDate(date),
+      this.grocyMealPlanService.getMealPlanSections(),
     ]);
 
     // Build section lookup map
@@ -94,7 +102,9 @@ export class GrocyController {
       mealPlan.map(async (meal: any) => {
         const section_name = sectionMap.get(meal.section_id) || null;
         if (meal.recipe_id) {
-          const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          const recipe = await this.grocyRecipeService.getRecipe(
+            meal.recipe_id,
+          );
           if (recipe.picture_file_name) {
             recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
           }
@@ -121,8 +131,8 @@ export class GrocyController {
     @Param('endDate') endDate: string,
   ) {
     const [mealPlan, sections] = await Promise.all([
-      this.grocyService.getMealPlanForDateRange(startDate, endDate),
-      this.grocyService.getMealPlanSections(),
+      this.grocyMealPlanService.getMealPlanForDateRange(startDate, endDate),
+      this.grocyMealPlanService.getMealPlanSections(),
     ]);
 
     // Build section lookup map
@@ -132,7 +142,9 @@ export class GrocyController {
       mealPlan.map(async (meal: any) => {
         const section_name = sectionMap.get(meal.section_id) || null;
         if (meal.recipe_id) {
-          const recipe = await this.grocyService.getRecipe(meal.recipe_id);
+          const recipe = await this.grocyRecipeService.getRecipe(
+            meal.recipe_id,
+          );
           if (recipe.picture_file_name) {
             recipe.picture_url = `/grocy/recipes/${meal.recipe_id}/picture`;
           }
@@ -230,7 +242,10 @@ export class GrocyController {
     @Body() body: { done: boolean },
   ): Promise<{ success: boolean }> {
     this.logger.log(`Updating meal plan item ${id} done status`);
-    await this.grocyService.updateMealPlanItemDone(parseInt(id, 10), body.done);
+    await this.grocyMealPlanService.updateMealPlanItemDone(
+      parseInt(id, 10),
+      body.done,
+    );
     return { success: true };
   }
 
@@ -245,7 +260,7 @@ export class GrocyController {
     @Body() body: ConsumeRecipeRequest,
   ): Promise<{ success: boolean }> {
     this.logger.log(`Consuming recipe ${recipeId}`);
-    await this.grocyService.consumeRecipe(
+    await this.grocyRecipeService.consumeRecipe(
       parseInt(recipeId, 10),
       body.servings,
     );
@@ -299,7 +314,7 @@ export class GrocyController {
   @UseGuards(JwtAuthGuard)
   @Get('recipes/selection')
   async getRecipesForSelection(): Promise<RecipeSelectionItem[]> {
-    return this.grocyService.getRecipesForSelection();
+    return this.grocyRecipeService.getRecipesForSelection();
   }
 
   /**
@@ -309,7 +324,7 @@ export class GrocyController {
   @UseGuards(JwtAuthGuard)
   @Get('meal-plan/sections')
   async getMealPlanSections() {
-    return this.grocyService.getMealPlanSections();
+    return this.grocyMealPlanService.getMealPlanSections();
   }
 
   /**
@@ -323,8 +338,8 @@ export class GrocyController {
     items: EnrichedShoppingListItem[];
   }> {
     const [lists, items] = await Promise.all([
-      this.grocyService.getShoppingLists(),
-      this.grocyService.getEnrichedShoppingListItems(),
+      this.grocyShoppingService.getShoppingLists(),
+      this.grocyShoppingService.getEnrichedShoppingListItems(),
     ]);
 
     return { lists, items };
@@ -340,7 +355,7 @@ export class GrocyController {
     @Param('itemId') itemId: string,
     @Body() body: { done: boolean },
   ): Promise<{ success: boolean }> {
-    await this.grocyService.updateShoppingListItemDone(
+    await this.grocyShoppingService.updateShoppingListItemDone(
       parseInt(itemId, 10),
       body.done,
     );
@@ -362,7 +377,10 @@ export class GrocyController {
       `Generating smart shopping list for meal plan: ${startDate} to ${endDate}`,
     );
 
-    return this.grocyService.generateSmartShoppingList(startDate, endDate);
+    return this.grocyShoppingService.generateSmartShoppingList(
+      startDate,
+      endDate,
+    );
   }
 
   /**
@@ -375,7 +393,7 @@ export class GrocyController {
     @Body() body: AddItemsToShoppingListRequest,
   ): Promise<{ added: number; failed: number }> {
     this.logger.log(`Adding ${body.items.length} items to Grocy shopping list`);
-    return this.grocyService.addItemsToShoppingList(body.items);
+    return this.grocyShoppingService.addItemsToShoppingList(body.items);
   }
 
   /**
@@ -388,7 +406,9 @@ export class GrocyController {
     @Body() body: { listId?: number },
   ): Promise<{ success: boolean }> {
     this.logger.log('Adding products below min stock to shopping list');
-    await this.grocyService.addMissingProductsToShoppingList(body.listId);
+    await this.grocyShoppingService.addMissingProductsToShoppingList(
+      body.listId,
+    );
     return { success: true };
   }
 
@@ -429,7 +449,7 @@ export class GrocyController {
    */
   @Get('test/meal-plan')
   async getMealPlan() {
-    return this.grocyService.getMealPlan();
+    return this.grocyMealPlanService.getMealPlan();
   }
 
   /**
@@ -437,7 +457,7 @@ export class GrocyController {
    */
   @Get('test/meal-plan/:date')
   async getMealPlanForDate(@Param('date') date: string) {
-    return this.grocyService.getMealPlanForDate(date);
+    return this.grocyMealPlanService.getMealPlanForDate(date);
   }
 
   /**
@@ -445,7 +465,7 @@ export class GrocyController {
    */
   @Get('test/recipes')
   async getRecipes() {
-    return this.grocyService.getRecipes();
+    return this.grocyRecipeService.getRecipes();
   }
 
   /**
@@ -453,7 +473,7 @@ export class GrocyController {
    */
   @Get('test/recipes/:recipeId')
   async getRecipe(@Param('recipeId') recipeId: string) {
-    return this.grocyService.getRecipe(parseInt(recipeId, 10));
+    return this.grocyRecipeService.getRecipe(parseInt(recipeId, 10));
   }
 
   /**
@@ -461,7 +481,7 @@ export class GrocyController {
    */
   @Get('test/recipes/:recipeId/ingredients')
   async getRecipeIngredients(@Param('recipeId') recipeId: string) {
-    const ingredients = await this.grocyService.getRecipeIngredients();
+    const ingredients = await this.grocyRecipeService.getRecipeIngredients();
     const recipeIdNum = parseInt(recipeId, 10);
     return ingredients.filter((i) => i.recipe_id === recipeIdNum);
   }
@@ -471,7 +491,7 @@ export class GrocyController {
    */
   @Get('test/homemade-products')
   async getHomemadeProducts() {
-    return this.grocyService.getHomemadeProducts();
+    return this.grocyRecipeService.getHomemadeProducts();
   }
 
   /**
@@ -482,7 +502,10 @@ export class GrocyController {
     @Param('startDate') startDate: string,
     @Param('endDate') endDate: string,
   ) {
-    return this.grocyService.generateSmartShoppingList(startDate, endDate);
+    return this.grocyShoppingService.generateSmartShoppingList(
+      startDate,
+      endDate,
+    );
   }
 
   /**
@@ -490,7 +513,7 @@ export class GrocyController {
    */
   @Get('test/recipe-nestings')
   async getRecipeNestings() {
-    return this.grocyService.getRecipeNestings();
+    return this.grocyRecipeService.getRecipeNestings();
   }
 
   /**
@@ -498,7 +521,7 @@ export class GrocyController {
    */
   @Get('test/sections')
   async getTestSections() {
-    return this.grocyService.getMealPlanSections();
+    return this.grocyMealPlanService.getMealPlanSections();
   }
 
   /**
@@ -528,16 +551,19 @@ export class GrocyController {
     @Res() res: Response,
   ) {
     try {
-      const recipe = await this.grocyService.getRecipe(parseInt(recipeId, 10));
+      const recipe = await this.grocyRecipeService.getRecipe(
+        parseInt(recipeId, 10),
+      );
 
       if (!recipe.picture_file_name) {
         res.status(404).send('No picture available');
         return;
       }
 
-      const { data, contentType } = await this.grocyService.getRecipePicture(
-        recipe.picture_file_name,
-      );
+      const { data, contentType } =
+        await this.grocyRecipeService.getRecipePicture(
+          recipe.picture_file_name,
+        );
 
       res.set('Content-Type', contentType);
       res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
