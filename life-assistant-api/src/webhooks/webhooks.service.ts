@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { WrikeService } from '../wrike/wrike.service';
-import { ClickUpService } from '../clickup/clickup.service';
-import { SyncService } from '../sync/sync.service';
-import { GrocyService } from '../grocy/grocy.service';
-import { getTodayString } from '../utils/date';
+import { WrikeService } from '@wrike/wrike.service';
+import { ClickUpService } from '@clickup/clickup.service';
+import { SyncService } from '@sync/sync.service';
+import { GrocyService } from '@grocy/grocy.service';
+import { getTodayString } from '@utils/date';
 
 export interface WebhookStatusItem {
   id: string;

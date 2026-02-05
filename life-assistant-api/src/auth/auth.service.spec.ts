@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
-import { User } from '../database/entities/user.entity';
+import { User } from '@database/entities/user.entity';
 
 describe('AuthService', () => {
   let service: AuthService;

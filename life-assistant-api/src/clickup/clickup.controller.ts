@@ -14,7 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
 import { ClickUpStatsService } from './clickup-stats.service';
 import { ClickUpTasksService } from './clickup-tasks.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@auth/guards/jwt-auth.guard';
 
 @Controller('clickup')
 export class ClickUpController {

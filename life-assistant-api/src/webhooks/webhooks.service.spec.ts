@@ -1,14 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { WebhooksService } from './webhooks.service';
-import { WrikeService } from '../wrike/wrike.service';
-import { ClickUpService } from '../clickup/clickup.service';
-import { SyncService } from '../sync/sync.service';
-import { GrocyService } from '../grocy/grocy.service';
-import {
-  WrikeTask,
-  WrikeWebhooksResponse,
-} from '../wrike/types/wrike-api.types';
+import { WrikeService } from '@wrike/wrike.service';
+import { ClickUpService } from '@clickup/clickup.service';
+import { SyncService } from '@sync/sync.service';
+import { GrocyService } from '@grocy/grocy.service';
+import { WrikeTask, WrikeWebhooksResponse } from '@wrike/types/wrike-api.types';
 
 describe('WebhooksService', () => {
   let service: WebhooksService;

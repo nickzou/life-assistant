@@ -7,7 +7,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { User } from '../database/entities/user.entity';
+import { User } from '@database/entities/user.entity';
 
 @Module({
   imports: [

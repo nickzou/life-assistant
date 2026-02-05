@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ClickUpService } from './clickup.service';
-import { getNowInTimezone, formatDateString } from '../utils/date';
+import { getNowInTimezone, formatDateString } from '@utils/date';
 import {
   filterExcludedStatuses,
   countAffirmativeCompletions,
   calculateCompletionRate,
   isTaskCompleted,
-} from '../utils/completion-stats';
+} from '@utils/completion-stats';
 
 export interface DayStats {
   date: string;

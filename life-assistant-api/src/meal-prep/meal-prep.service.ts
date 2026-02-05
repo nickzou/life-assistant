@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { RecipePrepConfig } from '../database/entities/recipe-prep-config.entity';
-import { MealPlanTaskMapping } from '../database/entities/meal-plan-task-mapping.entity';
-import { ClickUpService } from '../clickup/clickup.service';
-import { GrocyService } from '../grocy/grocy.service';
-import { CreateMealPlanItemDto, MealPlanItem } from '../grocy/grocy.types';
+import { RecipePrepConfig } from '@database/entities/recipe-prep-config.entity';
+import { MealPlanTaskMapping } from '@database/entities/meal-plan-task-mapping.entity';
+import { ClickUpService } from '@clickup/clickup.service';
+import { GrocyService } from '@grocy/grocy.service';
+import { CreateMealPlanItemDto, MealPlanItem } from '@grocy/grocy.types';
 
 export interface CreateMealWithTasksResult {
   mealPlanItem: MealPlanItem;

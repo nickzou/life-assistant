@@ -13,9 +13,9 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { GrocyService } from './grocy.service';
-import { MealPrepService } from '../meal-prep/meal-prep.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { getTodayString } from '../utils/date';
+import { MealPrepService } from '@meal-prep/meal-prep.service';
+import { JwtAuthGuard } from '@auth/guards/jwt-auth.guard';
+import { getTodayString } from '@utils/date';
 import {
   GenerateShoppingListRequest,
   EnrichedShoppingListItem,
@@ -27,7 +27,7 @@ import {
   ConsumeRecipeRequest,
   MealPlanItem,
 } from './grocy.types';
-import { RecipePrepConfig } from '../database/entities/recipe-prep-config.entity';
+import { RecipePrepConfig } from '@database/entities/recipe-prep-config.entity';
 
 @Controller('grocy')
 export class GrocyController {

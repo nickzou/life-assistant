@@ -2,10 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { MealPrepService } from './meal-prep.service';
-import { RecipePrepConfig } from '../database/entities/recipe-prep-config.entity';
-import { MealPlanTaskMapping } from '../database/entities/meal-plan-task-mapping.entity';
-import { ClickUpService } from '../clickup/clickup.service';
-import { GrocyService } from '../grocy/grocy.service';
+import { RecipePrepConfig } from '@database/entities/recipe-prep-config.entity';
+import { MealPlanTaskMapping } from '@database/entities/meal-plan-task-mapping.entity';
+import { ClickUpService } from '@clickup/clickup.service';
+import { GrocyService } from '@grocy/grocy.service';
 
 describe('MealPrepService', () => {
   let service: MealPrepService;

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WrikeService } from './wrike.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@auth/guards/jwt-auth.guard';
 
 @Controller('wrike')
 export class WrikeController {

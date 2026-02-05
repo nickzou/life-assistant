@@ -2,8 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../database/entities/user.entity';
-import { AuthService } from '../auth/auth.service';
+import { User } from '@database/entities/user.entity';
+import { AuthService } from '@auth/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({

@@ -83,6 +83,18 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^@auth/(.*)$": "<rootDir>/auth/$1",
+      "^@clickup/(.*)$": "<rootDir>/clickup/$1",
+      "^@database/(.*)$": "<rootDir>/database/$1",
+      "^@grocy/(.*)$": "<rootDir>/grocy/$1",
+      "^@meal-prep/(.*)$": "<rootDir>/meal-prep/$1",
+      "^@sync/(.*)$": "<rootDir>/sync/$1",
+      "^@utils/(.*)$": "<rootDir>/utils/$1",
+      "^@webhooks/(.*)$": "<rootDir>/webhooks/$1",
+      "^@wrike/(.*)$": "<rootDir>/wrike/$1"
+    }
   }
 }
