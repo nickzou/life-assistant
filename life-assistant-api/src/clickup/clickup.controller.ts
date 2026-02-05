@@ -8,6 +8,8 @@ import {
   Logger,
   Param,
   UseGuards,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
@@ -239,10 +241,15 @@ export class ClickUpController {
   async getStatuses() {
     const listId = this.configService.get<string>('CLICKUP_LIST_ID');
     if (!listId) {
-      throw new Error('CLICKUP_LIST_ID not configured');
+      throw new BadRequestException('CLICKUP_LIST_ID not configured');
     }
-    const list = await this.clickUpService.getList(listId);
-    return { statuses: list.statuses || [] };
+    try {
+      const list = await this.clickUpService.getList(listId);
+      return { statuses: list.statuses || [] };
+    } catch (error) {
+      this.logger.error('Failed to fetch statuses:', error.message);
+      throw new InternalServerErrorException('Failed to fetch statuses from ClickUp');
+    }
   }
 
   /**
@@ -262,8 +269,13 @@ export class ClickUpController {
     if (body.due_date !== undefined) {
       taskData.due_date = body.due_date ? body.due_date.toString() : null;
     }
-    const updatedTask = await this.clickUpService.updateTask(taskId, taskData);
-    return { success: true, task: updatedTask };
+    try {
+      const updatedTask = await this.clickUpService.updateTask(taskId, taskData);
+      return { success: true, task: updatedTask };
+    } catch (error) {
+      this.logger.error(`Failed to update task ${taskId}:`, error.message);
+      throw new InternalServerErrorException('Failed to update task in ClickUp');
+    }
   }
 
   /**
