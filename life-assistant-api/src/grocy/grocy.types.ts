@@ -111,6 +111,8 @@ export interface Recipe {
   desired_servings: number;
   product_id?: number;
   type?: string; // 'normal' for real recipes, 'mealplan-day'/'mealplan-week'/'mealplan-shadow' for internal entries
+  picture_file_name?: string;
+  picture_url?: string; // Added dynamically by controller
 }
 
 /**
