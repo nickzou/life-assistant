@@ -1,8 +1,4 @@
-import {
-  getTimeOfDayOrder,
-  sortByTimeOfDay,
-  TaskWithTimeOfDay,
-} from './task-sorting.utils';
+import { getTimeOfDayOrder, sortByTimeOfDay, TaskWithTimeOfDay } from './index';
 
 describe('task-sorting.utils', () => {
   describe('getTimeOfDayOrder', () => {
@@ -90,8 +86,16 @@ describe('task-sorting.utils', () => {
       }
 
       const tasks: ExtendedTask[] = [
-        { id: '1', name: 'Task 1', timeOfDay: { name: 'evening', color: '#ff0' } },
-        { id: '2', name: 'Task 2', timeOfDay: { name: 'morning', color: '#ff0' } },
+        {
+          id: '1',
+          name: 'Task 1',
+          timeOfDay: { name: 'evening', color: '#ff0' },
+        },
+        {
+          id: '2',
+          name: 'Task 2',
+          timeOfDay: { name: 'morning', color: '#ff0' },
+        },
       ];
 
       const result = sortByTimeOfDay(tasks);

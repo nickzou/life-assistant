@@ -2,7 +2,7 @@
  * Utility functions for mapping ClickUp tasks to internal formats
  */
 
-import { TIME_OF_DAY_FIELD_NAME } from './constants';
+import { TIME_OF_DAY_FIELD_NAME } from '../constants';
 
 export interface TaskItem {
   id: string;

@@ -4,7 +4,7 @@ import {
   calculateCompletionRate,
   isTaskCompleted,
   TaskWithStatus,
-} from './completion-stats.utils';
+} from './index';
 
 describe('completion-stats.utils', () => {
   describe('filterExcludedStatuses', () => {

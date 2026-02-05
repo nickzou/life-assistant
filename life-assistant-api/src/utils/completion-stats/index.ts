@@ -2,7 +2,7 @@
  * Utility functions for calculating task completion statistics
  */
 
-import { AFFIRMATIVE_STATUSES, EXCLUDED_STATUSES } from './constants';
+import { AFFIRMATIVE_STATUSES, EXCLUDED_STATUSES } from '../constants';
 
 export interface TaskWithStatus {
   status?: {

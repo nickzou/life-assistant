@@ -15,7 +15,7 @@ import type { Response } from 'express';
 import { GrocyService } from './grocy.service';
 import { MealPrepService } from '../meal-prep/meal-prep.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { getTodayString } from '../utils/date.utils';
+import { getTodayString } from '../utils/date';
 import {
   GenerateShoppingListRequest,
   EnrichedShoppingListItem,

@@ -2,7 +2,7 @@
  * Utility functions for sorting tasks
  */
 
-import { TIME_OF_DAY_ORDER, DEFAULT_TIME_OF_DAY_ORDER } from './constants';
+import { TIME_OF_DAY_ORDER, DEFAULT_TIME_OF_DAY_ORDER } from '../constants';
 
 export interface TaskWithTimeOfDay {
   timeOfDay: {

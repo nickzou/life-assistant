@@ -1,15 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ClickUpService } from './clickup.service';
-import { getNowInTimezone } from '../utils/date.utils';
-import { sortByTimeOfDay } from '../utils/task-sorting.utils';
-import {
-  TaskItem,
-  ClickUpTask,
-  mapTaskToItem,
-} from '../utils/task-mappers.utils';
+import { getNowInTimezone } from '../utils/date';
+import { sortByTimeOfDay } from '../utils/task-sorting';
+import { TaskItem, ClickUpTask, mapTaskToItem } from '../utils/task-mappers';
 
 // Re-export TaskItem for consumers
-export { TaskItem } from '../utils/task-mappers.utils';
+export { TaskItem } from '../utils/task-mappers';
 
 export interface TodayTasksResponse {
   tasks: TaskItem[];

@@ -1,8 +1,4 @@
-import {
-  extractTimeOfDay,
-  mapTaskToItem,
-  ClickUpTask,
-} from './task-mappers.utils';
+import { extractTimeOfDay, mapTaskToItem, ClickUpTask } from './index';
 
 describe('task-mappers.utils', () => {
   describe('extractTimeOfDay', () => {
