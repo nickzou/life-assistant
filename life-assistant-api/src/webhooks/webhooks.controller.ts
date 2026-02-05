@@ -11,13 +11,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
+import { WrikeWebhookHandlerService } from './wrike-webhook-handler.service';
+import { ClickUpWebhookHandlerService } from './clickup-webhook-handler.service';
 import { JwtAuthGuard } from '@auth/guards/jwt-auth.guard';
 
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 
-  constructor(private readonly webhooksService: WebhooksService) {}
+  constructor(
+    private readonly webhooksService: WebhooksService,
+    private readonly wrikeWebhookHandler: WrikeWebhookHandlerService,
+    private readonly clickUpWebhookHandler: ClickUpWebhookHandlerService,
+  ) {}
 
   /**
    * Get status of all registered webhooks
@@ -56,7 +62,7 @@ export class WebhooksController {
     this.logger.debug('Headers:', JSON.stringify(headers, null, 2));
 
     try {
-      await this.webhooksService.handleWrikeWebhook(body);
+      await this.wrikeWebhookHandler.handleWrikeWebhook(body);
       return { success: true };
     } catch (error) {
       this.logger.error('Error processing Wrike webhook:', error.message);
@@ -75,7 +81,7 @@ export class WebhooksController {
     this.logger.debug('Headers:', JSON.stringify(headers, null, 2));
 
     try {
-      await this.webhooksService.handleClickUpWebhook(body);
+      await this.clickUpWebhookHandler.handleClickUpWebhook(body);
       return { success: true };
     } catch (error) {
       this.logger.error('Error processing ClickUp webhook:', error.message);
