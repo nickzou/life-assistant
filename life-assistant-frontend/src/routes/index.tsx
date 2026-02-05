@@ -92,13 +92,31 @@ function Index() {
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     setError(null)
+
+    // Optimistic update: immediately update UI
+    const previousTasksList = tasksList
+    if (tasksList) {
+      const updateTaskStatus = (tasks: TaskItem[]) =>
+        tasks.map((task) =>
+          task.id === taskId
+            ? { ...task, status: { ...task.status, status: newStatus } }
+            : task
+        )
+      setTasksList({
+        tasks: updateTaskStatus(tasksList.tasks),
+        overdueTasks: updateTaskStatus(tasksList.overdueTasks),
+      })
+    }
+
     try {
       await api.patch(`/clickup/tasks/${taskId}`, { status: newStatus })
       setSuccessMessage('Status updated')
-      // Refetch data to update the UI
-      await fetchData()
+      // Refetch to get the accurate status type/color from server
+      fetchData()
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch {
+      // Revert on failure
+      setTasksList(previousTasksList)
       setError('Failed to update status')
       throw new Error('Failed to update status') // Re-throw so dropdown knows it failed
     }
@@ -111,13 +129,33 @@ function Index() {
   const handleDueDateSave = async (dueDate: number | null) => {
     if (!dueDateModalTask) return
     setError(null)
+    const taskId = dueDateModalTask.id
+
+    // Optimistic update: immediately update UI
+    const previousTasksList = tasksList
+    if (tasksList) {
+      const newDueDate = dueDate ? new Date(dueDate).toISOString() : null
+      const updateTaskDueDate = (tasks: TaskItem[]) =>
+        tasks.map((task) =>
+          task.id === taskId
+            ? { ...task, dueDate: newDueDate }
+            : task
+        )
+      setTasksList({
+        tasks: updateTaskDueDate(tasksList.tasks),
+        overdueTasks: updateTaskDueDate(tasksList.overdueTasks),
+      })
+    }
+
     try {
-      await api.patch(`/clickup/tasks/${dueDateModalTask.id}`, { due_date: dueDate })
+      await api.patch(`/clickup/tasks/${taskId}`, { due_date: dueDate })
       setSuccessMessage('Due date updated')
-      // Refetch data to update the UI
-      await fetchData()
+      // Refetch to get the accurate data from server
+      fetchData()
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch {
+      // Revert on failure
+      setTasksList(previousTasksList)
       setError('Failed to update due date')
       throw new Error('Failed to update due date')
     }

@@ -136,10 +136,14 @@ test.describe('Home Page', () => {
     await expect(page.getByText('work').first()).toBeVisible()
   })
 
-  test('tasks are clickable links', async ({ page }) => {
-    const taskLink = page.getByRole('link', { name: /Complete project report/ })
-    await expect(taskLink).toHaveAttribute('href', 'https://example.com/task/1')
-    await expect(taskLink).toHaveAttribute('target', '_blank')
+  test('tasks have external link buttons', async ({ page }) => {
+    // Task names are no longer links - we use external link buttons instead
+    const externalLinks = page.getByTestId('external-link-button')
+    // Should have 4 external link buttons (1 overdue + 3 today's tasks)
+    await expect(externalLinks).toHaveCount(4)
+    // All should open in new tab
+    await expect(externalLinks.first()).toHaveAttribute('target', '_blank')
+    await expect(externalLinks.first()).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
   test('filters tasks by All', async ({ page }) => {

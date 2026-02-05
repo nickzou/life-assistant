@@ -176,8 +176,8 @@ test.describe('Task Mutations', () => {
 
       await expect(page.getByTestId('status-dropdown-menu')).toBeVisible()
 
-      // Click outside the dropdown
-      await page.getByText('Life Assistant').click()
+      // Click outside the dropdown - use the heading specifically
+      await page.getByRole('heading', { name: 'Life Assistant' }).click()
 
       await expect(page.getByTestId('status-dropdown-menu')).not.toBeVisible()
     })
