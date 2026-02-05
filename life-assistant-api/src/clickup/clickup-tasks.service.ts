@@ -37,9 +37,9 @@ export class ClickUpTasksService {
   // Sort order for Time of Day values
   private readonly TIME_OF_DAY_ORDER: Record<string, number> = {
     'early morning': 1,
-    'morning': 2,
+    morning: 2,
     'mid day': 3,
-    'evening': 4,
+    evening: 4,
     'before bed': 5,
   };
 
@@ -127,7 +127,9 @@ export class ClickUpTasksService {
           const task = await this.clickUpService.getTask(id);
           return { id, name: task.name };
         } catch (error) {
-          this.logger.warn(`Failed to fetch parent task ${id}: ${error.message}`);
+          this.logger.warn(
+            `Failed to fetch parent task ${id}: ${error.message}`,
+          );
           return { id, name: null };
         }
       }),
@@ -166,13 +168,15 @@ export class ClickUpTasksService {
   ): TaskItem {
     // Find Time of Day custom field
     const timeOfDayField = task.custom_fields?.find(
-      (field: any) =>
-        field.name?.toLowerCase() === this.TIME_OF_DAY_FIELD_NAME,
+      (field: any) => field.name?.toLowerCase() === this.TIME_OF_DAY_FIELD_NAME,
     );
 
     // Get the selected option name and color for dropdown fields
     let timeOfDay: { name: string; color: string } | null = null;
-    if (timeOfDayField?.value !== undefined && timeOfDayField.type_config?.options) {
+    if (
+      timeOfDayField?.value !== undefined &&
+      timeOfDayField.type_config?.options
+    ) {
       const selectedOption = timeOfDayField.type_config.options.find(
         (opt: any) => opt.orderindex === timeOfDayField.value,
       );

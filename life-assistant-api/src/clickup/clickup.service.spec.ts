@@ -45,11 +45,7 @@ describe('ClickUpService', () => {
         data: { tasks: [{ id: '1' }, { id: '2' }] },
       });
 
-      const result = await service.getTasksByDateRange(
-        workspaceId,
-        1000,
-        2000,
-      );
+      const result = await service.getTasksByDateRange(workspaceId, 1000, 2000);
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         `/team/${workspaceId}/task`,
@@ -89,11 +85,7 @@ describe('ClickUpService', () => {
         data: {},
       });
 
-      const result = await service.getTasksByDateRange(
-        workspaceId,
-        1000,
-        2000,
-      );
+      const result = await service.getTasksByDateRange(workspaceId, 1000, 2000);
 
       expect(result).toEqual([]);
     });
