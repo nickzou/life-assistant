@@ -1,4 +1,4 @@
-import { StatusDropdown, type ClickUpStatus } from './StatusDropdown'
+import { StatusDropdown, type ClickUpStatus } from '../StatusDropdown'
 
 export type TaskItem = {
   id: string

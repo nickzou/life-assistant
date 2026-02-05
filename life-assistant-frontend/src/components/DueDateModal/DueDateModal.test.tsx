@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { DueDateModal } from './DueDateModal'
+import { DueDateModal } from '.'
 
 describe('DueDateModal', () => {
   let onSave: ReturnType<typeof vi.fn>

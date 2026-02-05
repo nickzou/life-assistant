@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { StatusDropdown, type ClickUpStatus } from './StatusDropdown'
+import { StatusDropdown, type ClickUpStatus } from '.'
 
 const mockStatuses: ClickUpStatus[] = [
   { id: '1', status: 'To Do', type: 'open', color: '#95a5a6', orderindex: 0 },

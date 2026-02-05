@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TaskCard, type TaskItem } from './TaskCard'
-import type { ClickUpStatus } from './StatusDropdown'
+import { TaskCard, type TaskItem } from '.'
+import type { ClickUpStatus } from '../StatusDropdown'
 
 const createTask = (overrides: Partial<TaskItem> = {}): TaskItem => ({
   id: '1',

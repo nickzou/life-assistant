@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { ProtectedRoute } from './ProtectedRoute'
-import type { AuthContextType } from '../contexts/AuthContext'
-import { AuthContext } from '../contexts/AuthContext'
+import { ProtectedRoute } from '.'
+import type { AuthContextType } from '../../contexts/AuthContext'
+import { AuthContext } from '../../contexts/AuthContext'
 
 // Mock TanStack Router's Navigate component
 vi.mock('@tanstack/react-router', () => ({
