@@ -7,6 +7,15 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^@/(.*)$": "<rootDir>/src/$1"
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@auth/(.*)$": "<rootDir>/src/auth/$1",
+    "^@clickup/(.*)$": "<rootDir>/src/clickup/$1",
+    "^@database/(.*)$": "<rootDir>/src/database/$1",
+    "^@grocy/(.*)$": "<rootDir>/src/grocy/$1",
+    "^@meal-prep/(.*)$": "<rootDir>/src/meal-prep/$1",
+    "^@sync/(.*)$": "<rootDir>/src/sync/$1",
+    "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+    "^@webhooks/(.*)$": "<rootDir>/src/webhooks/$1",
+    "^@wrike/(.*)$": "<rootDir>/src/wrike/$1"
   }
 }
