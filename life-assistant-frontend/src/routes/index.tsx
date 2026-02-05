@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { PageContainer } from '../components/PageContainer'
 import { Accordion } from '../components/Accordion'
@@ -35,12 +35,34 @@ type TaskFilter = 'all' | 'work' | 'personal'
 function Index() {
   const [stats, setStats] = useState<TasksDueToday | null>(null)
   const [tasksList, setTasksList] = useState<TasksListResponse | null>(null)
-  const [availableStatuses, setAvailableStatuses] = useState<ClickUpStatus[]>([])
+  const [statusesByListId, setStatusesByListId] = useState<Record<string, ClickUpStatus[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<TaskFilter>('all')
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [dueDateModalTask, setDueDateModalTask] = useState<TaskItem | null>(null)
+
+  // Track which lists we've already fetched or are fetching
+  const fetchedListIds = useRef<Set<string>>(new Set())
+
+  const fetchStatusesForLists = useCallback(async (listIds: string[]) => {
+    // Filter out lists we've already fetched or are fetching
+    const newListIds = listIds.filter(id => id && !fetchedListIds.current.has(id))
+    if (newListIds.length === 0) return
+
+    // Mark these as being fetched
+    newListIds.forEach(id => fetchedListIds.current.add(id))
+
+    // Fetch sequentially to avoid rate limits
+    for (const listId of newListIds) {
+      try {
+        const response = await api.get<StatusesResponse>(`/clickup/statuses/${listId}`)
+        setStatusesByListId(prev => ({ ...prev, [listId]: response.data.statuses }))
+      } catch {
+        console.error(`Failed to fetch statuses for list ${listId}`)
+      }
+    }
+  }, [])
 
   const fetchData = useCallback(async () => {
     try {
@@ -50,27 +72,23 @@ function Index() {
       ])
       setStats(statsResponse.data)
       setTasksList(tasksResponse.data)
+
+      // Extract unique listIds and fetch statuses for each
+      const allTasks = [...tasksResponse.data.tasks, ...tasksResponse.data.overdueTasks]
+      const uniqueListIds = [...new Set(allTasks.map(t => t.listId).filter(Boolean))]
+
+      // Fetch statuses sequentially to avoid rate limits
+      fetchStatusesForLists(uniqueListIds)
     } catch {
       setError('Failed to fetch tasks')
     } finally {
       setLoading(false)
     }
-  }, [])
-
-  const fetchStatuses = useCallback(async () => {
-    try {
-      const response = await api.get<StatusesResponse>('/clickup/statuses')
-      setAvailableStatuses(response.data.statuses)
-    } catch {
-      // Statuses are optional - don't show error if this fails
-      console.error('Failed to fetch statuses')
-    }
-  }, [])
+  }, [fetchStatusesForLists])
 
   useEffect(() => {
     fetchData()
-    fetchStatuses()
-  }, [fetchData, fetchStatuses])
+  }, [fetchData])
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     setError(null)
@@ -209,7 +227,7 @@ function Index() {
                     <TaskCard
                       key={task.id}
                       task={task}
-                      availableStatuses={availableStatuses}
+                      availableStatuses={statusesByListId[task.listId] || []}
                       onStatusChange={handleStatusChange}
                       onDueDateChange={handleDueDateChange}
                     />
@@ -229,7 +247,7 @@ function Index() {
                     <TaskCard
                       key={task.id}
                       task={task}
-                      availableStatuses={availableStatuses}
+                      availableStatuses={statusesByListId[task.listId] || []}
                       onStatusChange={handleStatusChange}
                       onDueDateChange={handleDueDateChange}
                     />

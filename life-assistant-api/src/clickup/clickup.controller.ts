@@ -233,18 +233,17 @@ export class ClickUpController {
   }
 
   /**
-   * Get available statuses for the configured list
-   * GET /clickup/statuses
+   * Get available statuses for a specific list
+   * GET /clickup/statuses/:listId
    */
   @UseGuards(JwtAuthGuard)
-  @Get('statuses')
-  async getStatuses() {
-    const listId = this.configService.get<string>('CLICKUP_LIST_ID');
-    if (!listId) {
-      throw new BadRequestException('CLICKUP_LIST_ID not configured');
-    }
+  @Get('statuses/:listId')
+  async getStatusesForList(@Param('listId') listId: string) {
     try {
       const list = await this.clickUpService.getList(listId);
+      this.logger.log(
+        `Statuses from list ${listId}: ${JSON.stringify(list.statuses?.map((s: any) => s.status))}`,
+      );
       return { statuses: list.statuses || [] };
     } catch (error) {
       this.logger.error('Failed to fetch statuses:', error.message);

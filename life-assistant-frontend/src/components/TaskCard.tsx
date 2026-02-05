@@ -4,6 +4,7 @@ export type TaskItem = {
   id: string
   name: string
   parentName: string | null
+  listId: string
   status: {
     status: string
     type: string

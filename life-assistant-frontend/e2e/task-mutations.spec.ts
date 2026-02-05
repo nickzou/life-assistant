@@ -13,6 +13,7 @@ const mockTasks = {
       id: '1',
       name: 'Complete project report',
       parentName: 'Project Alpha',
+      listId: 'list-123',
       status: { status: 'In Progress', type: 'active', color: '#3498db' },
       dueDate: '2026-02-04T14:00:00',
       hasDueTime: true,
@@ -24,6 +25,7 @@ const mockTasks = {
       id: '2',
       name: 'Buy groceries',
       parentName: null,
+      listId: 'list-123',
       status: { status: 'To Do', type: 'open', color: '#95a5a6' },
       dueDate: null,
       hasDueTime: false,
@@ -67,7 +69,7 @@ test.describe('Task Mutations', () => {
       await route.fulfill({ status: 200, json: mockTasks })
     })
 
-    await page.route('**/clickup/statuses', async (route) => {
+    await page.route('**/clickup/statuses/*', async (route) => {
       await route.fulfill({ status: 200, json: { statuses: mockStatuses } })
     })
   })

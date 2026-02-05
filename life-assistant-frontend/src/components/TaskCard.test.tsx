@@ -7,6 +7,7 @@ const createTask = (overrides: Partial<TaskItem> = {}): TaskItem => ({
   id: '1',
   name: 'Test Task',
   parentName: null,
+  listId: 'list-123',
   status: {
     status: 'In Progress',
     type: 'active',

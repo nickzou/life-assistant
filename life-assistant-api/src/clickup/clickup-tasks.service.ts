@@ -6,6 +6,7 @@ export interface TaskItem {
   id: string;
   name: string;
   parentName: string | null;
+  listId: string;
   status: {
     status: string;
     type: string;
@@ -187,6 +188,7 @@ export class ClickUpTasksService {
       id: task.id,
       name: task.name,
       parentName: task.parent ? parentNames.get(task.parent) || null : null,
+      listId: task.list?.id || '',
       status: {
         status: task.status?.status || 'unknown',
         type: task.status?.type || 'unknown',

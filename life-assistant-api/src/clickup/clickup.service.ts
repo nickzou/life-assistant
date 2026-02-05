@@ -221,6 +221,7 @@ export class ClickUpService implements OnModuleInit {
   async updateTask(taskId: string, taskData: any): Promise<any> {
     try {
       this.logger.log(`Updating ClickUp task: ${taskId}`);
+      this.logger.log(`Update data: ${JSON.stringify(taskData)}`);
       const response = await this.axiosInstance.put(
         `/task/${taskId}`,
         taskData,
@@ -228,6 +229,10 @@ export class ClickUpService implements OnModuleInit {
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to update task ${taskId}:`, error.message);
+      this.logger.error(
+        `ClickUp API error details:`,
+        JSON.stringify(error.response?.data),
+      );
       throw error;
     }
   }
