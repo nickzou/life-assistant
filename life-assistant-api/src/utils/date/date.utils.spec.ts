@@ -1,8 +1,4 @@
-import {
-  formatDateString,
-  getNowInTimezone,
-  getTodayString,
-} from './date.utils';
+import { formatDateString, getNowInTimezone, getTodayString } from './index';
 
 describe('date.utils', () => {
   describe('formatDateString', () => {

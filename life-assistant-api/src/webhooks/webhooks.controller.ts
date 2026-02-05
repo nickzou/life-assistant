@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@auth/guards/jwt-auth.guard';
 
 @Controller('webhooks')
 export class WebhooksController {

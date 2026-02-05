@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ClickUpService } from './clickup.service';
-import { getNowInTimezone, formatDateString } from '../utils/date.utils';
-
-// Affirmative completion statuses (green - actually completed)
-const AFFIRMATIVE_STATUSES = ['complete', 'completed', 'went', 'attended'];
-
-// Statuses to exclude from total count (still in progress, shouldn't count against rate)
-const EXCLUDED_STATUSES = ['in progress'];
+import { getNowInTimezone, formatDateString } from '@utils/date';
+import {
+  filterExcludedStatuses,
+  countAffirmativeCompletions,
+  calculateCompletionRate,
+  isTaskCompleted,
+} from '@utils/completion-stats';
 
 export interface DayStats {
   date: string;
@@ -63,10 +63,9 @@ export class ClickUpStatsService {
       { includeClosed: true },
     );
 
-    const filteredTasks = this.filterExcludedStatuses(tasks);
-    const affirmativeCompletions =
-      this.countAffirmativeCompletions(filteredTasks);
-    const completionRate = this.calculateCompletionRate(
+    const filteredTasks = filterExcludedStatuses(tasks);
+    const affirmativeCompletions = countAffirmativeCompletions(filteredTasks);
+    const completionRate = calculateCompletionRate(
       affirmativeCompletions,
       filteredTasks.length,
     );
@@ -134,16 +133,15 @@ export class ClickUpStatsService {
       this.clickUpService.getOverdueTasks(workspaceId, startOfDay.getTime()),
     ]);
 
-    const filteredTodayTasks = this.filterExcludedStatuses(todayTasks);
+    const filteredTodayTasks = filterExcludedStatuses(todayTasks);
 
-    const completed = filteredTodayTasks.filter(
-      (task: any) =>
-        task.status?.type === 'done' || task.status?.type === 'closed',
+    const completed = filteredTodayTasks.filter((task: any) =>
+      isTaskCompleted(task),
     ).length;
 
     const affirmativeCompletions =
-      this.countAffirmativeCompletions(filteredTodayTasks);
-    const completionRate = this.calculateCompletionRate(
+      countAffirmativeCompletions(filteredTodayTasks);
+    const completionRate = calculateCompletionRate(
       affirmativeCompletions,
       filteredTodayTasks.length,
     );
@@ -156,23 +154,5 @@ export class ClickUpStatsService {
       affirmativeCompletions,
       completionRate,
     };
-  }
-
-  // --- Pure helper functions ---
-
-  private filterExcludedStatuses(tasks: any[]): any[] {
-    return tasks.filter(
-      (task) => !EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
-    );
-  }
-
-  private countAffirmativeCompletions(tasks: any[]): number {
-    return tasks.filter((task) =>
-      AFFIRMATIVE_STATUSES.includes(task.status?.status?.toLowerCase()),
-    ).length;
-  }
-
-  private calculateCompletionRate(completed: number, total: number): number {
-    return total > 0 ? Math.round((completed / total) * 100) : 0;
   }
 }

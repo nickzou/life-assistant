@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WrikeService } from '../wrike/wrike.service';
-import { ClickUpService } from '../clickup/clickup.service';
-import { TaskMapping } from '../database/entities/task-mapping.entity';
-import { SyncLog } from '../database/entities/sync-log.entity';
-import { WrikeTask } from '../wrike/types/wrike-api.types';
+import { WrikeService } from '@wrike/wrike.service';
+import { ClickUpService } from '@clickup/clickup.service';
+import { TaskMapping } from '@database/entities/task-mapping.entity';
+import { SyncLog } from '@database/entities/sync-log.entity';
+import { WrikeTask } from '@wrike/types/wrike-api.types';
 
 @Injectable()
 export class SyncService {

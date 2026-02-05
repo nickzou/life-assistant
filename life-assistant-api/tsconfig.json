@@ -11,7 +11,16 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@auth/*": ["src/auth/*"],
+      "@clickup/*": ["src/clickup/*"],
+      "@database/*": ["src/database/*"],
+      "@grocy/*": ["src/grocy/*"],
+      "@meal-prep/*": ["src/meal-prep/*"],
+      "@sync/*": ["src/sync/*"],
+      "@utils/*": ["src/utils/*"],
+      "@webhooks/*": ["src/webhooks/*"],
+      "@wrike/*": ["src/wrike/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

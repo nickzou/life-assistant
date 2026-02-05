@@ -9,7 +9,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { User } from '../database/entities/user.entity';
+import { User } from '@database/entities/user.entity';
 
 class LoginDto {
   email: string;
