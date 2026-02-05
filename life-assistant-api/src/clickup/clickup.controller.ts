@@ -8,7 +8,6 @@ import {
   Logger,
   Param,
   UseGuards,
-  BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -247,7 +246,9 @@ export class ClickUpController {
       return { statuses: list.statuses || [] };
     } catch (error) {
       this.logger.error('Failed to fetch statuses:', error.message);
-      throw new InternalServerErrorException('Failed to fetch statuses from ClickUp');
+      throw new InternalServerErrorException(
+        'Failed to fetch statuses from ClickUp',
+      );
     }
   }
 
@@ -269,11 +270,16 @@ export class ClickUpController {
       taskData.due_date = body.due_date ? body.due_date.toString() : null;
     }
     try {
-      const updatedTask = await this.clickUpService.updateTask(taskId, taskData);
+      const updatedTask = await this.clickUpService.updateTask(
+        taskId,
+        taskData,
+      );
       return { success: true, task: updatedTask };
     } catch (error) {
       this.logger.error(`Failed to update task ${taskId}:`, error.message);
-      throw new InternalServerErrorException('Failed to update task in ClickUp');
+      throw new InternalServerErrorException(
+        'Failed to update task in ClickUp',
+      );
     }
   }
 
