@@ -253,7 +253,9 @@ function MealsPage() {
       await api.post(`/grocy/recipes/${meal.recipe_id}/consume`, {
         servings: meal.recipe_servings || 1,
       });
-      // Mark as done after successful consumption
+      // Mark as done in Grocy
+      await api.patch(`/grocy/meal-plan/${meal.id}/done`, { done: true });
+      // Also mark in local state
       markMealDone(meal.id);
       setSuccessMessage('Recipe consumed - ingredients deducted from stock');
       setTimeout(() => setSuccessMessage(null), 3000);
