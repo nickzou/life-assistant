@@ -61,10 +61,11 @@ export function TaskCard({
 
   return (
     <div
-      className="block p-3 sm:p-4 rounded-lg border transition-colors"
+      className="block p-3 sm:p-4 rounded-lg border"
       style={{
         backgroundColor: task.status.color + '10',
         borderColor: task.status.color + '40',
+        transition: 'background-color 200ms ease-in-out, border-color 200ms ease-in-out',
       }}
       data-testid="task-card"
     >
