@@ -6,6 +6,7 @@ const mockTasks = {
       id: '1',
       name: 'Complete project report',
       parentName: 'Project Alpha',
+      listId: 'list-123',
       status: { status: 'In Progress', type: 'active', color: '#3498db' },
       dueDate: null,
       hasDueTime: false,
@@ -17,6 +18,7 @@ const mockTasks = {
       id: '2',
       name: 'Buy groceries',
       parentName: null,
+      listId: 'list-123',
       status: { status: 'To Do', type: 'open', color: '#95a5a6' },
       dueDate: '2026-02-04T17:00:00',
       hasDueTime: true,
@@ -28,6 +30,7 @@ const mockTasks = {
       id: '3',
       name: 'Review PR',
       parentName: 'Project Beta',
+      listId: 'list-123',
       status: { status: 'Done', type: 'done', color: '#27ae60' },
       dueDate: null,
       hasDueTime: false,
@@ -41,6 +44,7 @@ const mockTasks = {
       id: '4',
       name: 'Pay bills',
       parentName: null,
+      listId: 'list-123',
       status: { status: 'To Do', type: 'open', color: '#e74c3c' },
       dueDate: '2026-02-03T23:59:00',
       hasDueTime: false,
@@ -81,6 +85,10 @@ test.describe('Home Page', () => {
 
     await page.route('**/clickup/tasks/today/list', async (route) => {
       await route.fulfill({ status: 200, json: mockTasks })
+    })
+
+    await page.route('**/clickup/statuses/*', async (route) => {
+      await route.fulfill({ status: 200, json: { statuses: [] } })
     })
 
     await page.goto('/')
@@ -128,10 +136,14 @@ test.describe('Home Page', () => {
     await expect(page.getByText('work').first()).toBeVisible()
   })
 
-  test('tasks are clickable links', async ({ page }) => {
-    const taskLink = page.getByRole('link', { name: /Complete project report/ })
-    await expect(taskLink).toHaveAttribute('href', 'https://example.com/task/1')
-    await expect(taskLink).toHaveAttribute('target', '_blank')
+  test('tasks have external link buttons', async ({ page }) => {
+    // Task names are no longer links - we use external link buttons instead
+    const externalLinks = page.getByTestId('external-link-button')
+    // Should have 4 external link buttons (1 overdue + 3 today's tasks)
+    await expect(externalLinks).toHaveCount(4)
+    // All should open in new tab
+    await expect(externalLinks.first()).toHaveAttribute('target', '_blank')
+    await expect(externalLinks.first()).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
   test('filters tasks by All', async ({ page }) => {

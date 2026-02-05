@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { PageContainer } from './PageContainer'
+import { PageContainer } from '.'
 
 describe('PageContainer', () => {
   it('renders children', () => {

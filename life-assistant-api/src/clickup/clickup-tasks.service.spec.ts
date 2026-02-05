@@ -87,6 +87,7 @@ describe('ClickUpTasksService', () => {
         id: 'task-123',
         name: 'Test Task',
         parentName: null,
+        listId: '',
         status: {
           status: 'in progress',
           type: 'open',

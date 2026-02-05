@@ -1,9 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { PageContainer } from '../components/PageContainer'
 import { Accordion } from '../components/Accordion'
 import { TaskCard, type TaskItem } from '../components/TaskCard'
+import { DueDateModal } from '../components/DueDateModal'
+import type { ClickUpStatus } from '../components/StatusDropdown'
 import { api } from '../lib/api'
 
 interface TasksDueToday {
@@ -20,6 +22,10 @@ interface TasksListResponse {
   overdueTasks: TaskItem[]
 }
 
+interface StatusesResponse {
+  statuses: ClickUpStatus[]
+}
+
 export const Route = createFileRoute('/')({
   component: Index,
 })
@@ -29,27 +35,131 @@ type TaskFilter = 'all' | 'work' | 'personal'
 function Index() {
   const [stats, setStats] = useState<TasksDueToday | null>(null)
   const [tasksList, setTasksList] = useState<TasksListResponse | null>(null)
+  const [statusesByListId, setStatusesByListId] = useState<Record<string, ClickUpStatus[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<TaskFilter>('all')
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [dueDateModalTask, setDueDateModalTask] = useState<TaskItem | null>(null)
 
-  useEffect(() => {
-    const fetchData = async () => {
+  // Track which lists we've already fetched or are fetching
+  const fetchedListIds = useRef<Set<string>>(new Set())
+
+  const fetchStatusesForLists = useCallback(async (listIds: string[]) => {
+    // Filter out lists we've already fetched or are fetching
+    const newListIds = listIds.filter(id => id && !fetchedListIds.current.has(id))
+    if (newListIds.length === 0) return
+
+    // Mark these as being fetched
+    newListIds.forEach(id => fetchedListIds.current.add(id))
+
+    // Fetch sequentially to avoid rate limits
+    for (const listId of newListIds) {
       try {
-        const [statsResponse, tasksResponse] = await Promise.all([
-          api.get<TasksDueToday>('/clickup/tasks/today'),
-          api.get<TasksListResponse>('/clickup/tasks/today/list'),
-        ])
-        setStats(statsResponse.data)
-        setTasksList(tasksResponse.data)
+        const response = await api.get<StatusesResponse>(`/clickup/statuses/${listId}`)
+        setStatusesByListId(prev => ({ ...prev, [listId]: response.data.statuses }))
       } catch {
-        setError('Failed to fetch tasks')
-      } finally {
-        setLoading(false)
+        console.error(`Failed to fetch statuses for list ${listId}`)
       }
     }
-    fetchData()
   }, [])
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [statsResponse, tasksResponse] = await Promise.all([
+        api.get<TasksDueToday>('/clickup/tasks/today'),
+        api.get<TasksListResponse>('/clickup/tasks/today/list'),
+      ])
+      setStats(statsResponse.data)
+      setTasksList(tasksResponse.data)
+
+      // Extract unique listIds and fetch statuses for each
+      const allTasks = [...tasksResponse.data.tasks, ...tasksResponse.data.overdueTasks]
+      const uniqueListIds = [...new Set(allTasks.map(t => t.listId).filter(Boolean))]
+
+      // Fetch statuses sequentially to avoid rate limits
+      fetchStatusesForLists(uniqueListIds)
+    } catch {
+      setError('Failed to fetch tasks')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchStatusesForLists])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const handleStatusChange = async (taskId: string, newStatus: string) => {
+    setError(null)
+
+    // Optimistic update: immediately update UI
+    const previousTasksList = tasksList
+    if (tasksList) {
+      const updateTaskStatus = (tasks: TaskItem[]) =>
+        tasks.map((task) =>
+          task.id === taskId
+            ? { ...task, status: { ...task.status, status: newStatus } }
+            : task
+        )
+      setTasksList({
+        tasks: updateTaskStatus(tasksList.tasks),
+        overdueTasks: updateTaskStatus(tasksList.overdueTasks),
+      })
+    }
+
+    try {
+      await api.patch(`/clickup/tasks/${taskId}`, { status: newStatus })
+      setSuccessMessage('Status updated')
+      // Refetch to get the accurate status type/color from server
+      fetchData()
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch {
+      // Revert on failure
+      setTasksList(previousTasksList)
+      setError('Failed to update status')
+      throw new Error('Failed to update status') // Re-throw so dropdown knows it failed
+    }
+  }
+
+  const handleDueDateChange = (task: TaskItem) => {
+    setDueDateModalTask(task)
+  }
+
+  const handleDueDateSave = async (dueDate: number | null) => {
+    if (!dueDateModalTask) return
+    setError(null)
+    const taskId = dueDateModalTask.id
+
+    // Optimistic update: immediately update UI
+    const previousTasksList = tasksList
+    if (tasksList) {
+      const newDueDate = dueDate ? new Date(dueDate).toISOString() : null
+      const updateTaskDueDate = (tasks: TaskItem[]) =>
+        tasks.map((task) =>
+          task.id === taskId
+            ? { ...task, dueDate: newDueDate }
+            : task
+        )
+      setTasksList({
+        tasks: updateTaskDueDate(tasksList.tasks),
+        overdueTasks: updateTaskDueDate(tasksList.overdueTasks),
+      })
+    }
+
+    try {
+      await api.patch(`/clickup/tasks/${taskId}`, { due_date: dueDate })
+      setSuccessMessage('Due date updated')
+      // Refetch to get the accurate data from server
+      fetchData()
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch {
+      // Revert on failure
+      setTasksList(previousTasksList)
+      setError('Failed to update due date')
+      throw new Error('Failed to update due date')
+    }
+  }
 
   const filterTasks = (tasks: TaskItem[]): TaskItem[] => {
     if (filter === 'all') return tasks
@@ -66,6 +176,20 @@ function Index() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Life Assistant</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-300 mb-8">Welcome to Life Assistant</p>
 
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/50 rounded-md">
+            <p className="text-sm text-green-700 dark:text-green-200">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 rounded-md">
+            <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
+          </div>
+        )}
+
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Tasks Due Today
@@ -73,10 +197,6 @@ function Index() {
 
           {loading && (
             <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-          )}
-
-          {error && (
-            <p className="text-red-600 dark:text-red-400">{error}</p>
           )}
 
           {stats && (
@@ -142,7 +262,13 @@ function Index() {
               >
                 <div className="space-y-3">
                   {filteredOverdue.map((task) => (
-                    <TaskCard key={task.id} task={task} />
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      availableStatuses={statusesByListId[task.listId] || []}
+                      onStatusChange={handleStatusChange}
+                      onDueDateChange={handleDueDateChange}
+                    />
                   ))}
                 </div>
               </Accordion>
@@ -156,7 +282,13 @@ function Index() {
               >
                 <div className="space-y-3">
                   {filteredTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} />
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      availableStatuses={statusesByListId[task.listId] || []}
+                      onStatusChange={handleStatusChange}
+                      onDueDateChange={handleDueDateChange}
+                    />
                   ))}
                 </div>
               </Accordion>
@@ -170,6 +302,15 @@ function Index() {
             )}
           </div>
         )}
+
+        {/* Due Date Modal */}
+        <DueDateModal
+          isOpen={dueDateModalTask !== null}
+          taskName={dueDateModalTask?.name || ''}
+          currentDueDate={dueDateModalTask?.dueDate || null}
+          onSave={handleDueDateSave}
+          onClose={() => setDueDateModalTask(null)}
+        />
       </PageContainer>
     </ProtectedRoute>
   )

@@ -64,7 +64,8 @@ export class ClickUpStatsService {
     );
 
     const filteredTasks = this.filterExcludedStatuses(tasks);
-    const affirmativeCompletions = this.countAffirmativeCompletions(filteredTasks);
+    const affirmativeCompletions =
+      this.countAffirmativeCompletions(filteredTasks);
     const completionRate = this.calculateCompletionRate(
       affirmativeCompletions,
       filteredTasks.length,
@@ -161,8 +162,7 @@ export class ClickUpStatsService {
 
   private filterExcludedStatuses(tasks: any[]): any[] {
     return tasks.filter(
-      (task) =>
-        !EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
+      (task) => !EXCLUDED_STATUSES.includes(task.status?.status?.toLowerCase()),
     );
   }
 

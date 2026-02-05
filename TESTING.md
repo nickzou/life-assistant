@@ -75,7 +75,7 @@ act -j integration-tests -W .github/workflows/integration-tests-local.yml --cont
 All workflows trigger on PRs to `main` or `staging`:
 
 1. **Lint** (`.github/workflows/lint.yml`) - ESLint for API and Frontend
-2. **Build & Test** (`.github/workflows/build.yml`) - Build + unit tests
+2. **Build and Test** (`.github/workflows/build.yml`) - Build + unit tests
 3. **Integration Tests** (`.github/workflows/integration-tests.yml`) - E2E tests with PostgreSQL
 
 ---

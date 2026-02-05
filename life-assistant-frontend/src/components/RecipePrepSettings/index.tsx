@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { api } from '../lib/api';
+import { api } from '../../lib/api';
 
 interface RecipeSelectionItem {
   id: number;

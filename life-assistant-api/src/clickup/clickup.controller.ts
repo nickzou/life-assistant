@@ -2,11 +2,13 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Logger,
   Param,
   UseGuards,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClickUpService } from './clickup.service';
@@ -226,6 +228,58 @@ export class ClickUpController {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  /**
+   * Get available statuses for a specific list
+   * GET /clickup/statuses/:listId
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('statuses/:listId')
+  async getStatusesForList(@Param('listId') listId: string) {
+    try {
+      const list = await this.clickUpService.getList(listId);
+      this.logger.log(
+        `Statuses from list ${listId}: ${JSON.stringify(list.statuses?.map((s: any) => s.status))}`,
+      );
+      return { statuses: list.statuses || [] };
+    } catch (error) {
+      this.logger.error('Failed to fetch statuses:', error.message);
+      throw new InternalServerErrorException(
+        'Failed to fetch statuses from ClickUp',
+      );
+    }
+  }
+
+  /**
+   * Update a task (status, due date, etc.)
+   * PATCH /clickup/tasks/:taskId
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch('tasks/:taskId')
+  async updateTask(
+    @Param('taskId') taskId: string,
+    @Body() body: { status?: string; due_date?: number | null },
+  ) {
+    const taskData: Record<string, unknown> = {};
+    if (body.status !== undefined) {
+      taskData.status = body.status;
+    }
+    if (body.due_date !== undefined) {
+      taskData.due_date = body.due_date ? body.due_date.toString() : null;
+    }
+    try {
+      const updatedTask = await this.clickUpService.updateTask(
+        taskId,
+        taskData,
+      );
+      return { success: true, task: updatedTask };
+    } catch (error) {
+      this.logger.error(`Failed to update task ${taskId}:`, error.message);
+      throw new InternalServerErrorException(
+        'Failed to update task in ClickUp',
+      );
     }
   }
 
