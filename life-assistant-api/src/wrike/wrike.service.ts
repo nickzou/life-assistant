@@ -192,9 +192,7 @@ export class WrikeService implements OnModuleInit {
     endDate: string,
   ): Promise<WrikeTasksResponse> {
     try {
-      this.logger.log(
-        `Fetching Wrike tasks from ${startDate} to ${endDate}`,
-      );
+      this.logger.log(`Fetching Wrike tasks from ${startDate} to ${endDate}`);
       const response = await this.axiosInstance.get<WrikeTasksResponse>(
         '/tasks',
         {
@@ -246,10 +244,7 @@ export class WrikeService implements OnModuleInit {
       );
       return response.data;
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch overdue Wrike tasks:`,
-        error.message,
-      );
+      this.logger.error(`Failed to fetch overdue Wrike tasks:`, error.message);
       throw error;
     }
   }

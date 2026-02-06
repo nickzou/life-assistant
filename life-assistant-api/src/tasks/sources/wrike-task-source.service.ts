@@ -103,9 +103,7 @@ export class WrikeTaskSourceService implements TaskSource {
     this.logger.log('Fetching Wrike tasks due today');
 
     if (!this.wrikeService.getCurrentUserId()) {
-      this.logger.warn(
-        'Wrike user ID not available, cannot fetch tasks',
-      );
+      this.logger.warn('Wrike user ID not available, cannot fetch tasks');
       return { tasks: [], overdueTasks: [] };
     }
 
@@ -134,9 +132,7 @@ export class WrikeTaskSourceService implements TaskSource {
     this.logger.log('Computing Wrike stats for today');
 
     if (!this.wrikeService.getCurrentUserId()) {
-      this.logger.warn(
-        'Wrike user ID not available, cannot compute stats',
-      );
+      this.logger.warn('Wrike user ID not available, cannot compute stats');
       return {
         total: 0,
         completed: 0,
@@ -180,9 +176,7 @@ export class WrikeTaskSourceService implements TaskSource {
     };
   }
 
-  private async mapWrikeTask(
-    task: WrikeTask,
-  ): Promise<UnifiedTaskItem | null> {
+  private async mapWrikeTask(task: WrikeTask): Promise<UnifiedTaskItem | null> {
     if (!task.dates?.due) {
       return null;
     }

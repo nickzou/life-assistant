@@ -31,9 +31,7 @@ export class ClickUpTaskSourceService implements TaskSource {
     );
     return {
       tasks: result.tasks.map((task) => this.toUnifiedTask(task)),
-      overdueTasks: result.overdueTasks.map((task) =>
-        this.toUnifiedTask(task),
-      ),
+      overdueTasks: result.overdueTasks.map((task) => this.toUnifiedTask(task)),
     };
   }
 

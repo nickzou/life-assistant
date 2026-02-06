@@ -42,9 +42,7 @@ export class WrikeStatusService {
       }
     }
 
-    this.logger.log(
-      `Cached ${this.statusMap.size} Wrike custom statuses`,
-    );
+    this.logger.log(`Cached ${this.statusMap.size} Wrike custom statuses`);
     return this.statusMap;
   }
 }
