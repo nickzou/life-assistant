@@ -4,8 +4,6 @@ import { calculateCompletionRate } from '@utils/completion-stats';
 import {
   TASK_SOURCE,
   TaskSource,
-  TaskSourceResult,
-  TaskSourceStats,
   UnifiedTaskItem,
 } from './interfaces/task-source.interface';
 
@@ -33,9 +31,7 @@ export class TasksService {
   ) {}
 
   async getTasksDueToday(): Promise<AggregatedTasksResult> {
-    this.logger.log(
-      `Fetching tasks from ${this.taskSources.length} source(s)`,
-    );
+    this.logger.log(`Fetching tasks from ${this.taskSources.length} source(s)`);
 
     const results = await Promise.allSettled(
       this.taskSources.map((source) => source.getTasksDueToday()),
@@ -66,9 +62,7 @@ export class TasksService {
   }
 
   async getStatsForToday(): Promise<AggregatedStats> {
-    this.logger.log(
-      `Fetching stats from ${this.taskSources.length} source(s)`,
-    );
+    this.logger.log(`Fetching stats from ${this.taskSources.length} source(s)`);
 
     const results = await Promise.allSettled(
       this.taskSources.map((source) => source.getStatsForToday()),
