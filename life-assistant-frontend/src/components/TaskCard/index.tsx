@@ -13,6 +13,8 @@ export type TaskItem = {
     type: string
     color: string
   }
+  startDate: string | null
+  hasStartTime: boolean
   dueDate: string | null
   hasDueTime: boolean
   tags: string[]
@@ -75,8 +77,8 @@ export function TaskCard({
       }}
       data-testid="task-card"
     >
-      {/* Top shelf: Due date */}
-      <div className="flex items-center gap-2 pb-2 mb-2 border-b" style={{ borderColor: task.status.color + '30' }}>
+      {/* Top shelf: Due date + Time of Day */}
+      <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b" style={{ borderColor: task.status.color + '30' }}>
         {canChangeDueDate ? (
           <button
             type="button"
@@ -117,6 +119,14 @@ export function TaskCard({
             ) : (
               <span className="opacity-60">No date</span>
             )}
+          </span>
+        )}
+        {task.timeOfDay && (
+          <span
+            className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium text-white"
+            style={{ backgroundColor: task.timeOfDay.color }}
+          >
+            {task.timeOfDay.name}
           </span>
         )}
       </div>
@@ -182,16 +192,6 @@ export function TaskCard({
               }}
             >
               {task.status.status}
-            </span>
-          )}
-
-          {/* Time of Day */}
-          {task.timeOfDay && (
-            <span
-              className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium text-white"
-              style={{ backgroundColor: task.timeOfDay.color }}
-            >
-              {task.timeOfDay.name}
             </span>
           )}
 

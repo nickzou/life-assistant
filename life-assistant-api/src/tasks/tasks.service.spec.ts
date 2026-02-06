@@ -13,6 +13,8 @@ function makeTask(overrides: Partial<UnifiedTaskItem> = {}): UnifiedTaskItem {
     parentName: null,
     listId: '',
     status: { status: 'to do', type: 'open', color: '#87909e' },
+    startDate: null,
+    hasStartTime: false,
     dueDate: '2026-02-06T09:00:00.000Z',
     hasDueTime: false,
     tags: [],

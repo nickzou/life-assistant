@@ -187,7 +187,17 @@ export class WrikeTaskSourceService implements TaskSource {
 
     const dueDate = task.dates.due.endsWith('Z')
       ? task.dates.due
-      : task.dates.due + 'T00:00:00.000Z';
+      : task.dates.due.includes('T')
+        ? task.dates.due + 'Z'
+        : task.dates.due + 'T00:00:00.000Z';
+
+    const startDate = task.dates.start
+      ? task.dates.start.endsWith('Z')
+        ? task.dates.start
+        : task.dates.start.includes('T')
+          ? task.dates.start + 'Z'
+          : task.dates.start + 'T00:00:00.000Z'
+      : null;
 
     return {
       id: task.id,
@@ -199,6 +209,8 @@ export class WrikeTaskSourceService implements TaskSource {
         type: statusInfo ? mapGroupToType(statusInfo.group) : 'custom',
         color: statusInfo ? wrikeColorToHex(statusInfo.color) : '#9e9e9e',
       },
+      startDate,
+      hasStartTime: false,
       dueDate,
       hasDueTime: false,
       tags: ['work'],

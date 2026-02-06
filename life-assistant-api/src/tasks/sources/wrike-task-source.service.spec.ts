@@ -208,7 +208,7 @@ describe('WrikeTaskSourceService', () => {
       expect(result.tasks[0].status.color).toBe('#9e9e9e');
     });
 
-    it('should append T00:00:00.000Z to due dates without Z suffix', async () => {
+    it('should append Z to due dates with time but without Z suffix', async () => {
       mockWrikeService.getTasksByDateRange.mockResolvedValue({
         data: [
           makeWrikeTask({
@@ -225,7 +225,7 @@ describe('WrikeTaskSourceService', () => {
 
       const result = await service.getTasksDueToday();
 
-      expect(result.tasks[0].dueDate).toBe('2026-02-06T17:00:00T00:00:00.000Z');
+      expect(result.tasks[0].dueDate).toBe('2026-02-06T17:00:00Z');
     });
 
     it('should preserve due dates that already end with Z', async () => {
