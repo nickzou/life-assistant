@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-Life Assistant is a personal life automation platform. The first implemented feature is bidirectional task synchronization between Wrike (work) and ClickUp (personal), allowing work tasks to automatically appear in a personal task manager.
+Life Assistant is a personal life automation platform with unified task aggregation across Wrike (work) and ClickUp (personal), plus integrations like Grocy for meal prep automation.
 
 **Vision**: A unified automation hub for personal productivity - task sync is just the beginning. Future modules may include calendar integration, habit tracking, automated reminders, and more.
 
@@ -44,7 +44,6 @@ life-assistant/
 │   │   ├── wrike/              # Wrike API integration
 │   │   ├── clickup/            # ClickUp API integration
 │   │   ├── webhooks/           # Webhook handlers + status monitoring
-│   │   ├── sync/               # Sync orchestration logic
 │   │   ├── database/           # TypeORM entities & migrations
 │   │   └── commands/           # CLI commands (seed-user)
 │   ├── Dockerfile              # Multi-stage production build
@@ -82,27 +81,21 @@ life-assistant/
 
 ### 4. Webhooks Module (`src/webhooks/`)
 - **WebhooksController**:
-  - `POST /webhooks/wrike` - Handles Wrike webhook events
-  - `POST /webhooks/clickup` - Handles ClickUp webhook events
+  - `POST /webhooks/wrike` - Stub endpoint (sync removed, prevents 404s from registered webhooks)
+  - `POST /webhooks/clickup` - Handles ClickUp webhook events (Grocy integration)
   - `GET /webhooks/status` - Returns status of all registered webhooks (protected)
   - `DELETE /webhooks/:source/:id` - Deletes a webhook (protected)
-- **WebhooksService**: Processes webhook events, aggregates webhook status
+- **WebhooksService**: Aggregates webhook status from Wrike and ClickUp
+- **ClickUpWebhookHandlerService**: Handles ClickUp events for Grocy integration
 
-### 5. Sync Module (`src/sync/`)
-- **SyncService**: Orchestrates bidirectional sync between platforms
-  - `syncWrikeToClickUp()`: Creates/updates ClickUp tasks
-  - `syncClickUpToWrike()`: Updates Wrike tasks (no creation)
-  - `deleteTaskFromClickUp()`: Deletes ClickUp tasks when Wrike assignment removed
-  - Status mapping with cached workflow data
-
-### 6. Database Module (`src/database/`)
+### 5. Database Module (`src/database/`)
 - **Entities**:
   - `User`: Single user for authentication
-  - `TaskMapping`: Links Wrike tasks to ClickUp tasks
-  - `SyncLog`: Audit trail of all sync operations
+  - `TaskMapping`: Historical Wrike↔ClickUp mappings (retained, no active writes)
+  - `SyncLog`: Historical sync audit trail (retained, no active writes)
 - **Migrations**: TypeORM migrations in `migrations/`
 
-### 7. Frontend (`life-assistant-frontend/`)
+### 6. Frontend (`life-assistant-frontend/`)
 - **Routes**: TanStack Router file-based routing
   - `/login` - Login page
   - `/` - Home (protected)
@@ -113,22 +106,6 @@ life-assistant/
 - **Webhook Management UI**: Register/delete webhooks for Wrike or ClickUp from the `/webhooks` page
 
 ## Critical Implementation Details
-
-### Status Mapping
-Both platforms use custom statuses. The sync service loads and caches status workflows on first use:
-- Wrike: `customStatusId` → status name mapping
-- ClickUp: Lowercase status name → actual status name mapping
-- Case-insensitive matching between platforms
-
-### Task Assignment Logic
-- **Wrike → ClickUp**: Auto-assigns to current user on creation/update
-- **User removed from Wrike task**: Deletes corresponding ClickUp task
-- User IDs cached during module initialization (`onModuleInit`)
-
-### Date Handling
-- **Wrike**: ISO 8601 strings without 'Z' (e.g., `2024-01-01T12:00:00`)
-- **ClickUp**: Unix timestamp in milliseconds as string
-- Conversion happens in sync service
 
 ### Webhook Security
 - **Wrike**: X-Hook-Secret header verification
@@ -199,34 +176,28 @@ curl -X POST http://localhost:3000/auth/login \
 ## Important Patterns
 
 1. **Logging**: All services use NestJS Logger with context
-2. **Error Handling**: Errors logged to SyncLog with status='failed'
-3. **Service Caching**: User IDs and statuses cached in memory (cleared on restart)
+2. **Error Handling**: Services log errors via NestJS Logger
+3. **Service Caching**: User IDs cached in memory (cleared on restart)
 4. **Repository Pattern**: TypeORM repositories injected via `@InjectRepository`
 5. **Module Lifecycle**: Critical initialization in `onModuleInit` hooks
 
 ## Known Gotchas
 
-1. **Wrike Status Parameter**: Use `customStatus` (not `customStatusId`) when updating tasks
-2. **Service Initialization**: User ID fetch can fail on startup - check logs
-3. **Webhook URLs**: Must be publicly accessible (use ngrok for dev)
-4. **ClickUp List ID**: Required for all task operations, not workspace ID
-5. **Date Precision**: Always use `.toString()` on Unix timestamps for ClickUp
-6. **Wrike Webhooks**: Tend to go inactive/suspended - check status regularly
-7. **CORS**: API needs `CORS_ORIGIN` set to frontend URL in production
-8. **Password Special Characters**: When seeding users via CLI, special characters (`!$'"`) need shell escaping or use single quotes
-9. **Frontend API URL**: `VITE_API_URL` is baked in at build time, not runtime
-10. **Zoxide cd alias**: User has `cd` aliased to zoxide's `z` command. This doesn't work in non-interactive shells (like Claude Code's Bash tool), causing `cd:1: command not found: __zoxide_z` errors. Use absolute paths or wrap in `bash -c 'cd "..." && ...'` when directory changes are needed.
+1. **Service Initialization**: User ID fetch can fail on startup - check logs
+2. **Webhook URLs**: Must be publicly accessible (use ngrok for dev)
+3. **ClickUp List ID**: Required for all task operations, not workspace ID
+4. **Wrike Webhooks**: Tend to go inactive/suspended - check status regularly
+5. **CORS**: API needs `CORS_ORIGIN` set to frontend URL in production
+6. **Password Special Characters**: When seeding users via CLI, special characters (`!$'"`) need shell escaping or use single quotes
+7. **Frontend API URL**: `VITE_API_URL` is baked in at build time, not runtime
+8. **Zoxide cd alias**: User has `cd` aliased to zoxide's `z` command. This doesn't work in non-interactive shells (like Claude Code's Bash tool), causing `cd:1: command not found: __zoxide_z` errors. Use absolute paths or wrap in `bash -c 'cd "..." && ...'` when directory changes are needed.
 
 ## Current State
 
-### Task Sync Module (Complete)
-- ✅ Wrike → ClickUp sync (create, update, delete)
-- ✅ ClickUp → Wrike sync (disabled, was causing issues)
-- ✅ Webhook handlers with signature verification
-- ✅ Tag-based sync loop prevention (`synced-from-wrike` tag)
-- ✅ Status mapping with caching (case-insensitive matching)
-- ✅ Date sync (due dates, start dates)
-- ✅ Auto-assignment to current user
+### Task Aggregation
+- ✅ Unified task view aggregating from Wrike and ClickUp APIs directly
+- ✅ Wrike→ClickUp bidirectional sync removed (was redundant with direct aggregation)
+- ✅ Historical `task_mappings` and `sync_logs` tables retained in database
 
 ### Authentication (Complete)
 - ✅ Single-user JWT authentication
@@ -242,7 +213,7 @@ curl -X POST http://localhost:3000/auth/login \
 - ✅ Webhook status monitoring page
 
 ### Infrastructure
-- ✅ Database entities and migrations (User, TaskMapping, SyncLog)
+- ✅ Database entities and migrations (User, TaskMapping*, SyncLog*) (*historical, no active writes)
 - ✅ Docker development environment
 - ✅ CI/CD via GitHub Actions (builds both API and frontend)
 - ✅ Staging deployment
@@ -264,6 +235,5 @@ curl -X POST http://localhost:3000/auth/login \
 2. Check logs: `docker logs -f life-assistant-api`
 3. For local webhook testing, use ngrok: `ngrok http 3000`
 4. Setup webhooks using test endpoints
-5. Trigger events in Wrike/ClickUp
-6. Verify sync in opposite platform
-7. Check sync_logs table for audit trail
+5. Trigger events in ClickUp
+6. Verify Grocy integration behavior

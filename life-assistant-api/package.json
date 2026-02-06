@@ -91,7 +91,6 @@
       "^@database/(.*)$": "<rootDir>/database/$1",
       "^@grocy/(.*)$": "<rootDir>/grocy/$1",
       "^@meal-prep/(.*)$": "<rootDir>/meal-prep/$1",
-      "^@sync/(.*)$": "<rootDir>/sync/$1",
       "^@utils/(.*)$": "<rootDir>/utils/$1",
       "^@webhooks/(.*)$": "<rootDir>/webhooks/$1",
       "^@wrike/(.*)$": "<rootDir>/wrike/$1"
