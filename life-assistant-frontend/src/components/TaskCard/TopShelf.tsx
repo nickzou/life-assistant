@@ -1,3 +1,4 @@
+import { Calendar, ExternalLink } from 'lucide-react'
 import type { TaskItem } from './index'
 
 interface TopShelfProps {
@@ -28,9 +29,7 @@ export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfPro
           className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer"
           data-testid="due-date-button"
         >
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          <Calendar className="w-3 h-3" />
           {task.dueDate ? (
             <>
               {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -46,9 +45,7 @@ export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfPro
         </button>
       ) : (
         <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap flex items-center gap-1">
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          <Calendar className="w-3 h-3" />
           {task.dueDate ? (
             <>
               {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -63,14 +60,28 @@ export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfPro
           )}
         </span>
       )}
-      {task.timeOfDay && (
-        <span
-          className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium text-white"
-          style={{ backgroundColor: task.timeOfDay.color }}
+      <div className="flex items-center gap-2">
+        <a
+          href={task.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
+          title={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
+          aria-label={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
+          data-testid="external-link-button"
         >
-          {task.timeOfDay.name}
-        </span>
-      )}
+          <ExternalLink className="w-4 h-4" />
+        </a>
+        {task.timeOfDay && (
+          <span
+            className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium text-white"
+            style={{ backgroundColor: task.timeOfDay.color }}
+          >
+            {task.timeOfDay.name}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

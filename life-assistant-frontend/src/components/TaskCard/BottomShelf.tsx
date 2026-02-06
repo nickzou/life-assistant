@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import type { TaskItem } from './index'
 
 interface BottomShelfProps {
@@ -23,15 +24,10 @@ export function BottomShelf({ task, isExpanded, onToggle }: BottomShelfProps) {
         style={{ borderColor: task.status.color + '30' }}
         data-testid="accordion-toggle"
       >
-        <svg
+        <ChevronDown
           className="w-4 h-4 transition-transform duration-200"
           style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        />
       </button>
 
       {/* Accordion shelf */}

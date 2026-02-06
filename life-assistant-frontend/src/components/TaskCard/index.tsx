@@ -83,40 +83,13 @@ export function TaskCard({
               {task.parentName}
             </p>
           )}
-          <div className="flex items-start gap-2">
-            <p
-              className={`text-sm sm:text-base font-medium text-gray-900 dark:text-white flex-1 ${
-                isCompleted ? 'line-through opacity-70' : ''
-              }`}
-            >
-              {task.name}
-            </p>
-            {/* External link button */}
-            <a
-              href={task.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
-              title={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
-              aria-label={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
-              data-testid="external-link-button"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </a>
-          </div>
+          <p
+            className={`text-sm sm:text-base font-medium text-gray-900 dark:text-white line-clamp-2 ${
+              isCompleted ? 'line-through opacity-70' : ''
+            }`}
+          >
+            {task.name}
+          </p>
         </div>
 
         {/* Right side: Status */}
