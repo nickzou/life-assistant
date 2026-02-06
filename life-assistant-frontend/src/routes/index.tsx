@@ -39,6 +39,7 @@ function Index() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<TaskFilter>('all')
+  const [showDone, setShowDone] = useState(true)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [dueDateModalTask, setDueDateModalTask] = useState<TaskItem | null>(null)
 
@@ -162,9 +163,13 @@ function Index() {
   }
 
   const filterTasks = (tasks: TaskItem[]): TaskItem[] => {
-    if (filter === 'all') return tasks
+    let filtered = tasks
+    if (!showDone) {
+      filtered = filtered.filter(t => t.status.type !== 'done' && t.status.type !== 'closed')
+    }
+    if (filter === 'all') return filtered
     const isWork = (task: TaskItem) => task.tags.some(tag => tag.toLowerCase() === 'work')
-    return filter === 'work' ? tasks.filter(isWork) : tasks.filter(t => !isWork(t))
+    return filter === 'work' ? filtered.filter(isWork) : filtered.filter(t => !isWork(t))
   }
 
   const filteredTasks = tasksList ? filterTasks(tasksList.tasks) : []
@@ -233,20 +238,32 @@ function Index() {
 
         {/* Filter */}
         {tasksList && (
-          <div className="mt-8 flex gap-2">
-            {(['all', 'work', 'personal'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-                  filter === f
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                {f === 'all' ? 'All' : f === 'work' ? 'Work' : 'Personal'}
-              </button>
-            ))}
+          <div className="mt-8 flex justify-between items-center">
+            <div className="flex gap-2">
+              {(['all', 'work', 'personal'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                    filter === f
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {f === 'all' ? 'All' : f === 'work' ? 'Work' : 'Personal'}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowDone(!showDone)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                showDone
+                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-blue-600 text-white'
+              }`}
+            >
+              {showDone ? 'Hide done' : 'Show done'}
+            </button>
           </div>
         )}
 
