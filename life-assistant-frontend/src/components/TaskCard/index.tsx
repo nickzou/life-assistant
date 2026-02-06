@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { StatusDropdown, type ClickUpStatus } from '../StatusDropdown'
 
 export type TaskSource = 'clickup' | 'wrike' | 'openproject'
@@ -37,6 +38,7 @@ export function TaskCard({
   onStatusChange,
   onDueDateChange,
 }: TaskCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const isCompleted = task.status.type === 'done' || task.status.type === 'closed'
   const canChangeStatus = availableStatuses && availableStatuses.length > 0 && onStatusChange && !task.readOnly
   const canChangeDueDate = !!onDueDateChange && !task.readOnly
@@ -114,19 +116,6 @@ export function TaskCard({
               </svg>
             </a>
           </div>
-          {/* Tags */}
-          {task.tags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1 sm:mt-2">
-              {task.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Right side: Status, Time of Day, and Due time */}
@@ -193,6 +182,47 @@ export function TaskCard({
                 {formatDueDate(task.dueDate, task.hasDueTime)}
               </span>
             )
+          )}
+        </div>
+      </div>
+
+      {/* Accordion toggle */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-center pt-2 mt-2 border-t text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+        style={{ borderColor: task.status.color + '30' }}
+        data-testid="accordion-toggle"
+      >
+        <svg
+          className="w-4 h-4 transition-transform duration-200"
+          style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Accordion shelf */}
+      <div
+        className="overflow-hidden transition-[max-height] duration-200 ease-in-out"
+        style={{ maxHeight: isExpanded ? '200px' : '0px' }}
+        data-testid="accordion-shelf"
+      >
+        <div className="pt-2">
+          {task.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+              {task.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           )}
         </div>
       </div>
