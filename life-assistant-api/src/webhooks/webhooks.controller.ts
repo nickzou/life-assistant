@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
-import { WrikeWebhookHandlerService } from './wrike-webhook-handler.service';
 import { ClickUpWebhookHandlerService } from './clickup-webhook-handler.service';
 import { JwtAuthGuard } from '@auth/guards/jwt-auth.guard';
 
@@ -21,7 +20,6 @@ export class WebhooksController {
 
   constructor(
     private readonly webhooksService: WebhooksService,
-    private readonly wrikeWebhookHandler: WrikeWebhookHandlerService,
     private readonly clickUpWebhookHandler: ClickUpWebhookHandlerService,
   ) {}
 
@@ -52,22 +50,14 @@ export class WebhooksController {
   }
 
   /**
-   * Wrike webhook endpoint
+   * Wrike webhook endpoint (stub - sync removed, keeps endpoint alive to prevent 404s)
    * POST /webhooks/wrike
    */
   @Post('wrike')
   @HttpCode(200)
-  async wrikeWebhook(@Body() body: any, @Headers() headers: any) {
-    this.logger.log('Wrike webhook received');
-    this.logger.debug('Headers:', JSON.stringify(headers, null, 2));
-
-    try {
-      await this.wrikeWebhookHandler.handleWrikeWebhook(body);
-      return { success: true };
-    } catch (error) {
-      this.logger.error('Error processing Wrike webhook:', error.message);
-      throw error;
-    }
+  async wrikeWebhook() {
+    this.logger.log('Wrike webhook received (no-op, sync removed)');
+    return { success: true };
   }
 
   /**

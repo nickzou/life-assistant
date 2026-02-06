@@ -17,7 +17,6 @@
       "@database/*": ["src/database/*"],
       "@grocy/*": ["src/grocy/*"],
       "@meal-prep/*": ["src/meal-prep/*"],
-      "@sync/*": ["src/sync/*"],
       "@utils/*": ["src/utils/*"],
       "@webhooks/*": ["src/webhooks/*"],
       "@wrike/*": ["src/wrike/*"]
