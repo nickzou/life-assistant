@@ -1,5 +1,7 @@
 import { StatusDropdown, type ClickUpStatus } from '../StatusDropdown'
 
+export type TaskSource = 'clickup' | 'wrike' | 'openproject'
+
 export type TaskItem = {
   id: string
   name: string
@@ -18,6 +20,8 @@ export type TaskItem = {
     color: string
   } | null
   url: string
+  source: TaskSource
+  readOnly: boolean
 }
 
 interface TaskCardProps {
@@ -34,8 +38,8 @@ export function TaskCard({
   onDueDateChange,
 }: TaskCardProps) {
   const isCompleted = task.status.type === 'done' || task.status.type === 'closed'
-  const canChangeStatus = availableStatuses && availableStatuses.length > 0 && onStatusChange
-  const canChangeDueDate = !!onDueDateChange
+  const canChangeStatus = availableStatuses && availableStatuses.length > 0 && onStatusChange && !task.readOnly
+  const canChangeDueDate = !!onDueDateChange && !task.readOnly
 
   const handleStatusChange = async (newStatus: string) => {
     if (onStatusChange) {
@@ -91,8 +95,8 @@ export function TaskCard({
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-              title="Open in ClickUp"
-              aria-label="Open in ClickUp"
+              title={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
+              aria-label={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
               data-testid="external-link-button"
             >
               <svg

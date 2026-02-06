@@ -68,15 +68,16 @@ function Index() {
   const fetchData = useCallback(async () => {
     try {
       const [statsResponse, tasksResponse] = await Promise.all([
-        api.get<TasksDueToday>('/clickup/tasks/today'),
-        api.get<TasksListResponse>('/clickup/tasks/today/list'),
+        api.get<TasksDueToday>('/tasks/today'),
+        api.get<TasksListResponse>('/tasks/today/list'),
       ])
       setStats(statsResponse.data)
       setTasksList(tasksResponse.data)
 
-      // Extract unique listIds and fetch statuses for each
+      // Only fetch ClickUp statuses (for status dropdown on mutable tasks)
       const allTasks = [...tasksResponse.data.tasks, ...tasksResponse.data.overdueTasks]
-      const uniqueListIds = [...new Set(allTasks.map(t => t.listId).filter(Boolean))]
+      const clickUpTasks = allTasks.filter(t => t.source === 'clickup')
+      const uniqueListIds = [...new Set(clickUpTasks.map(t => t.listId).filter(Boolean))]
 
       // Fetch statuses sequentially to avoid rate limits
       fetchStatusesForLists(uniqueListIds)

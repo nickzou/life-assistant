@@ -9,6 +9,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { GrocyModule } from './grocy/grocy.module';
 import { AuthModule } from './auth/auth.module';
 import { MealPrepModule } from './meal-prep/meal-prep.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MealPrepModule } from './meal-prep/meal-prep.module';
     WebhooksModule,
     GrocyModule,
     MealPrepModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

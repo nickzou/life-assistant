@@ -184,6 +184,72 @@ export class WrikeService implements OnModuleInit {
   }
 
   /**
+   * Fetch tasks assigned to current user within a date range
+   * Uses Wrike API v4 GET /tasks with query filters
+   */
+  async getTasksByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<WrikeTasksResponse> {
+    try {
+      this.logger.log(`Fetching Wrike tasks from ${startDate} to ${endDate}`);
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(
+        '/tasks',
+        {
+          params: {
+            responsibles: `[${JSON.stringify(this.currentUserId)}]`,
+            dueDate: JSON.stringify({ start: startDate, due: endDate }),
+            fields: JSON.stringify(['responsibleIds']),
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch Wrike tasks by date range:`,
+        error.message,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch overdue tasks assigned to current user (due before the given date, still active)
+   * Looks back 30 days and filters client-side for Active status group
+   */
+  async getOverdueTasks(beforeDate: string): Promise<WrikeTasksResponse> {
+    try {
+      this.logger.log(
+        `Fetching overdue Wrike tasks (due before ${beforeDate})`,
+      );
+      // Wrike API requires both start and due in dueDate param
+      // Look back 30 days for overdue tasks
+      const startDate = new Date(beforeDate);
+      startDate.setDate(startDate.getDate() - 30);
+      const startStr = startDate.toISOString().split('T')[0];
+
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(
+        '/tasks',
+        {
+          params: {
+            responsibles: `[${JSON.stringify(this.currentUserId)}]`,
+            dueDate: JSON.stringify({ start: startStr, due: beforeDate }),
+            fields: JSON.stringify(['responsibleIds']),
+          },
+        },
+      );
+      // Filter client-side for Active status (not Completed/Deferred/Cancelled)
+      response.data.data = response.data.data.filter(
+        (task) => task.status === 'Active',
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch overdue Wrike tasks:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Delete a webhook by ID
    */
   async deleteWebhook(webhookId: string): Promise<void> {
