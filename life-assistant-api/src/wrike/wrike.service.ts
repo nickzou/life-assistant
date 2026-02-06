@@ -184,6 +184,67 @@ export class WrikeService implements OnModuleInit {
   }
 
   /**
+   * Fetch tasks assigned to current user within a date range
+   * Uses Wrike API v4 GET /tasks with query filters
+   */
+  async getTasksByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<WrikeTasksResponse> {
+    try {
+      this.logger.log(
+        `Fetching Wrike tasks from ${startDate} to ${endDate}`,
+      );
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(
+        '/tasks',
+        {
+          params: {
+            responsibles: `[${JSON.stringify(this.currentUserId)}]`,
+            dueDate: JSON.stringify({ start: startDate, due: endDate }),
+            fields: JSON.stringify(['responsibleIds']),
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch Wrike tasks by date range:`,
+        error.message,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch overdue tasks assigned to current user (due before the given date, still active)
+   */
+  async getOverdueTasks(beforeDate: string): Promise<WrikeTasksResponse> {
+    try {
+      this.logger.log(
+        `Fetching overdue Wrike tasks (due before ${beforeDate})`,
+      );
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(
+        '/tasks',
+        {
+          params: {
+            responsibles: `[${JSON.stringify(this.currentUserId)}]`,
+            dueDate: JSON.stringify({ due: beforeDate }),
+            status: 'Active',
+            fields: JSON.stringify(['responsibleIds']),
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch overdue Wrike tasks:`,
+        error.message,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Delete a webhook by ID
    */
   async deleteWebhook(webhookId: string): Promise<void> {
