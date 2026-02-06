@@ -75,6 +75,52 @@ export function TaskCard({
       }}
       data-testid="task-card"
     >
+      {/* Top shelf: Due date */}
+      <div className="flex items-center gap-2 pb-2 mb-2 border-b" style={{ borderColor: task.status.color + '30' }}>
+        {canChangeDueDate ? (
+          <button
+            type="button"
+            onClick={handleDueDateClick}
+            className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 whitespace-nowrap transition-colors flex items-center gap-1"
+            data-testid="due-date-button"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {task.dueDate ? (
+              <>
+                {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                {task.hasDueTime && (
+                  <span className="text-gray-400 dark:text-gray-500">
+                    {' '}at {formatDueDate(task.dueDate, task.hasDueTime)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="opacity-60">Set date</span>
+            )}
+          </button>
+        ) : (
+          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {task.dueDate ? (
+              <>
+                {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                {task.hasDueTime && (
+                  <span className="text-gray-400 dark:text-gray-500">
+                    {' '}at {formatDueDate(task.dueDate, task.hasDueTime)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="opacity-60">No date</span>
+            )}
+          </span>
+        )}
+      </div>
+
       <div className="flex items-start justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
           {task.parentName && (
@@ -149,40 +195,6 @@ export function TaskCard({
             </span>
           )}
 
-          {/* Due date/time - clickable if onDueDateChange provided */}
-          {canChangeDueDate ? (
-            <button
-              type="button"
-              onClick={handleDueDateClick}
-              className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 whitespace-nowrap transition-colors flex items-center gap-1"
-              data-testid="due-date-button"
-            >
-              {task.dueDate && task.hasDueTime ? (
-                formatDueDate(task.dueDate, task.hasDueTime)
-              ) : task.dueDate ? (
-                <span className="flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 opacity-60">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Set date
-                </span>
-              )}
-            </button>
-          ) : (
-            // Only show time if explicitly set
-            task.dueDate && task.hasDueTime && (
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {formatDueDate(task.dueDate, task.hasDueTime)}
-              </span>
-            )
-          )}
         </div>
       </div>
 
