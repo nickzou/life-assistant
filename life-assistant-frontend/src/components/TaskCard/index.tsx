@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { StatusDropdown, type ClickUpStatus } from '../StatusDropdown'
+import { TopShelf } from './TopShelf'
+import { BottomShelf } from './BottomShelf'
 
 export type TaskSource = 'clickup' | 'wrike' | 'openproject'
 
@@ -58,18 +60,9 @@ export function TaskCard({
     }
   }
 
-  const formatDueDate = (dueDate: string | null, hasDueTime: boolean) => {
-    if (!dueDate) return null
-    const date = new Date(dueDate)
-    if (hasDueTime) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-    return null
-  }
-
   return (
     <div
-      className="block p-3 sm:p-4 rounded-lg border"
+      className="p-2 sm:p-3 flex flex-col gap-y-1.5 rounded-lg border"
       style={{
         backgroundColor: task.status.color + '10',
         borderColor: task.status.color + '40',
@@ -77,59 +70,11 @@ export function TaskCard({
       }}
       data-testid="task-card"
     >
-      {/* Top shelf: Due date + Time of Day */}
-      <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b" style={{ borderColor: task.status.color + '30' }}>
-        {canChangeDueDate ? (
-          <button
-            type="button"
-            onClick={handleDueDateClick}
-            className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 whitespace-nowrap transition-colors flex items-center gap-1"
-            data-testid="due-date-button"
-          >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            {task.dueDate ? (
-              <>
-                {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                {task.hasDueTime && (
-                  <span className="text-gray-400 dark:text-gray-500">
-                    {' '}at {formatDueDate(task.dueDate, task.hasDueTime)}
-                  </span>
-                )}
-              </>
-            ) : (
-              <span className="opacity-60">Set date</span>
-            )}
-          </button>
-        ) : (
-          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            {task.dueDate ? (
-              <>
-                {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                {task.hasDueTime && (
-                  <span className="text-gray-400 dark:text-gray-500">
-                    {' '}at {formatDueDate(task.dueDate, task.hasDueTime)}
-                  </span>
-                )}
-              </>
-            ) : (
-              <span className="opacity-60">No date</span>
-            )}
-          </span>
-        )}
-        {task.timeOfDay && (
-          <span
-            className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium text-white"
-            style={{ backgroundColor: task.timeOfDay.color }}
-          >
-            {task.timeOfDay.name}
-          </span>
-        )}
-      </div>
+      <TopShelf
+        task={task}
+        canChangeDueDate={canChangeDueDate}
+        onDueDateClick={handleDueDateClick}
+      />
 
       <div className="flex items-start justify-between gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
@@ -152,7 +97,7 @@ export function TaskCard({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
               title={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
               aria-label={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
               data-testid="external-link-button"
@@ -174,9 +119,8 @@ export function TaskCard({
           </div>
         </div>
 
-        {/* Right side: Status, Time of Day, and Due time */}
+        {/* Right side: Status */}
         <div className="flex flex-col items-end gap-1 sm:gap-2">
-          {/* Status badge - either clickable dropdown or static */}
           {canChangeStatus ? (
             <StatusDropdown
               currentStatus={task.status}
@@ -194,50 +138,14 @@ export function TaskCard({
               {task.status.status}
             </span>
           )}
-
         </div>
       </div>
 
-      {/* Accordion toggle */}
-      <button
-        type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-center pt-2 mt-2 border-t text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-        style={{ borderColor: task.status.color + '30' }}
-        data-testid="accordion-toggle"
-      >
-        <svg
-          className="w-4 h-4 transition-transform duration-200"
-          style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Accordion shelf */}
-      <div
-        className="overflow-hidden transition-[max-height] duration-200 ease-in-out"
-        style={{ maxHeight: isExpanded ? '200px' : '0px' }}
-        data-testid="accordion-shelf"
-      >
-        <div className="pt-2">
-          {task.tags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-              {task.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <BottomShelf
+        task={task}
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded(!isExpanded)}
+      />
     </div>
   )
 }
