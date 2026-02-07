@@ -329,6 +329,68 @@ describe('TaskCard', () => {
     })
   })
 
+  describe('with time of day change handler', () => {
+    it('renders time-of-day dropdown when onTimeOfDayChange is provided', () => {
+      const onTimeOfDayChange = vi.fn()
+      render(
+        <TaskCard
+          task={createTask({ source: 'wrike', timeOfDay: null })}
+          onTimeOfDayChange={onTimeOfDayChange}
+        />
+      )
+      const dropdown = screen.getByTestId('time-of-day-dropdown-trigger')
+      expect(dropdown).toBeInTheDocument()
+      expect(dropdown).toHaveTextContent('Set time')
+    })
+
+    it('renders time-of-day dropdown with current value', () => {
+      const onTimeOfDayChange = vi.fn()
+      render(
+        <TaskCard
+          task={createTask({
+            source: 'wrike',
+            timeOfDay: { name: 'morning', color: '#F59E0B' },
+          })}
+          onTimeOfDayChange={onTimeOfDayChange}
+        />
+      )
+      const dropdown = screen.getByTestId('time-of-day-dropdown-trigger')
+      expect(dropdown).toHaveTextContent('morning')
+    })
+
+    it('renders static badge when onTimeOfDayChange is not provided', () => {
+      render(
+        <TaskCard
+          task={createTask({
+            timeOfDay: { name: 'Evening', color: '#9b59b6' },
+          })}
+        />
+      )
+      expect(screen.queryByTestId('time-of-day-dropdown-trigger')).not.toBeInTheDocument()
+      expect(screen.getByText('Evening')).toBeInTheDocument()
+    })
+
+    it('passes correct arguments through onTimeOfDayChange callback', () => {
+      const onTimeOfDayChange = vi.fn().mockResolvedValue(undefined)
+      render(
+        <TaskCard
+          task={createTask({
+            id: 'task-42',
+            source: 'wrike',
+            timeOfDay: null,
+          })}
+          onTimeOfDayChange={onTimeOfDayChange}
+        />
+      )
+
+      // Open dropdown and select an option
+      fireEvent.click(screen.getByTestId('time-of-day-dropdown-trigger'))
+      fireEvent.click(screen.getByText('morning'))
+
+      expect(onTimeOfDayChange).toHaveBeenCalledWith('task-42', 'wrike', 'morning')
+    })
+  })
+
   describe('with due date change handler', () => {
     it('renders due date button when onDueDateChange is provided', () => {
       const onDueDateChange = vi.fn()
