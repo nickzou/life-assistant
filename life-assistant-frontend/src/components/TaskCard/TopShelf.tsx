@@ -60,7 +60,12 @@ export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfPro
           )}
         </span>
       )}
-      <div className="flex items-center gap-2">
+      {task.parentName && (
+        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {task.parentName}
+        </span>
+      )}
+      <div className="flex items-center gap-2 flex-shrink-0">
         <a
           href={task.url}
           target="_blank"

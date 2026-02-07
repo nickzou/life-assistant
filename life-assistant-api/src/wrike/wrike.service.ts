@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import {
   WrikeTasksResponse,
+  WrikeFoldersResponse,
   WrikeWorkflowsResponse,
   WrikeContactsResponse,
   WrikeWebhooksResponse,
@@ -73,6 +74,41 @@ export class WrikeService implements OnModuleInit {
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch Wrike task ${taskId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch multiple tasks by IDs (comma-separated, max 100)
+   */
+  async getTasks(taskIds: string[]): Promise<WrikeTasksResponse> {
+    try {
+      this.logger.log(`Fetching ${taskIds.length} Wrike tasks`);
+      const response = await this.axiosInstance.get<WrikeTasksResponse>(
+        `/tasks/${taskIds.join(',')}`,
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch Wrike tasks:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch a folder by ID
+   */
+  async getFolder(folderId: string): Promise<WrikeFoldersResponse> {
+    try {
+      this.logger.log(`Fetching Wrike folder: ${folderId}`);
+      const response = await this.axiosInstance.get<WrikeFoldersResponse>(
+        `/folders/${folderId}`,
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch Wrike folder ${folderId}:`,
+        error.message,
+      );
       throw error;
     }
   }

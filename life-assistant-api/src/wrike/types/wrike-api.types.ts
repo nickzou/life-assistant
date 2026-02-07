@@ -30,6 +30,7 @@ export interface WrikeTask {
   briefDescription?: string;
   parentIds?: string[];
   superParentIds?: string[];
+  superTaskIds?: string[];
   sharedIds?: string[];
   responsibleIds?: string[];
   followers?: string[];
