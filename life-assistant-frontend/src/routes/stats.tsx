@@ -5,6 +5,15 @@ import { PageContainer } from '../components/PageContainer'
 import { api } from '../lib/api'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
+interface TasksDueToday {
+  total: number
+  completed: number
+  remaining: number
+  overdue: number
+  affirmativeCompletions: number
+  completionRate: number
+}
+
 interface DayStats {
   date: string
   total: number
@@ -17,6 +26,7 @@ export const Route = createFileRoute('/stats')({
 })
 
 function StatsPage() {
+  const [todayStats, setTodayStats] = useState<TasksDueToday | null>(null)
   const [stats, setStats] = useState<DayStats[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -24,8 +34,12 @@ function StatsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get<DayStats[]>('/clickup/tasks/stats/5')
-        setStats(response.data)
+        const [todayResponse, historyResponse] = await Promise.all([
+          api.get<TasksDueToday>('/tasks/today'),
+          api.get<DayStats[]>('/clickup/tasks/stats/5'),
+        ])
+        setTodayStats(todayResponse.data)
+        setStats(historyResponse.data)
       } catch {
         setError('Failed to fetch stats')
       } finally {
@@ -71,6 +85,37 @@ function StatsPage() {
 
         {!loading && !error && (
           <>
+            {todayStats && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+                <div className="mb-6 text-center">
+                  <p className="text-5xl font-bold text-green-600 dark:text-green-400">
+                    {todayStats.completionRate}%
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Today's Completion Rate ({todayStats.affirmativeCompletions}/{todayStats.total} tasks)
+                  </p>
+                </div>
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{todayStats.total}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Due Today</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">{todayStats.affirmativeCompletions}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{todayStats.remaining}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-red-600 dark:text-red-400">{todayStats.overdue}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Overdue</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Completion Rate Trend

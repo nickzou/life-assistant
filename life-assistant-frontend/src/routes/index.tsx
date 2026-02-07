@@ -8,15 +8,6 @@ import { DueDateModal } from '../components/DueDateModal'
 import type { ClickUpStatus } from '../components/StatusDropdown'
 import { api } from '../lib/api'
 
-interface TasksDueToday {
-  total: number
-  completed: number
-  remaining: number
-  overdue: number
-  affirmativeCompletions: number
-  completionRate: number
-}
-
 interface TasksListResponse {
   tasks: TaskItem[]
   overdueTasks: TaskItem[]
@@ -33,7 +24,6 @@ export const Route = createFileRoute('/')({
 type TaskFilter = 'all' | 'work' | 'personal'
 
 function Index() {
-  const [stats, setStats] = useState<TasksDueToday | null>(null)
   const [tasksList, setTasksList] = useState<TasksListResponse | null>(null)
   const [statusesByListId, setStatusesByListId] = useState<Record<string, ClickUpStatus[]>>({})
   const [loading, setLoading] = useState(true)
@@ -67,11 +57,7 @@ function Index() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsResponse, tasksResponse] = await Promise.all([
-        api.get<TasksDueToday>('/tasks/today'),
-        api.get<TasksListResponse>('/tasks/today/list'),
-      ])
-      setStats(statsResponse.data)
+      const tasksResponse = await api.get<TasksListResponse>('/tasks/today/list')
       setTasksList(tasksResponse.data)
 
       // Only fetch ClickUp statuses (for status dropdown on mutable tasks)
@@ -232,46 +218,9 @@ function Index() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Tasks Due Today
-          </h2>
-
-          {loading && (
-            <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-          )}
-
-          {stats && (
-            <>
-              <div className="mb-6 text-center">
-                <p className="text-5xl font-bold text-green-600 dark:text-green-400">
-                  {stats.completionRate}%
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Completion Rate ({stats.affirmativeCompletions}/{stats.total} tasks)
-                </p>
-              </div>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Due Today</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.affirmativeCompletions}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{stats.remaining}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.overdue}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Overdue</p>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        {loading && (
+          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        )}
 
         {/* Filter */}
         {tasksList && (
