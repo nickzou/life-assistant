@@ -68,11 +68,10 @@ export function TaskCard({
 
   return (
     <div
-      className="p-2 sm:p-3 flex flex-col gap-y-2 rounded-lg border"
+      className="p-2 sm:p-3 flex flex-col gap-y-2 rounded-lg border transition-colors duration-200 ease-in-out"
       style={{
         backgroundColor: task.status.color + '10',
         borderColor: task.status.color + '40',
-        transition: 'background-color 200ms ease-in-out, border-color 200ms ease-in-out',
       }}
       data-testid="task-card"
     >

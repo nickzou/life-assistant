@@ -19,15 +19,13 @@ export function BottomShelf({ task, isExpanded, onToggle }: BottomShelfProps) {
         data-testid="accordion-toggle"
       >
         <ChevronDown
-          className="w-4 h-4 transition-transform duration-200"
-          style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
         />
       </button>
 
       {/* Accordion shelf */}
       <div
-        className="overflow-hidden transition-[max-height] duration-200 ease-in-out"
-        style={{ maxHeight: isExpanded ? '200px' : '0px' }}
+        className={`overflow-hidden transition-[max-height] duration-200 ease-in-out ${isExpanded ? 'max-h-[200px]' : 'max-h-0'}`}
         data-testid="accordion-shelf"
       >
         <div className="pt-2 flex items-center justify-between gap-2">
