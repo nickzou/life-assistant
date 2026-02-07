@@ -1,6 +1,6 @@
 import { ExternalLink } from 'lucide-react'
 import { SOURCE_LABELS, type TaskItem } from './index'
-import { DueDate } from './DueDate'
+import { TaskDates } from './DueDate'
 
 interface TopShelfProps {
   task: TaskItem
@@ -14,17 +14,24 @@ export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfPro
       className="flex items-center justify-between gap-2 pb-1.5 border-b"
       style={{ borderColor: task.status.color + '30' }}
     >
-      <DueDate
-        dueDate={task.dueDate}
-        hasDueTime={task.hasDueTime}
-        canChange={canChangeDueDate}
-        onClick={onDueDateClick}
-      />
-      {task.parentName && (
-        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-          {task.parentName}
-        </span>
-      )}
+      <div className="flex items-center gap-2 min-w-0">
+        <TaskDates
+          startDate={task.startDate}
+          hasStartTime={task.hasStartTime}
+          dueDate={task.dueDate}
+          hasDueTime={task.hasDueTime}
+          canChange={canChangeDueDate}
+          onClick={onDueDateClick}
+        />
+        {task.parentName && (
+          <>
+            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
+              {task.parentName}
+            </span>
+          </>
+        )}
+      </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <a
           href={task.url}

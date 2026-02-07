@@ -1,43 +1,69 @@
 import { Calendar } from 'lucide-react'
 
 interface DateContentProps {
+  startDate: string | null
+  hasStartTime: boolean
   dueDate: string | null
   hasDueTime: boolean
   placeholder: string
 }
 
-interface DueDateProps {
+interface TaskDatesProps {
+  startDate: string | null
+  hasStartTime: boolean
   dueDate: string | null
   hasDueTime: boolean
   canChange: boolean
   onClick: (e: React.MouseEvent) => void
 }
 
-function formatDueTime(dueDate: string) {
-  return new Date(dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
-function DateContent({ dueDate, hasDueTime, placeholder }: DateContentProps) {
+function formatTime(date: string) {
+  return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function DateContent({ startDate, hasStartTime, dueDate, hasDueTime, placeholder }: DateContentProps) {
+  if (!startDate && !dueDate) {
+    return (
+      <>
+        <Calendar className="w-3 h-3" />
+        <span className="opacity-60">{placeholder}</span>
+      </>
+    )
+  }
+
   return (
     <>
       <Calendar className="w-3 h-3" />
-      {dueDate ? (
+      {startDate && (
         <>
-          {new Date(dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+          {formatDate(startDate)}
+          {hasStartTime && (
+            <span className="text-gray-400 dark:text-gray-500">
+              {' '}at {formatTime(startDate)}
+            </span>
+          )}
+          {dueDate && <span className="text-gray-400 dark:text-gray-500">{' '}-{' '}</span>}
+        </>
+      )}
+      {dueDate && (
+        <>
+          {formatDate(dueDate)}
           {hasDueTime && (
             <span className="text-gray-400 dark:text-gray-500">
-              {' '}at {formatDueTime(dueDate)}
+              {' '}at {formatTime(dueDate)}
             </span>
           )}
         </>
-      ) : (
-        <span className="opacity-60">{placeholder}</span>
       )}
     </>
   )
 }
 
-export function DueDate({ dueDate, hasDueTime, canChange, onClick }: DueDateProps) {
+export function TaskDates({ startDate, hasStartTime, dueDate, hasDueTime, canChange, onClick }: TaskDatesProps) {
   if (canChange) {
     return (
       <button
@@ -46,14 +72,14 @@ export function DueDate({ dueDate, hasDueTime, canChange, onClick }: DueDateProp
         className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer"
         data-testid="due-date-button"
       >
-        <DateContent dueDate={dueDate} hasDueTime={hasDueTime} placeholder="Set date" />
+        <DateContent startDate={startDate} hasStartTime={hasStartTime} dueDate={dueDate} hasDueTime={hasDueTime} placeholder="Set date" />
       </button>
     )
   }
 
   return (
     <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap flex items-center gap-1">
-      <DateContent dueDate={dueDate} hasDueTime={hasDueTime} placeholder="No date" />
+      <DateContent startDate={startDate} hasStartTime={hasStartTime} dueDate={dueDate} hasDueTime={hasDueTime} placeholder="No date" />
     </span>
   )
 }
