@@ -215,6 +215,7 @@ export class GrocyController {
       section_id?: number;
       sectionName?: string;
       servings?: number;
+      day?: string;
       oldSectionName?: string;
     },
   ): Promise<{ success: boolean }> {
@@ -225,6 +226,7 @@ export class GrocyController {
         section_id: body.section_id,
         sectionName: body.sectionName,
         servings: body.servings,
+        day: body.day,
       },
       body.oldSectionName,
     );

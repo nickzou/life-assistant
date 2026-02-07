@@ -347,53 +347,74 @@ export class MealPrepService {
    */
   async updateMealWithTasks(
     mealPlanItemId: number,
-    updates: { section_id?: number; sectionName?: string; servings?: number },
+    updates: {
+      section_id?: number;
+      sectionName?: string;
+      servings?: number;
+      day?: string;
+    },
     oldSectionName?: string,
   ): Promise<void> {
     // 1. Update meal in Grocy
-    const grocyUpdates: { section_id?: number; recipe_servings?: number } = {};
+    const grocyUpdates: {
+      section_id?: number;
+      recipe_servings?: number;
+      day?: string;
+    } = {};
     if (updates.section_id !== undefined) {
       grocyUpdates.section_id = updates.section_id;
     }
     if (updates.servings !== undefined) {
       grocyUpdates.recipe_servings = updates.servings;
     }
+    if (updates.day !== undefined) {
+      grocyUpdates.day = updates.day;
+    }
 
     if (Object.keys(grocyUpdates).length > 0) {
       await this.grocyService.updateMealPlanItem(mealPlanItemId, grocyUpdates);
     }
 
-    // 2. Update ClickUp task tags if section changed
-    if (
+    // 2. Update ClickUp tasks if needed
+    const sectionChanged =
       updates.sectionName &&
       oldSectionName &&
-      updates.sectionName !== oldSectionName
-    ) {
+      updates.sectionName !== oldSectionName;
+    const dayChanged = updates.day !== undefined;
+
+    if (sectionChanged || dayChanged) {
       const mappings = await this.taskMappingRepo.find({
-        where: { meal_plan_item_id: mealPlanItemId, task_type: 'main' },
+        where: { meal_plan_item_id: mealPlanItemId },
       });
 
       for (const mapping of mappings) {
         try {
-          // Remove old section tag
-          await this.clickUpService.removeTag(
-            mapping.clickup_task_id,
-            oldSectionName.toLowerCase(),
-          );
-          // Add new section tag
-          await this.clickUpService.addTag(
-            mapping.clickup_task_id,
-            updates.sectionName.toLowerCase(),
-          );
+          // Update section tags on main tasks only
+          if (sectionChanged && mapping.task_type === 'main') {
+            await this.clickUpService.removeTag(
+              mapping.clickup_task_id,
+              oldSectionName.toLowerCase(),
+            );
+            await this.clickUpService.addTag(
+              mapping.clickup_task_id,
+              updates.sectionName.toLowerCase(),
+            );
+            await this.updateTimeOfDayField(
+              mapping.clickup_task_id,
+              updates.sectionName,
+            );
+          }
 
-          // Update Time of Day custom field
-          await this.updateTimeOfDayField(
-            mapping.clickup_task_id,
-            updates.sectionName,
-          );
+          // Update due date on all associated tasks (main + defrost)
+          if (dayChanged) {
+            const newDueDate = new Date(updates.day + 'T12:00:00').getTime();
+            await this.clickUpService.updateTask(mapping.clickup_task_id, {
+              due_date: newDueDate,
+            });
+          }
         } catch (error) {
           this.logger.warn(
-            `Failed to update tags for task ${mapping.clickup_task_id}: ${error.message}`,
+            `Failed to update ClickUp task ${mapping.clickup_task_id}: ${error.message}`,
           );
         }
       }
