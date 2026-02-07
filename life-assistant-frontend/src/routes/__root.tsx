@@ -120,23 +120,8 @@ function RootLayout() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {!isLoginPage && (
-        <nav className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <nav className="relative border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 z-40">
           <div className="flex items-center justify-between px-4 py-3">
-            {/* Mobile hamburger button */}
-            <button
-              className="md:hidden p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-6">
               {primaryLinks}
@@ -148,11 +133,26 @@ function RootLayout() {
                 <UserMenu />
               </div>
             )}
+
+            {/* Mobile hamburger button (right-aligned) */}
+            <button
+              className="md:hidden ml-auto p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
           </div>
 
           {/* Mobile menu */}
           {mobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex flex-col gap-3">
+            <div className="md:hidden absolute top-full left-0 right-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex flex-col gap-3 items-end text-right shadow-lg">
               {primaryLinks}
               {isAuthenticated && (
                 <>
