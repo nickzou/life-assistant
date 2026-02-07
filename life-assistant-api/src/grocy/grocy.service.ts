@@ -756,7 +756,7 @@ export class GrocyService implements OnModuleInit {
    */
   async updateMealPlanItem(
     id: number,
-    data: { section_id?: number; recipe_servings?: number },
+    data: { section_id?: number; recipe_servings?: number; day?: string },
   ): Promise<void> {
     this.logger.log(`Updating meal plan item ${id}: ${JSON.stringify(data)}`);
     await this.axiosInstance.put(`/objects/meal_plan/${id}`, data);

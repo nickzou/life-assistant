@@ -291,10 +291,13 @@ function MealsPage() {
     });
   };
 
+  const [editDay, setEditDay] = useState('');
+
   const openEditModal = (meal: MealPlanItem) => {
     setEditingMeal(meal);
     setEditSectionId(meal.section_id ?? null);
     setEditServings(meal.recipe_servings || 1);
+    setEditDay(meal.day);
   };
 
   const closeEditModal = () => {
@@ -313,6 +316,7 @@ function MealsPage() {
         section_id: editSectionId,
         sectionName: newSection?.name,
         servings: editServings,
+        day: editDay !== editingMeal.day ? editDay : undefined,
         oldSectionName: editingMeal.section_name,
       });
 
@@ -674,6 +678,19 @@ function MealsPage() {
               </h2>
 
               <div className="space-y-4">
+                {/* Date input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editDay}
+                    onChange={(e) => setEditDay(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
                 {/* Section select */}
                 {sections.length > 0 && (
                   <div>
