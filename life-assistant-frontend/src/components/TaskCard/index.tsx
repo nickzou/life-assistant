@@ -34,6 +34,7 @@ interface TaskCardProps {
   availableStatuses?: ClickUpStatus[]
   onStatusChange?: (taskId: string, newStatus: string) => Promise<void>
   onDueDateChange?: (task: TaskItem) => void
+  onTimeOfDayChange?: (taskId: string, source: TaskSource, timeOfDay: string | null) => Promise<void>
 }
 
 export function TaskCard({
@@ -41,6 +42,7 @@ export function TaskCard({
   availableStatuses,
   onStatusChange,
   onDueDateChange,
+  onTimeOfDayChange,
 }: TaskCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const isCompleted = task.status.type === 'done' || task.status.type === 'closed'
@@ -73,6 +75,11 @@ export function TaskCard({
         task={task}
         canChangeDueDate={canChangeDueDate}
         onDueDateClick={handleDueDateClick}
+        onTimeOfDayChange={
+          onTimeOfDayChange
+            ? (timeOfDay) => onTimeOfDayChange(task.id, task.source, timeOfDay)
+            : undefined
+        }
       />
 
       <div className="flex items-start justify-between gap-2 sm:gap-4">

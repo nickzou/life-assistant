@@ -2,14 +2,16 @@ import { ExternalLink } from 'lucide-react'
 import type { TaskItem } from './index'
 import { SOURCE_LABELS } from './constants'
 import { TaskDates } from './DueDate'
+import { TimeOfDayDropdown } from './TimeOfDayDropdown'
 
 interface TopShelfProps {
   task: TaskItem
   canChangeDueDate: boolean
   onDueDateClick: (e: React.MouseEvent) => void
+  onTimeOfDayChange?: (timeOfDay: string | null) => Promise<void>
 }
 
-export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfProps) {
+export function TopShelf({ task, canChangeDueDate, onDueDateClick, onTimeOfDayChange }: TopShelfProps) {
   return (
     <div
       className="flex items-center justify-between gap-2 pb-1.5 border-b"
@@ -45,14 +47,19 @@ export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfPro
         >
           <ExternalLink className="w-4 h-4" />
         </a>
-        {task.timeOfDay && (
+        {onTimeOfDayChange ? (
+          <TimeOfDayDropdown
+            current={task.timeOfDay}
+            onTimeOfDayChange={onTimeOfDayChange}
+          />
+        ) : task.timeOfDay ? (
           <span
             className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium text-white"
             style={{ backgroundColor: task.timeOfDay.color }}
           >
             {task.timeOfDay.name}
           </span>
-        )}
+        ) : null}
       </div>
     </div>
   )

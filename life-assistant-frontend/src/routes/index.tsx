@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { PageContainer } from '../components/PageContainer'
 import { Accordion } from '../components/Accordion'
-import { TaskCard, type TaskItem } from '../components/TaskCard'
+import { TaskCard, type TaskItem, type TaskSource } from '../components/TaskCard'
 import { DueDateModal } from '../components/DueDateModal'
 import type { ClickUpStatus } from '../components/StatusDropdown'
 import { api } from '../lib/api'
@@ -163,6 +163,42 @@ function Index() {
     }
   }
 
+  const handleTimeOfDayChange = async (taskId: string, source: TaskSource, timeOfDay: string | null) => {
+    setError(null)
+
+    // Optimistic update
+    const previousTasksList = tasksList
+    if (tasksList) {
+      const TIME_OF_DAY_COLORS: Record<string, string> = {
+        'early morning': '#6B7280',
+        'morning': '#F59E0B',
+        'mid day': '#3B82F6',
+        'evening': '#8B5CF6',
+        'before bed': '#6366F1',
+      }
+      const newTimeOfDay = timeOfDay ? { name: timeOfDay, color: TIME_OF_DAY_COLORS[timeOfDay] || '#9CA3AF' } : null
+      const updateTaskTimeOfDay = (tasks: TaskItem[]) =>
+        tasks.map((task) =>
+          task.id === taskId ? { ...task, timeOfDay: newTimeOfDay } : task
+        )
+      setTasksList({
+        tasks: updateTaskTimeOfDay(tasksList.tasks),
+        overdueTasks: updateTaskTimeOfDay(tasksList.overdueTasks),
+      })
+    }
+
+    try {
+      await api.put(`/tasks/${source}/${taskId}/time-of-day`, { timeOfDay })
+      setSuccessMessage('Time of day updated')
+      fetchData()
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch {
+      setTasksList(previousTasksList)
+      setError('Failed to update time of day')
+      throw new Error('Failed to update time of day')
+    }
+  }
+
   const filterTasks = (tasks: TaskItem[]): TaskItem[] => {
     let filtered = tasks
     if (!showDone) {
@@ -286,6 +322,7 @@ function Index() {
                       availableStatuses={statusesByListId[task.listId] || []}
                       onStatusChange={handleStatusChange}
                       onDueDateChange={handleDueDateChange}
+                      onTimeOfDayChange={task.source !== 'clickup' ? handleTimeOfDayChange : undefined}
                     />
                   ))}
                 </div>
@@ -306,6 +343,7 @@ function Index() {
                       availableStatuses={statusesByListId[task.listId] || []}
                       onStatusChange={handleStatusChange}
                       onDueDateChange={handleDueDateChange}
+                      onTimeOfDayChange={task.source !== 'clickup' ? handleTimeOfDayChange : undefined}
                     />
                   ))}
                 </div>

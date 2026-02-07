@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TasksService } from './tasks.service';
+import { TaskAnnotationService } from './task-annotation.service';
 import {
   TASK_SOURCE,
   TaskSource,
@@ -30,6 +31,9 @@ describe('TasksService', () => {
   let service: TasksService;
   let mockClickUpSource: jest.Mocked<TaskSource>;
   let mockWrikeSource: jest.Mocked<TaskSource>;
+  let mockAnnotationService: jest.Mocked<
+    Pick<TaskAnnotationService, 'getTimeOfDayAnnotations' | 'setTimeOfDay'>
+  >;
 
   beforeEach(async () => {
     mockClickUpSource = {
@@ -42,6 +46,10 @@ describe('TasksService', () => {
       getTasksDueToday: jest.fn(),
       getStatsForToday: jest.fn(),
     };
+    mockAnnotationService = {
+      getTimeOfDayAnnotations: jest.fn().mockResolvedValue(new Map()),
+      setTimeOfDay: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -49,6 +57,10 @@ describe('TasksService', () => {
         {
           provide: TASK_SOURCE,
           useValue: [mockClickUpSource, mockWrikeSource],
+        },
+        {
+          provide: TaskAnnotationService,
+          useValue: mockAnnotationService,
         },
       ],
     }).compile();
@@ -248,6 +260,139 @@ describe('TasksService', () => {
       const result = await service.getStatsForToday();
 
       expect(result.completionRate).toBe(75); // 3/4, not (50+100)/2
+    });
+  });
+
+  describe('enrichTimeOfDay', () => {
+    it('should enrich wrike tasks with annotations from DB', async () => {
+      const wrikeTask = makeTask({
+        id: 'wr-1',
+        source: 'wrike',
+        timeOfDay: null,
+      });
+
+      mockClickUpSource.getTasksDueToday.mockResolvedValue({
+        tasks: [],
+        overdueTasks: [],
+      });
+      mockWrikeSource.getTasksDueToday.mockResolvedValue({
+        tasks: [wrikeTask],
+        overdueTasks: [],
+      });
+
+      mockAnnotationService.getTimeOfDayAnnotations.mockResolvedValue(
+        new Map([['wr-1', { name: 'morning', color: '#F59E0B' }]]),
+      );
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks[0].timeOfDay).toEqual({
+        name: 'morning',
+        color: '#F59E0B',
+      });
+      expect(
+        mockAnnotationService.getTimeOfDayAnnotations,
+      ).toHaveBeenCalledWith(['wr-1'], 'wrike');
+    });
+
+    it('should not look up annotations for clickup tasks', async () => {
+      const clickUpTask = makeTask({
+        id: 'cu-1',
+        source: 'clickup',
+        timeOfDay: null,
+      });
+
+      mockClickUpSource.getTasksDueToday.mockResolvedValue({
+        tasks: [clickUpTask],
+        overdueTasks: [],
+      });
+      mockWrikeSource.getTasksDueToday.mockResolvedValue({
+        tasks: [],
+        overdueTasks: [],
+      });
+
+      await service.getTasksDueToday();
+
+      expect(
+        mockAnnotationService.getTimeOfDayAnnotations,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should not overwrite tasks that already have timeOfDay', async () => {
+      const wrikeTask = makeTask({
+        id: 'wr-1',
+        source: 'wrike',
+        timeOfDay: { name: 'evening', color: '#8B5CF6' },
+      });
+
+      mockClickUpSource.getTasksDueToday.mockResolvedValue({
+        tasks: [],
+        overdueTasks: [],
+      });
+      mockWrikeSource.getTasksDueToday.mockResolvedValue({
+        tasks: [wrikeTask],
+        overdueTasks: [],
+      });
+
+      await service.getTasksDueToday();
+
+      // Should not call annotations since no tasks have null timeOfDay
+      expect(
+        mockAnnotationService.getTimeOfDayAnnotations,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should enrich overdue tasks as well', async () => {
+      const overdueWrikeTask = makeTask({
+        id: 'wr-overdue',
+        source: 'wrike',
+        timeOfDay: null,
+      });
+
+      mockClickUpSource.getTasksDueToday.mockResolvedValue({
+        tasks: [],
+        overdueTasks: [],
+      });
+      mockWrikeSource.getTasksDueToday.mockResolvedValue({
+        tasks: [],
+        overdueTasks: [overdueWrikeTask],
+      });
+
+      mockAnnotationService.getTimeOfDayAnnotations.mockResolvedValue(
+        new Map([['wr-overdue', { name: 'before bed', color: '#6366F1' }]]),
+      );
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.overdueTasks[0].timeOfDay).toEqual({
+        name: 'before bed',
+        color: '#6366F1',
+      });
+    });
+
+    it('should leave tasks unenriched when no annotation exists', async () => {
+      const wrikeTask = makeTask({
+        id: 'wr-1',
+        source: 'wrike',
+        timeOfDay: null,
+      });
+
+      mockClickUpSource.getTasksDueToday.mockResolvedValue({
+        tasks: [],
+        overdueTasks: [],
+      });
+      mockWrikeSource.getTasksDueToday.mockResolvedValue({
+        tasks: [wrikeTask],
+        overdueTasks: [],
+      });
+
+      mockAnnotationService.getTimeOfDayAnnotations.mockResolvedValue(
+        new Map(),
+      );
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks[0].timeOfDay).toBeNull();
     });
   });
 });
