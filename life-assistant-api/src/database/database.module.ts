@@ -6,9 +6,11 @@ import { SyncLog } from './entities/sync-log.entity';
 import { User } from './entities/user.entity';
 import { RecipePrepConfig } from './entities/recipe-prep-config.entity';
 import { MealPlanTaskMapping } from './entities/meal-plan-task-mapping.entity';
+import { TaskAnnotation } from './entities/task-annotation.entity';
 import { DatabaseService } from './database.service';
 import { InitialSchema1737420000000 } from './migrations/1737420000000-InitialSchema';
 import { AddMealPrepTables1738400000000 } from './migrations/1738400000000-AddMealPrepTables';
+import { AddTaskAnnotations1738500000000 } from './migrations/1738500000000-AddTaskAnnotations';
 
 @Module({
   imports: [
@@ -28,10 +30,12 @@ import { AddMealPrepTables1738400000000 } from './migrations/1738400000000-AddMe
           User,
           RecipePrepConfig,
           MealPlanTaskMapping,
+          TaskAnnotation,
         ],
         migrations: [
           InitialSchema1737420000000,
           AddMealPrepTables1738400000000,
+          AddTaskAnnotations1738500000000,
         ],
         migrationsRun: true, // Auto-run migrations on startup
         synchronize: false, // Never use synchronize in production
@@ -44,6 +48,7 @@ import { AddMealPrepTables1738400000000 } from './migrations/1738400000000-AddMe
       User,
       RecipePrepConfig,
       MealPlanTaskMapping,
+      TaskAnnotation,
     ]),
   ],
   providers: [DatabaseService],

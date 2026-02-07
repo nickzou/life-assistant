@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TasksService } from './tasks.service';
+import { TaskAnnotationService } from './task-annotation.service';
 import {
   TASK_SOURCE,
   TaskSource,
@@ -49,6 +50,13 @@ describe('TasksService', () => {
         {
           provide: TASK_SOURCE,
           useValue: [mockClickUpSource, mockWrikeSource],
+        },
+        {
+          provide: TaskAnnotationService,
+          useValue: {
+            getTimeOfDayAnnotations: jest.fn().mockResolvedValue(new Map()),
+            setTimeOfDay: jest.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();
