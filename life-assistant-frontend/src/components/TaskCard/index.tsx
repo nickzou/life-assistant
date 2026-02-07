@@ -68,7 +68,7 @@ export function TaskCard({
 
   return (
     <div
-      className="p-2 sm:p-3 flex flex-col gap-y-1.5 rounded-lg border"
+      className="p-2 sm:p-3 flex flex-col gap-y-2 rounded-lg border"
       style={{
         backgroundColor: task.status.color + '10',
         borderColor: task.status.color + '40',

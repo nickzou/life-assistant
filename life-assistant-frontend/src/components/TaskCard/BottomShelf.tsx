@@ -9,13 +9,13 @@ interface BottomShelfProps {
 
 export function BottomShelf({ task, isExpanded, onToggle }: BottomShelfProps) {
   return (
-    <>
+    <div className="pt-2 border-t"
+        style={{ borderColor: task.status.color + '30' }}>
       {/* Accordion toggle */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-center border-t text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
-        style={{ borderColor: task.status.color + '30' }}
+        className="w-full flex items-center justify-center  text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
         data-testid="accordion-toggle"
       >
         <ChevronDown
@@ -48,6 +48,6 @@ export function BottomShelf({ task, isExpanded, onToggle }: BottomShelfProps) {
           </span>
         </div>
       </div>
-    </>
+    </div>
   )
 }
