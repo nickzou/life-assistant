@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import type { TaskItem } from './index'
+import { SOURCE_LABELS, type TaskItem } from './index'
 import { DueDate } from './DueDate'
 
 interface TopShelfProps {
@@ -30,10 +30,9 @@ export function TopShelf({ task, canChangeDueDate, onDueDateClick }: TopShelfPro
           href={task.url}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
           className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
-          title={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
-          aria-label={`Open in ${task.source === 'wrike' ? 'Wrike' : task.source === 'openproject' ? 'OpenProject' : 'ClickUp'}`}
+          title={`Open in ${SOURCE_LABELS[task.source]}`}
+          aria-label={`Open in ${SOURCE_LABELS[task.source]}`}
           data-testid="external-link-button"
         >
           <ExternalLink className="w-4 h-4" />

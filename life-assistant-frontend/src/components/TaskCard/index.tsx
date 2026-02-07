@@ -5,6 +5,12 @@ import { BottomShelf } from './BottomShelf'
 
 export type TaskSource = 'clickup' | 'wrike' | 'openproject'
 
+export const SOURCE_LABELS: Record<TaskSource, string> = {
+  wrike: 'Wrike',
+  clickup: 'ClickUp',
+  openproject: 'OpenProject',
+}
+
 export type TaskItem = {
   id: string
   name: string

@@ -331,23 +331,4 @@ describe('TaskCard', () => {
     })
   })
 
-  describe('external link button', () => {
-    it('stops event propagation when clicked', () => {
-      const onDueDateChange = vi.fn()
-      render(
-        <TaskCard
-          task={createTask()}
-          onDueDateChange={onDueDateChange}
-        />
-      )
-
-      const link = screen.getByTestId('external-link-button')
-      const clickEvent = new MouseEvent('click', { bubbles: true })
-      const stopPropagationSpy = vi.spyOn(clickEvent, 'stopPropagation')
-
-      link.dispatchEvent(clickEvent)
-
-      expect(stopPropagationSpy).toHaveBeenCalled()
-    })
-  })
 })

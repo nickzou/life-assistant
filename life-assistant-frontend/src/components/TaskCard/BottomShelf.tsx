@@ -1,16 +1,10 @@
 import { ChevronDown } from 'lucide-react'
-import type { TaskItem } from './index'
+import { SOURCE_LABELS, type TaskItem } from './index'
 
 interface BottomShelfProps {
   task: TaskItem
   isExpanded: boolean
   onToggle: () => void
-}
-
-const SOURCE_LABELS: Record<string, string> = {
-  wrike: 'Wrike',
-  clickup: 'ClickUp',
-  openproject: 'OpenProject',
 }
 
 export function BottomShelf({ task, isExpanded, onToggle }: BottomShelfProps) {
