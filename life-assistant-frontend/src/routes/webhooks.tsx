@@ -131,7 +131,7 @@ function WebhooksPage() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
             Register Webhook
           </h2>
-          <form onSubmit={registerWebhook} className="flex gap-3">
+          <form onSubmit={registerWebhook} className="flex flex-col sm:flex-row gap-3">
             <select
               value={platform}
               onChange={(e) => setPlatform(e.target.value as WebhookPlatform)}
@@ -145,7 +145,7 @@ function WebhooksPage() {
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://your-ngrok-url.ngrok.app"
-              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="submit"
@@ -195,7 +195,7 @@ function WebhooksPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
