@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react'
-import { SOURCE_LABELS, type TaskItem } from './index'
+import type { TaskItem } from './index'
+import { SOURCE_LABELS } from './constants'
 import { TaskDates } from './DueDate'
 
 interface TopShelfProps {

@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react'
-import { SOURCE_LABELS, type TaskItem } from './index'
+import type { TaskItem } from './index'
+import { SOURCE_LABELS } from './constants'
 
 interface BottomShelfProps {
   task: TaskItem
