@@ -14,6 +14,8 @@ export interface TaskItem {
     type: string;
     color: string;
   };
+  startDate: string | null;
+  hasStartTime: boolean;
   dueDate: string | null;
   hasDueTime: boolean;
   tags: string[];
@@ -34,6 +36,8 @@ export interface ClickUpTask {
     type?: string;
     color?: string;
   };
+  start_date?: string;
+  start_date_time?: boolean;
   due_date?: string;
   due_date_time?: boolean;
   tags?: Array<{ name: string }>;
@@ -96,6 +100,10 @@ export function mapTaskToItem(
       type: task.status?.type || 'unknown',
       color: task.status?.color || '#gray',
     },
+    startDate: task.start_date
+      ? new Date(parseInt(task.start_date, 10)).toISOString()
+      : null,
+    hasStartTime: task.start_date_time === true,
     dueDate: task.due_date
       ? new Date(parseInt(task.due_date, 10)).toISOString()
       : null,

@@ -32,6 +32,8 @@ describe('WrikeTaskSourceService', () => {
       getCurrentUserId: jest.fn().mockReturnValue('USER-1'),
       getTasksByDateRange: jest.fn(),
       getOverdueTasks: jest.fn(),
+      getTasks: jest.fn().mockResolvedValue({ data: [] }),
+      getFolder: jest.fn(),
     };
     mockWrikeStatusService = {
       getStatusInfo: jest.fn(),
@@ -208,7 +210,7 @@ describe('WrikeTaskSourceService', () => {
       expect(result.tasks[0].status.color).toBe('#9e9e9e');
     });
 
-    it('should append T00:00:00.000Z to due dates without Z suffix', async () => {
+    it('should append Z to due dates with time but without Z suffix', async () => {
       mockWrikeService.getTasksByDateRange.mockResolvedValue({
         data: [
           makeWrikeTask({
@@ -225,7 +227,7 @@ describe('WrikeTaskSourceService', () => {
 
       const result = await service.getTasksDueToday();
 
-      expect(result.tasks[0].dueDate).toBe('2026-02-06T17:00:00T00:00:00.000Z');
+      expect(result.tasks[0].dueDate).toBe('2026-02-06T17:00:00Z');
     });
 
     it('should preserve due dates that already end with Z', async () => {
@@ -246,6 +248,176 @@ describe('WrikeTaskSourceService', () => {
       const result = await service.getTasksDueToday();
 
       expect(result.tasks[0].dueDate).toBe('2026-02-06T00:00:00Z');
+    });
+
+    it('should map start dates with time component', async () => {
+      mockWrikeService.getTasksByDateRange.mockResolvedValue({
+        data: [
+          makeWrikeTask({
+            dates: {
+              type: 'Planned',
+              start: '2026-02-03T09:00:00',
+              due: '2026-02-06T17:00:00',
+            },
+          }),
+        ],
+      });
+      mockWrikeService.getOverdueTasks.mockResolvedValue({ data: [] });
+      mockWrikeStatusService.getStatusInfo.mockResolvedValue({
+        name: 'Assigned',
+        group: 'Active',
+        color: 'Blue1',
+      });
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks[0].startDate).toBe('2026-02-03T09:00:00Z');
+    });
+
+    it('should set startDate to null when no start date', async () => {
+      mockWrikeService.getTasksByDateRange.mockResolvedValue({
+        data: [makeWrikeTask()],
+      });
+      mockWrikeService.getOverdueTasks.mockResolvedValue({ data: [] });
+      mockWrikeStatusService.getStatusInfo.mockResolvedValue({
+        name: 'Assigned',
+        group: 'Active',
+        color: 'Blue1',
+      });
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks[0].startDate).toBeNull();
+    });
+
+    it('should resolve parentName from superTaskIds', async () => {
+      const task = makeWrikeTask({ id: 'CHILD-1' });
+      mockWrikeService.getTasksByDateRange.mockResolvedValue({
+        data: [task],
+      });
+      mockWrikeService.getOverdueTasks.mockResolvedValue({ data: [] });
+      mockWrikeStatusService.getStatusInfo.mockResolvedValue({
+        name: 'Assigned',
+        group: 'Active',
+        color: 'Blue1',
+      });
+
+      // Batch fetch returns enriched task with superTaskIds
+      mockWrikeService.getTasks
+        .mockResolvedValueOnce({
+          data: [{ ...task, superTaskIds: ['PARENT-1'], parentIds: [] }],
+        })
+        // Second call fetches the parent task name
+        .mockResolvedValueOnce({
+          data: [{ id: 'PARENT-1', title: 'Parent Task Name' }],
+        });
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks[0].parentName).toBe('Parent Task Name');
+    });
+
+    it('should fall back to folder name when no superTaskIds', async () => {
+      const task = makeWrikeTask({ id: 'CHILD-1' });
+      mockWrikeService.getTasksByDateRange.mockResolvedValue({
+        data: [task],
+      });
+      mockWrikeService.getOverdueTasks.mockResolvedValue({ data: [] });
+      mockWrikeStatusService.getStatusInfo.mockResolvedValue({
+        name: 'Assigned',
+        group: 'Active',
+        color: 'Blue1',
+      });
+
+      // Batch fetch returns task with parentIds but no superTaskIds
+      mockWrikeService.getTasks.mockResolvedValueOnce({
+        data: [{ ...task, superTaskIds: [], parentIds: ['FOLDER-1'] }],
+      });
+      mockWrikeService.getFolder.mockResolvedValue({
+        data: [{ id: 'FOLDER-1', title: 'Project Folder' }],
+      });
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks[0].parentName).toBe('Project Folder');
+    });
+
+    it('should prefer superTaskIds over parentIds', async () => {
+      const task = makeWrikeTask({ id: 'CHILD-1' });
+      mockWrikeService.getTasksByDateRange.mockResolvedValue({
+        data: [task],
+      });
+      mockWrikeService.getOverdueTasks.mockResolvedValue({ data: [] });
+      mockWrikeStatusService.getStatusInfo.mockResolvedValue({
+        name: 'Assigned',
+        group: 'Active',
+        color: 'Blue1',
+      });
+
+      // Task has both superTaskIds and parentIds
+      mockWrikeService.getTasks
+        .mockResolvedValueOnce({
+          data: [
+            {
+              ...task,
+              superTaskIds: ['PARENT-1'],
+              parentIds: ['FOLDER-1'],
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          data: [{ id: 'PARENT-1', title: 'Super Task Name' }],
+        });
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks[0].parentName).toBe('Super Task Name');
+      expect(mockWrikeService.getFolder).not.toHaveBeenCalled();
+    });
+
+    it('should handle batch fetch failure gracefully', async () => {
+      const task = makeWrikeTask();
+      mockWrikeService.getTasksByDateRange.mockResolvedValue({
+        data: [task],
+      });
+      mockWrikeService.getOverdueTasks.mockResolvedValue({ data: [] });
+      mockWrikeStatusService.getStatusInfo.mockResolvedValue({
+        name: 'Assigned',
+        group: 'Active',
+        color: 'Blue1',
+      });
+
+      mockWrikeService.getTasks.mockRejectedValue(new Error('API error'));
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].parentName).toBeNull();
+    });
+
+    it('should handle folder fetch failure gracefully', async () => {
+      const task = makeWrikeTask({ id: 'CHILD-1' });
+      mockWrikeService.getTasksByDateRange.mockResolvedValue({
+        data: [task],
+      });
+      mockWrikeService.getOverdueTasks.mockResolvedValue({ data: [] });
+      mockWrikeStatusService.getStatusInfo.mockResolvedValue({
+        name: 'Assigned',
+        group: 'Active',
+        color: 'Blue1',
+      });
+
+      mockWrikeService.getTasks.mockResolvedValueOnce({
+        data: [{ ...task, superTaskIds: [], parentIds: ['FOLDER-1'] }],
+      });
+      mockWrikeService.getFolder.mockRejectedValue(
+        new Error('Operation is not allowed for logical folder'),
+      );
+
+      const result = await service.getTasksDueToday();
+
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].parentName).toBeNull();
     });
   });
 

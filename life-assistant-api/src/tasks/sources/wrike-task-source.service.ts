@@ -115,11 +115,14 @@ export class WrikeTaskSourceService implements TaskSource {
       this.wrikeService.getOverdueTasks(todayStr),
     ]);
 
+    const allTasks = [...todayResponse.data, ...overdueResponse.data];
+    const parentNames = await this.fetchParentNames(allTasks);
+
     const todayTasks = await Promise.all(
-      todayResponse.data.map((task) => this.mapWrikeTask(task)),
+      todayResponse.data.map((task) => this.mapWrikeTask(task, parentNames)),
     );
     const overdueTasks = await Promise.all(
-      overdueResponse.data.map((task) => this.mapWrikeTask(task)),
+      overdueResponse.data.map((task) => this.mapWrikeTask(task, parentNames)),
     );
 
     return {
@@ -176,7 +179,96 @@ export class WrikeTaskSourceService implements TaskSource {
     };
   }
 
-  private async mapWrikeTask(task: WrikeTask): Promise<UnifiedTaskItem | null> {
+  /**
+   * Enrich tasks with full details (superTaskIds, parentIds) from batch fetch,
+   * then resolve parent names from super tasks or folders.
+   */
+  private async fetchParentNames(
+    tasks: WrikeTask[],
+  ): Promise<Map<string, string>> {
+    const parentNames = new Map<string, string>();
+    if (tasks.length === 0) return parentNames;
+
+    // Batch-fetch full task details to get superTaskIds and parentIds
+    // (the list endpoint doesn't return these fields)
+    let enrichedTasks: WrikeTask[];
+    try {
+      const taskIds = tasks.map((t) => t.id);
+      const response = await this.wrikeService.getTasks(taskIds);
+      enrichedTasks = response.data;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to batch-fetch task details: ${error.message}`,
+      );
+      return parentNames;
+    }
+
+    // Copy superTaskIds and parentIds back to original tasks
+    const enrichedMap = new Map(enrichedTasks.map((t) => [t.id, t]));
+    for (const task of tasks) {
+      const enriched = enrichedMap.get(task.id);
+      if (enriched) {
+        task.superTaskIds = enriched.superTaskIds;
+        task.parentIds = enriched.parentIds;
+      }
+    }
+
+    // Collect unique super task IDs (parent tasks)
+    const superTaskIds = [
+      ...new Set(
+        tasks
+          .filter((task) => task.superTaskIds?.length)
+          .map((task) => task.superTaskIds[0]),
+      ),
+    ];
+
+    // Collect unique folder IDs for tasks without a super task
+    const folderIds = [
+      ...new Set(
+        tasks
+          .filter(
+            (task) => !task.superTaskIds?.length && task.parentIds?.length,
+          )
+          .map((task) => task.parentIds[0]),
+      ),
+    ];
+
+    // Fetch super task names (batch if possible)
+    if (superTaskIds.length > 0) {
+      try {
+        const response = await this.wrikeService.getTasks(superTaskIds);
+        for (const parent of response.data) {
+          parentNames.set(parent.id, parent.title);
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Failed to fetch super task names: ${error.message}`,
+        );
+      }
+    }
+
+    // Fetch folder names as fallback
+    if (folderIds.length > 0) {
+      const folderResults = await Promise.allSettled(
+        folderIds.map(async (id) => {
+          const response = await this.wrikeService.getFolder(id);
+          return { id, name: response.data?.[0]?.title || null };
+        }),
+      );
+      for (const result of folderResults) {
+        if (result.status === 'fulfilled' && result.value.name) {
+          parentNames.set(result.value.id, result.value.name);
+        }
+      }
+    }
+
+    return parentNames;
+  }
+
+  private async mapWrikeTask(
+    task: WrikeTask,
+    parentNames: Map<string, string> = new Map(),
+  ): Promise<UnifiedTaskItem | null> {
     if (!task.dates?.due) {
       return null;
     }
@@ -187,18 +279,34 @@ export class WrikeTaskSourceService implements TaskSource {
 
     const dueDate = task.dates.due.endsWith('Z')
       ? task.dates.due
-      : task.dates.due + 'T00:00:00.000Z';
+      : task.dates.due.includes('T')
+        ? task.dates.due + 'Z'
+        : task.dates.due + 'T00:00:00.000Z';
+
+    const startDate = task.dates.start
+      ? task.dates.start.endsWith('Z')
+        ? task.dates.start
+        : task.dates.start.includes('T')
+          ? task.dates.start + 'Z'
+          : task.dates.start + 'T00:00:00.000Z'
+      : null;
 
     return {
       id: task.id,
       name: task.title,
-      parentName: null,
+      parentName: task.superTaskIds?.length
+        ? parentNames.get(task.superTaskIds[0]) || null
+        : task.parentIds?.length
+          ? parentNames.get(task.parentIds[0]) || null
+          : null,
       listId: '',
       status: {
         status: statusInfo?.name || task.status,
         type: statusInfo ? mapGroupToType(statusInfo.group) : 'custom',
         color: statusInfo ? wrikeColorToHex(statusInfo.color) : '#9e9e9e',
       },
+      startDate,
+      hasStartTime: false,
       dueDate,
       hasDueTime: false,
       tags: ['work'],

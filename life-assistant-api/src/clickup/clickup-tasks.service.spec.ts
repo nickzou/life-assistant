@@ -93,6 +93,8 @@ describe('ClickUpTasksService', () => {
           type: 'open',
           color: '#ff0000',
         },
+        startDate: null,
+        hasStartTime: false,
         dueDate: expect.any(String),
         hasDueTime: true,
         tags: ['urgent', 'work'],

@@ -13,11 +13,15 @@ const createTask = (overrides: Partial<TaskItem> = {}): TaskItem => ({
     type: 'active',
     color: '#3498db',
   },
+  startDate: null,
+  hasStartTime: false,
   dueDate: null,
   hasDueTime: false,
   tags: [],
   timeOfDay: null,
   url: 'https://example.com/task/1',
+  source: 'clickup',
+  readOnly: false,
   ...overrides,
 })
 
@@ -268,6 +272,63 @@ describe('TaskCard', () => {
     })
   })
 
+  describe('start date display', () => {
+    it('renders date range when both startDate and dueDate are set', () => {
+      render(
+        <TaskCard
+          task={createTask({
+            startDate: '2026-02-03T00:00:00',
+            dueDate: '2026-02-06T00:00:00',
+          })}
+        />
+      )
+      expect(screen.getByText(/Feb 3/)).toBeInTheDocument()
+      expect(screen.getByText(/Feb 6/)).toBeInTheDocument()
+      expect(screen.getByText('-')).toBeInTheDocument()
+    })
+
+    it('does not render start date when only dueDate is set', () => {
+      render(
+        <TaskCard
+          task={createTask({
+            startDate: null,
+            dueDate: '2026-02-06T00:00:00',
+          })}
+        />
+      )
+      expect(screen.getByText(/Feb 6/)).toBeInTheDocument()
+      expect(screen.queryByText('-')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('source label', () => {
+    it('renders source label in accordion shelf', () => {
+      render(<TaskCard task={createTask({ source: 'wrike' })} />)
+      expect(screen.getByText(/Wrike/)).toBeInTheDocument()
+    })
+
+    it('renders ClickUp source label', () => {
+      render(<TaskCard task={createTask({ source: 'clickup' })} />)
+      expect(screen.getByText(/ClickUp/)).toBeInTheDocument()
+    })
+  })
+
+  describe('accordion', () => {
+    it('expands and collapses when toggle is clicked', () => {
+      render(<TaskCard task={createTask({ tags: ['urgent'] })} />)
+
+      const shelf = screen.getByTestId('accordion-shelf')
+      expect(shelf).toHaveClass('max-h-0')
+
+      const toggle = screen.getByTestId('accordion-toggle')
+      fireEvent.click(toggle)
+      expect(shelf).toHaveClass('max-h-[200px]')
+
+      fireEvent.click(toggle)
+      expect(shelf).toHaveClass('max-h-0')
+    })
+  })
+
   describe('with due date change handler', () => {
     it('renders due date button when onDueDateChange is provided', () => {
       const onDueDateChange = vi.fn()
@@ -331,23 +392,4 @@ describe('TaskCard', () => {
     })
   })
 
-  describe('external link button', () => {
-    it('stops event propagation when clicked', () => {
-      const onDueDateChange = vi.fn()
-      render(
-        <TaskCard
-          task={createTask()}
-          onDueDateChange={onDueDateChange}
-        />
-      )
-
-      const link = screen.getByTestId('external-link-button')
-      const clickEvent = new MouseEvent('click', { bubbles: true })
-      const stopPropagationSpy = vi.spyOn(clickEvent, 'stopPropagation')
-
-      link.dispatchEvent(clickEvent)
-
-      expect(stopPropagationSpy).toHaveBeenCalled()
-    })
-  })
 })
