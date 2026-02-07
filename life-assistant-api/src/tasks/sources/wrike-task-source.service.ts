@@ -197,7 +197,9 @@ export class WrikeTaskSourceService implements TaskSource {
       const response = await this.wrikeService.getTasks(taskIds);
       enrichedTasks = response.data;
     } catch (error) {
-      this.logger.warn(`Failed to batch-fetch task details: ${error.message}`);
+      this.logger.warn(
+        `Failed to batch-fetch task details: ${error.message}`,
+      );
       return parentNames;
     }
 
@@ -239,7 +241,9 @@ export class WrikeTaskSourceService implements TaskSource {
           parentNames.set(parent.id, parent.title);
         }
       } catch (error) {
-        this.logger.warn(`Failed to fetch super task names: ${error.message}`);
+        this.logger.warn(
+          `Failed to fetch super task names: ${error.message}`,
+        );
       }
     }
 
