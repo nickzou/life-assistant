@@ -1,5 +1,11 @@
 import { Calendar } from 'lucide-react'
 
+interface DateContentProps {
+  dueDate: string | null
+  hasDueTime: boolean
+  placeholder: string
+}
+
 interface DueDateProps {
   dueDate: string | null
   hasDueTime: boolean
@@ -11,7 +17,7 @@ function formatDueTime(dueDate: string) {
   return new Date(dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function DateContent({ dueDate, hasDueTime, placeholder }: { dueDate: string | null; hasDueTime: boolean; placeholder: string }) {
+function DateContent({ dueDate, hasDueTime, placeholder }: DateContentProps) {
   return (
     <>
       <Calendar className="w-3 h-3" />
