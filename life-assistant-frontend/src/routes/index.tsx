@@ -7,6 +7,7 @@ import { TaskCard, type TaskItem, type TaskSource } from '../components/TaskCard
 import { DueDateModal } from '../components/DueDateModal'
 import type { ClickUpStatus } from '../components/StatusDropdown'
 import { api } from '../lib/api'
+import { useHomeFilters } from '../contexts/HomeFiltersContext'
 
 interface TasksListResponse {
   tasks: TaskItem[]
@@ -21,15 +22,13 @@ export const Route = createFileRoute('/')({
   component: Index,
 })
 
-type TaskFilter = 'all' | 'work' | 'personal'
-
 function Index() {
+  const { filter, showDone, setFilter, setShowDone } = useHomeFilters()
+
   const [tasksList, setTasksList] = useState<TasksListResponse | null>(null)
   const [statusesByListId, setStatusesByListId] = useState<Record<string, ClickUpStatus[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<TaskFilter>('all')
-  const [showDone, setShowDone] = useState(true)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [dueDateModalTask, setDueDateModalTask] = useState<TaskItem | null>(null)
 
