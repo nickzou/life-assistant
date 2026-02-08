@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { AuthProvider } from './contexts/AuthProvider'
+import { HomeFiltersProvider } from './contexts/HomeFiltersProvider'
 import './index.css'
 
 import { routeTree } from './routeTree.gen'
@@ -17,7 +18,9 @@ declare module '@tanstack/react-router' {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>
-      <RouterProvider router={router} />
+      <HomeFiltersProvider>
+        <RouterProvider router={router} />
+      </HomeFiltersProvider>
     </AuthProvider>
   </StrictMode>,
 )
