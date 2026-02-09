@@ -5,6 +5,7 @@ import { PageContainer } from '../components/PageContainer'
 import { Accordion } from '../components/Accordion'
 import { TaskCard, type TaskItem, type TaskSource } from '../components/TaskCard'
 import { DueDateModal } from '../components/DueDateModal'
+import { SegmentedControl } from '../components/SegmentedControl'
 import type { ClickUpStatus } from '../components/StatusDropdown'
 import { api } from '../lib/api'
 import { useHomeFilters } from '../contexts/HomeFiltersContext'
@@ -224,21 +225,15 @@ function Index() {
         {/* Filter */}
         {tasksList && (
           <div className="mt-8 flex justify-between items-center">
-            <div className="flex gap-2">
-              {(['all', 'work', 'personal'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
-                    filter === f
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {f === 'all' ? 'All' : f === 'work' ? 'Work' : 'Personal'}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'work', label: 'Work' },
+                { value: 'personal', label: 'Personal' },
+              ]}
+              value={filter}
+              onChange={setFilter}
+            />
             <button
               onClick={() => setShowDone(!showDone)}
               className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
