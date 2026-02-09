@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ProtectedRoute } from '../components/ProtectedRoute'
-import { PageContainer } from '../components/PageContainer'
-import { Accordion } from '../components/Accordion'
-import { TaskCard, type TaskItem, type TaskSource } from '../components/TaskCard'
-import { DueDateModal } from '../components/DueDateModal'
-import { SegmentedControl } from '../components/SegmentedControl'
-import type { ClickUpStatus } from '../components/StatusDropdown'
-import { api } from '../lib/api'
-import { useHomeFilters } from '../contexts/HomeFiltersContext'
+import { ProtectedRoute } from '@components/ProtectedRoute'
+import { PageContainer } from '@components/PageContainer'
+import { Accordion } from '@components/Accordion'
+import { TaskCard, type TaskItem, type TaskSource } from '@components/TaskCard'
+import { DueDateModal } from '@components/DueDateModal'
+import { SegmentedControl } from '@components/SegmentedControl'
+import type { ClickUpStatus } from '@components/StatusDropdown'
+import { api } from '@lib/api'
+import { useHomeFilters } from '@contexts/HomeFiltersContext'
 
 interface TasksListResponse {
   tasks: TaskItem[]
