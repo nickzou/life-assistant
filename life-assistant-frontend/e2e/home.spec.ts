@@ -108,15 +108,32 @@ test.describe('Home Page', () => {
   })
 
   test('displays tasks in accordions', async ({ page }) => {
+    // Check in progress section (tasks with status "In Progress" are separated)
+    await expect(page.getByText('In Progress (1)')).toBeVisible()
+    await expect(page.getByText('Complete project report')).toBeVisible()
+
     // Check overdue section
     await expect(page.getByText('Overdue (1)')).toBeVisible()
     await expect(page.getByText('Pay bills')).toBeVisible()
 
-    // Check today's tasks section
-    await expect(page.getByText("Today's Tasks (3)")).toBeVisible()
-    await expect(page.getByText('Complete project report')).toBeVisible()
+    // Check today's tasks section (excluding in-progress tasks)
+    await expect(page.getByText("Today's Tasks (2)")).toBeVisible()
     await expect(page.getByText('Buy groceries')).toBeVisible()
     await expect(page.getByText('Review PR')).toBeVisible()
+  })
+
+  test('in progress tasks appear in dedicated section above overdue', async ({ page }) => {
+    // The "In Progress" section should appear before "Overdue"
+    const inProgressSection = page.getByText('In Progress (1)')
+    const overdueSection = page.getByText('Overdue (1)')
+
+    await expect(inProgressSection).toBeVisible()
+    await expect(overdueSection).toBeVisible()
+
+    // Verify "Complete project report" (in progress) is not in Today's Tasks
+    // by checking it appears under In Progress section
+    const inProgressAccordion = page.locator('button', { hasText: 'In Progress (1)' }).locator('..')
+    await expect(inProgressAccordion.getByText('Complete project report')).toBeVisible()
   })
 
   test('displays task details correctly', async ({ page }) => {

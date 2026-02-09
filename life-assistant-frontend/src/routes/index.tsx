@@ -195,8 +195,15 @@ function Index() {
     return filter === 'work' ? filtered.filter(isWork) : filtered.filter(t => !isWork(t))
   }
 
+  const isInProgress = (task: TaskItem) => task.status.status.toLowerCase() === 'in progress'
+
   const filteredTasks = tasksList ? filterTasks(tasksList.tasks) : []
   const filteredOverdue = tasksList ? filterTasks(tasksList.overdueTasks) : []
+
+  // Separate in-progress tasks from both lists
+  const inProgressTasks = [...filteredTasks, ...filteredOverdue].filter(isInProgress)
+  const remainingTasks = filteredTasks.filter(t => !isInProgress(t))
+  const remainingOverdue = filteredOverdue.filter(t => !isInProgress(t))
 
   return (
     <ProtectedRoute>
@@ -250,15 +257,37 @@ function Index() {
         {/* Task List */}
         {tasksList && (
           <div className="mt-6 space-y-6">
+            {/* In Progress Tasks */}
+            {inProgressTasks.length > 0 && (
+              <Accordion
+                title="In Progress"
+                count={inProgressTasks.length}
+                titleClassName="text-blue-600 dark:text-blue-400"
+              >
+                <div className="space-y-3">
+                  {inProgressTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      availableStatuses={statusesByListId[task.listId] || []}
+                      onStatusChange={handleStatusChange}
+                      onDueDateChange={handleDueDateChange}
+                      onTimeOfDayChange={task.source !== 'clickup' ? handleTimeOfDayChange : undefined}
+                    />
+                  ))}
+                </div>
+              </Accordion>
+            )}
+
             {/* Overdue Tasks */}
-            {filteredOverdue.length > 0 && (
+            {remainingOverdue.length > 0 && (
               <Accordion
                 title="Overdue"
-                count={filteredOverdue.length}
+                count={remainingOverdue.length}
                 titleClassName="text-red-600 dark:text-red-400"
               >
                 <div className="space-y-3">
-                  {filteredOverdue.map((task) => (
+                  {remainingOverdue.map((task) => (
                     <TaskCard
                       key={task.id}
                       task={task}
@@ -273,13 +302,13 @@ function Index() {
             )}
 
             {/* Today's Tasks */}
-            {filteredTasks.length > 0 && (
+            {remainingTasks.length > 0 && (
               <Accordion
                 title="Today's Tasks"
-                count={filteredTasks.length}
+                count={remainingTasks.length}
               >
                 <div className="space-y-3">
-                  {filteredTasks.map((task) => (
+                  {remainingTasks.map((task) => (
                     <TaskCard
                       key={task.id}
                       task={task}
@@ -294,7 +323,7 @@ function Index() {
             )}
 
             {/* Empty state */}
-            {filteredTasks.length === 0 && filteredOverdue.length === 0 && (
+            {remainingTasks.length === 0 && remainingOverdue.length === 0 && inProgressTasks.length === 0 && (
               <p className="text-center text-gray-500 dark:text-gray-400 py-8">
                 No {filter === 'all' ? '' : filter + ' '}tasks to show
               </p>
