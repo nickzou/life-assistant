@@ -232,6 +232,31 @@ export class ClickUpController {
   }
 
   /**
+   * Get the configured Personal list ID and its statuses
+   * GET /clickup/personal-list
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('personal-list')
+  async getPersonalList() {
+    const listId = this.configService.get<string>('CLICKUP_PERSONAL_LIST_ID');
+    if (!listId) {
+      throw new InternalServerErrorException('CLICKUP_PERSONAL_LIST_ID not configured');
+    }
+
+    try {
+      const list = await this.clickUpService.getList(listId);
+      return {
+        id: listId,
+        name: list.name,
+        statuses: list.statuses || [],
+      };
+    } catch (error) {
+      this.logger.error('Failed to fetch personal list:', error.message);
+      throw new InternalServerErrorException('Failed to fetch personal list');
+    }
+  }
+
+  /**
    * Get available statuses for a specific list
    * GET /clickup/statuses/:listId
    */
@@ -249,6 +274,55 @@ export class ClickUpController {
       throw new InternalServerErrorException(
         'Failed to fetch statuses from ClickUp',
       );
+    }
+  }
+
+  /**
+   * Create a new task in the Personal list
+   * POST /clickup/tasks
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('tasks')
+  async createTask(
+    @Body()
+    body: {
+      name: string;
+      due_date?: number | null;
+      status?: string;
+      tags?: string[];
+    },
+  ) {
+    const listId = this.configService.get<string>('CLICKUP_PERSONAL_LIST_ID');
+    if (!listId) {
+      throw new InternalServerErrorException('CLICKUP_PERSONAL_LIST_ID not configured');
+    }
+
+    try {
+      const taskData: {
+        name: string;
+        due_date?: number;
+        status?: string;
+        tags?: string[];
+      } = {
+        name: body.name,
+      };
+
+      if (body.due_date) {
+        taskData.due_date = body.due_date;
+      }
+      if (body.status) {
+        taskData.status = body.status;
+      }
+      if (body.tags && body.tags.length > 0) {
+        taskData.tags = body.tags;
+      }
+
+      const task = await this.clickUpService.createTask(listId, taskData);
+      this.logger.log(`Created task: ${task.id}`);
+      return { success: true, task };
+    } catch (error) {
+      this.logger.error('Failed to create task:', error.message);
+      throw new InternalServerErrorException('Failed to create task in ClickUp');
     }
   }
 
