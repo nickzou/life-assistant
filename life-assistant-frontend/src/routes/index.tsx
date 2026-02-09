@@ -6,6 +6,7 @@ import { Accordion } from '@components/Accordion'
 import { TaskCard, type TaskItem, type TaskSource } from '@components/TaskCard'
 import { DueDateModal } from '@components/DueDateModal'
 import { SegmentedControl } from '@components/SegmentedControl'
+import { AddTaskForm } from '@components/AddTaskForm'
 import type { ClickUpStatus } from '@components/StatusDropdown'
 import { api } from '@lib/api'
 import { useHomeFilters } from '@contexts/HomeFiltersContext'
@@ -251,6 +252,13 @@ function Index() {
             >
               {showDone ? 'Hide done' : 'Show done'}
             </button>
+          </div>
+        )}
+
+        {/* Add Task Form */}
+        {tasksList && (
+          <div className="mt-6">
+            <AddTaskForm onTaskCreated={fetchData} />
           </div>
         )}
 
