@@ -1266,4 +1266,106 @@ describe('GrocyService', () => {
       });
     });
   });
+
+  describe('findProductByName', () => {
+    it('should find product by exact name match', async () => {
+      const mockProducts = [
+        { id: 1, name: 'Milk', qu_id_stock: 1 },
+        { id: 2, name: 'Dishwasher Pod', qu_id_stock: 2 },
+        { id: 3, name: 'Eggs', qu_id_stock: 3 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockProducts });
+
+      const result = await service.findProductByName('Dishwasher Pod');
+
+      expect(result).toEqual({ id: 2, name: 'Dishwasher Pod', qu_id_stock: 2 });
+    });
+
+    it('should find product by partial name match (case-insensitive)', async () => {
+      const mockProducts = [
+        { id: 1, name: 'Milk', qu_id_stock: 1 },
+        { id: 2, name: 'Cascade Dishwasher Pods', qu_id_stock: 2 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockProducts });
+
+      const result = await service.findProductByName('dishwasher pod');
+
+      expect(result).toEqual({
+        id: 2,
+        name: 'Cascade Dishwasher Pods',
+        qu_id_stock: 2,
+      });
+    });
+
+    it('should return null if product not found', async () => {
+      const mockProducts = [
+        { id: 1, name: 'Milk', qu_id_stock: 1 },
+        { id: 2, name: 'Eggs', qu_id_stock: 2 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockProducts });
+
+      const result = await service.findProductByName('Dishwasher Pod');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return first match when multiple products match', async () => {
+      const mockProducts = [
+        { id: 1, name: 'Dishwasher Pod Regular', qu_id_stock: 1 },
+        { id: 2, name: 'Dishwasher Pod Premium', qu_id_stock: 2 },
+      ];
+      mockAxiosInstance.get.mockResolvedValue({ data: mockProducts });
+
+      const result = await service.findProductByName('dishwasher pod');
+
+      expect(result?.id).toBe(1); // First match
+    });
+  });
+
+  describe('consumeProduct', () => {
+    it('should POST to consume product with default amount', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.consumeProduct(42);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/stock/products/42/consume',
+        {
+          amount: 1,
+          transaction_type: 'consume',
+          spoiled: false,
+        },
+      );
+    });
+
+    it('should POST to consume product with specified amount', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.consumeProduct(42, 5);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/stock/products/42/consume',
+        {
+          amount: 5,
+          transaction_type: 'consume',
+          spoiled: false,
+        },
+      );
+    });
+
+    it('should mark as spoiled when specified', async () => {
+      mockAxiosInstance.post.mockResolvedValue({});
+
+      await service.consumeProduct(42, 1, true);
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/stock/products/42/consume',
+        {
+          amount: 1,
+          transaction_type: 'consume',
+          spoiled: true,
+        },
+      );
+    });
+  });
 });
