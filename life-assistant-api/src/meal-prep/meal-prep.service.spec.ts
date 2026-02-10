@@ -200,6 +200,10 @@ describe('MealPrepService', () => {
             ],
           },
         },
+        {
+          id: 'field-grocy-recipe',
+          name: 'Grocy Recipe ID',
+        },
       ]);
     });
 
@@ -247,7 +251,7 @@ describe('MealPrepService', () => {
       expect(result.clickUpTasks).toEqual(['task-abc']);
     });
 
-    it('should set Time of Day custom field based on section', async () => {
+    it('should set Time of Day and Grocy Recipe ID custom fields', async () => {
       mockClickUpService.createTask.mockResolvedValue({ id: 'task-abc' });
       mockPrepConfigRepo.findOne.mockResolvedValue(null);
 
@@ -256,7 +260,10 @@ describe('MealPrepService', () => {
       expect(mockClickUpService.createTask).toHaveBeenCalledWith(
         'test-list-id',
         expect.objectContaining({
-          custom_fields: [{ id: 'field-123', value: 'opt-evening' }],
+          custom_fields: [
+            { id: 'field-grocy-recipe', value: '5' },
+            { id: 'field-123', value: 'opt-evening' },
+          ],
         }),
       );
     });
@@ -278,7 +285,19 @@ describe('MealPrepService', () => {
 
       expect(mockClickUpService.createTask).toHaveBeenCalledTimes(2);
 
-      // Verify defrost task
+      // Verify main task has Grocy Recipe ID
+      expect(mockClickUpService.createTask).toHaveBeenNthCalledWith(
+        1,
+        'test-list-id',
+        expect.objectContaining({
+          name: 'Char Siu Chicken',
+          custom_fields: expect.arrayContaining([
+            { id: 'field-grocy-recipe', value: '5' },
+          ]),
+        }),
+      );
+
+      // Verify defrost task (no Grocy Recipe ID, just Time of Day)
       expect(mockClickUpService.createTask).toHaveBeenNthCalledWith(
         2,
         'test-list-id',
