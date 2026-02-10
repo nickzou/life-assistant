@@ -3,7 +3,8 @@ import { ClickUpService } from '@clickup/clickup.service';
 import { GrocyService } from '@grocy/grocy.service';
 import { getTodayString } from '@utils/date';
 
-const GROCY_ID_FIELD_NAME = 'grocy id';
+const GROCY_RECIPE_ID_FIELD_NAME = 'grocy recipe id';
+const GROCY_PRODUCT_ID_FIELD_NAME = 'grocy product id';
 
 @Injectable()
 export class ClickUpWebhookHandlerService {
@@ -43,7 +44,7 @@ export class ClickUpWebhookHandlerService {
       const grocyIdFieldChange = history_items.find(
         (item: any) =>
           item.field === 'custom_field' &&
-          item.custom_field?.name?.toLowerCase() === GROCY_ID_FIELD_NAME &&
+          item.custom_field?.name?.toLowerCase() === GROCY_RECIPE_ID_FIELD_NAME &&
           item.after && // Field was set to a value
           !item.before, // Field was not previously set (new value)
       );
@@ -70,7 +71,7 @@ export class ClickUpWebhookHandlerService {
     try {
       const task = await this.clickUpService.getTask(taskId);
       const grocyIdField = task.custom_fields?.find(
-        (field) => field.name.toLowerCase() === GROCY_ID_FIELD_NAME,
+        (field) => field.name.toLowerCase() === GROCY_RECIPE_ID_FIELD_NAME,
       );
 
       if (!grocyIdField?.value) {
@@ -155,15 +156,18 @@ export class ClickUpWebhookHandlerService {
       return;
     }
 
-    this.logger.log(`Task ${taskId} was completed, checking for Grocy ID...`);
+    this.logger.log(`Task ${taskId} was completed, checking for Grocy fields...`);
 
     try {
-      // Fetch full task details to get custom fields
+      // Fetch full task details to get custom fields and name
       const task = await this.clickUpService.getTask(taskId);
 
-      // Find the "Grocy ID" custom field
+      // Check for Grocy Product ID (direct product consumption)
+      await this.handleProductConsumption(task);
+
+      // Then check for Grocy ID (recipe consumption)
       const grocyIdField = task.custom_fields?.find(
-        (field) => field.name.toLowerCase() === GROCY_ID_FIELD_NAME,
+        (field) => field.name.toLowerCase() === GROCY_RECIPE_ID_FIELD_NAME,
       );
 
       if (!grocyIdField?.value) {
@@ -189,6 +193,45 @@ export class ClickUpWebhookHandlerService {
     } catch (error) {
       this.logger.error(
         `Failed to process auto-consume for task ${taskId}: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Handle product consumption when task has "Grocy Product ID" custom field
+   */
+  private async handleProductConsumption(task: any): Promise<void> {
+    const productIdField = task.custom_fields?.find(
+      (field: any) => field.name.toLowerCase() === GROCY_PRODUCT_ID_FIELD_NAME,
+    );
+
+    if (!productIdField?.value) {
+      this.logger.debug(
+        `Task ${task.id} has no Grocy Product ID field set - skipping product consumption`,
+      );
+      return;
+    }
+
+    const grocyProductId = parseInt(productIdField.value, 10);
+    if (isNaN(grocyProductId)) {
+      this.logger.warn(
+        `Task ${task.id} has invalid Grocy Product ID value: ${productIdField.value}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `Task "${task.name}" completed with Grocy Product ID ${grocyProductId} - consuming product`,
+    );
+
+    try {
+      await this.grocyService.consumeProduct(grocyProductId);
+      this.logger.log(
+        `✅ Consumed 1 of product ${grocyProductId} from Grocy stock`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to consume product ${grocyProductId}: ${error.message}`,
       );
     }
   }

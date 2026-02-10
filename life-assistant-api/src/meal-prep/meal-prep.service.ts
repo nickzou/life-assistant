@@ -27,6 +27,7 @@ export class MealPrepService {
   // Cached custom field info (fetched lazily)
   private timeOfDayFieldId: string | null = null;
   private timeOfDayOptions: Map<string, string> = new Map(); // name -> id
+  private grocyRecipeIdFieldId: string | null = null;
   private customFieldsFetched = false;
 
   constructor(
@@ -79,6 +80,22 @@ export class MealPrepService {
         );
       } else {
         this.logger.warn('No "Time of Day" custom field found on Meals list');
+      }
+
+      // Find "Grocy Recipe ID" field by name
+      const grocyRecipeIdField = fields.find(
+        (f: any) => f.name.toLowerCase() === 'grocy recipe id',
+      );
+
+      if (grocyRecipeIdField) {
+        this.grocyRecipeIdFieldId = grocyRecipeIdField.id;
+        this.logger.log(
+          `Found Grocy Recipe ID field (${this.grocyRecipeIdFieldId})`,
+        );
+      } else {
+        this.logger.warn(
+          'No "Grocy Recipe ID" custom field found on Meals list',
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to fetch custom fields: ${error.message}`);
@@ -182,6 +199,17 @@ export class MealPrepService {
         due_date: mealDueDate,
       };
 
+      // Build custom fields array
+      const customFields: Array<{ id: string; value: any }> = [];
+
+      // Add Grocy Recipe ID custom field
+      if (this.grocyRecipeIdFieldId) {
+        customFields.push({
+          id: this.grocyRecipeIdFieldId,
+          value: mealData.recipe_id.toString(),
+        });
+      }
+
       // Add Time of Day custom field based on section
       if (this.timeOfDayFieldId && mealData.sectionName) {
         const timeOfDayName =
@@ -191,10 +219,16 @@ export class MealPrepService {
           : null;
 
         if (timeOfDayOptionId) {
-          mainTaskData.custom_fields = [
-            { id: this.timeOfDayFieldId, value: timeOfDayOptionId },
-          ];
+          customFields.push({
+            id: this.timeOfDayFieldId,
+            value: timeOfDayOptionId,
+          });
         }
+      }
+
+      // Set custom fields if any
+      if (customFields.length > 0) {
+        mainTaskData.custom_fields = customFields;
       }
 
       // Create main task

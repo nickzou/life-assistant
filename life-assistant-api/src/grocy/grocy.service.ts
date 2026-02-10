@@ -742,6 +742,36 @@ export class GrocyService implements OnModuleInit {
   }
 
   /**
+   * Find a product by name (case-insensitive partial match)
+   */
+  async findProductByName(name: string): Promise<Product | null> {
+    const products = await this.getAllProducts();
+    const lowerName = name.toLowerCase();
+    return (
+      products.find((p) => p.name.toLowerCase().includes(lowerName)) || null
+    );
+  }
+
+  /**
+   * Consume a product directly from stock
+   * @param productId The product ID to consume
+   * @param amount The amount to consume (default: 1)
+   * @param spoiled Whether the product is spoiled (default: false)
+   */
+  async consumeProduct(
+    productId: number,
+    amount: number = 1,
+    spoiled: boolean = false,
+  ): Promise<void> {
+    this.logger.log(`Consuming ${amount} of product ${productId}`);
+    await this.axiosInstance.post(`/stock/products/${productId}/consume`, {
+      amount,
+      transaction_type: 'consume',
+      spoiled,
+    });
+  }
+
+  /**
    * Update meal plan item done status
    */
   async updateMealPlanItemDone(id: number, done: boolean): Promise<void> {
