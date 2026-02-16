@@ -14,7 +14,6 @@ describe('ClickUpWebhookHandlerService', () => {
     };
 
     grocyService = {
-      createMealPlanItem: jest.fn(),
       consumeRecipe: jest.fn(),
       updateMealPlanItemDone: jest.fn(),
       getMealPlanForDate: jest.fn(),
@@ -35,154 +34,6 @@ describe('ClickUpWebhookHandlerService', () => {
   });
 
   describe('handleClickUpWebhook', () => {
-    describe('taskCreated event', () => {
-      it('should add to meal plan when task with Grocy Recipe ID is created', async () => {
-        clickUpService.getTask.mockResolvedValue({
-          id: 'task-1',
-          name: 'Protein Shake',
-          custom_fields: [
-            {
-              id: 'field-123',
-              name: 'Grocy Recipe ID',
-              value: '42',
-            },
-          ],
-        } as any);
-
-        grocyService.createMealPlanItem.mockResolvedValue({
-          id: 100,
-          day: '2026-02-01',
-          recipe_id: 42,
-        } as any);
-
-        await service.handleClickUpWebhook({
-          event: 'taskCreated',
-          task_id: 'task-1',
-        });
-
-        expect(clickUpService.getTask).toHaveBeenCalledWith('task-1');
-        expect(grocyService.createMealPlanItem).toHaveBeenCalledWith({
-          day: expect.any(String),
-          recipe_id: 42,
-          servings: 1,
-        });
-        // Should NOT consume on creation
-        expect(grocyService.consumeRecipe).not.toHaveBeenCalled();
-      });
-
-      it('should skip task creation without Grocy Recipe ID field', async () => {
-        clickUpService.getTask.mockResolvedValue({
-          id: 'task-1',
-          name: 'Regular Task',
-          custom_fields: [],
-        } as any);
-
-        await service.handleClickUpWebhook({
-          event: 'taskCreated',
-          task_id: 'task-1',
-        });
-
-        expect(grocyService.createMealPlanItem).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('taskUpdated event with Grocy Recipe ID custom field', () => {
-      it('should add to meal plan when Grocy Recipe ID custom field is set', async () => {
-        clickUpService.getTask.mockResolvedValue({
-          id: 'task-1',
-          name: 'Protein Shake',
-          custom_fields: [
-            {
-              id: 'field-123',
-              name: 'Grocy Recipe ID',
-              value: '42',
-            },
-          ],
-        } as any);
-
-        grocyService.createMealPlanItem.mockResolvedValue({
-          id: 100,
-          day: '2026-02-01',
-          recipe_id: 42,
-        } as any);
-
-        await service.handleClickUpWebhook({
-          event: 'taskUpdated',
-          task_id: 'task-1',
-          history_items: [
-            {
-              field: 'custom_field',
-              before: null,
-              after: '42',
-              custom_field: {
-                id: 'field-123',
-                name: 'Grocy Recipe ID',
-              },
-            },
-          ],
-        });
-
-        expect(clickUpService.getTask).toHaveBeenCalledWith('task-1');
-        expect(grocyService.createMealPlanItem).toHaveBeenCalledWith({
-          day: expect.any(String),
-          recipe_id: 42,
-          servings: 1,
-        });
-      });
-
-      it('should skip taskUpdated when Grocy Recipe ID field was already set (not a new value)', async () => {
-        await service.handleClickUpWebhook({
-          event: 'taskUpdated',
-          task_id: 'task-1',
-          history_items: [
-            {
-              field: 'custom_field',
-              before: '10', // Was already set
-              after: '42',
-              custom_field: {
-                id: 'field-123',
-                name: 'Grocy Recipe ID',
-              },
-            },
-          ],
-        });
-
-        expect(clickUpService.getTask).not.toHaveBeenCalled();
-        expect(grocyService.createMealPlanItem).not.toHaveBeenCalled();
-      });
-
-      it('should skip taskUpdated when custom field is not Grocy Recipe ID', async () => {
-        await service.handleClickUpWebhook({
-          event: 'taskUpdated',
-          task_id: 'task-1',
-          history_items: [
-            {
-              field: 'custom_field',
-              before: null,
-              after: 'some value',
-              custom_field: {
-                id: 'field-456',
-                name: 'Other Field',
-              },
-            },
-          ],
-        });
-
-        expect(clickUpService.getTask).not.toHaveBeenCalled();
-        expect(grocyService.createMealPlanItem).not.toHaveBeenCalled();
-      });
-
-      it('should skip taskUpdated without history_items', async () => {
-        await service.handleClickUpWebhook({
-          event: 'taskUpdated',
-          task_id: 'task-1',
-        });
-
-        expect(clickUpService.getTask).not.toHaveBeenCalled();
-        expect(grocyService.createMealPlanItem).not.toHaveBeenCalled();
-      });
-    });
-
     describe('taskStatusUpdated event', () => {
       it('should skip non-status events', async () => {
         await service.handleClickUpWebhook({
@@ -244,8 +95,6 @@ describe('ClickUpWebhookHandlerService', () => {
           100,
           true,
         );
-        // Should NOT create meal plan on completion (already created on task creation)
-        expect(grocyService.createMealPlanItem).not.toHaveBeenCalled();
       });
 
       it('should handle closed status type as completion', async () => {
@@ -327,6 +176,70 @@ describe('ClickUpWebhookHandlerService', () => {
         expect(grocyService.consumeRecipe).not.toHaveBeenCalled();
       });
 
+      it('should skip consumption when meal is already marked done', async () => {
+        clickUpService.getTask.mockResolvedValue({
+          id: 'task-1',
+          name: 'Protein Shake',
+          custom_fields: [
+            {
+              id: 'field-123',
+              name: 'Grocy Recipe ID',
+              value: '42',
+            },
+          ],
+        } as any);
+
+        // All meals for this recipe are already done
+        grocyService.getMealPlanForDate.mockResolvedValue([
+          { id: 100, recipe_id: 42, done: 1 },
+        ]);
+
+        await service.handleClickUpWebhook({
+          event: 'taskStatusUpdated',
+          task_id: 'task-1',
+          history_items: [
+            {
+              field: 'status',
+              after: { type: 'done' },
+            },
+          ],
+        });
+
+        expect(grocyService.consumeRecipe).not.toHaveBeenCalled();
+        expect(grocyService.updateMealPlanItemDone).not.toHaveBeenCalled();
+      });
+
+      it('should skip consumption when no meal plan entries exist for recipe', async () => {
+        clickUpService.getTask.mockResolvedValue({
+          id: 'task-1',
+          name: 'Protein Shake',
+          custom_fields: [
+            {
+              id: 'field-123',
+              name: 'Grocy Recipe ID',
+              value: '42',
+            },
+          ],
+        } as any);
+
+        // No meals for today
+        grocyService.getMealPlanForDate.mockResolvedValue([]);
+
+        await service.handleClickUpWebhook({
+          event: 'taskStatusUpdated',
+          task_id: 'task-1',
+          history_items: [
+            {
+              field: 'status',
+              after: { type: 'done' },
+            },
+          ],
+        });
+
+        expect(grocyService.consumeRecipe).not.toHaveBeenCalled();
+        expect(grocyService.updateMealPlanItemDone).not.toHaveBeenCalled();
+      });
+
       it('should handle errors gracefully during consume', async () => {
         clickUpService.getTask.mockResolvedValue({
           id: 'task-1',
@@ -340,6 +253,9 @@ describe('ClickUpWebhookHandlerService', () => {
           ],
         } as any);
 
+        grocyService.getMealPlanForDate.mockResolvedValue([
+          { id: 100, recipe_id: 42, done: 0 },
+        ]);
         grocyService.consumeRecipe.mockRejectedValue(new Error('Grocy error'));
 
         // Should not throw

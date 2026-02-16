@@ -456,6 +456,36 @@ export class MealPrepService {
   }
 
   /**
+   * Complete the ClickUp task associated with a meal plan item.
+   * Finds the 'main' task mapping and marks it as complete in ClickUp.
+   */
+  async completeClickUpTaskForMeal(mealPlanItemId: number): Promise<void> {
+    const mapping = await this.taskMappingRepo.findOne({
+      where: { meal_plan_item_id: mealPlanItemId, task_type: 'main' },
+    });
+
+    if (!mapping) {
+      this.logger.debug(
+        `No ClickUp task mapping found for meal plan item ${mealPlanItemId}`,
+      );
+      return;
+    }
+
+    try {
+      await this.clickUpService.updateTask(mapping.clickup_task_id, {
+        status: 'complete',
+      });
+      this.logger.log(
+        `Completed ClickUp task ${mapping.clickup_task_id} for meal plan item ${mealPlanItemId}`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to complete ClickUp task ${mapping.clickup_task_id}: ${error.message}`,
+      );
+    }
+  }
+
+  /**
    * Update the Time of Day custom field on a ClickUp task
    */
   private async updateTimeOfDayField(

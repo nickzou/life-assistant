@@ -266,6 +266,14 @@ export class GrocyController {
       parseInt(recipeId, 10),
       body.servings,
     );
+
+    // Close the associated ClickUp task if a meal plan item ID was provided
+    if (body.mealPlanItemId) {
+      await this.mealPrepService.completeClickUpTaskForMeal(
+        body.mealPlanItemId,
+      );
+    }
+
     return { success: true };
   }
 
