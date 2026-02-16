@@ -174,4 +174,5 @@ export interface RecipeSelectionItem {
  */
 export interface ConsumeRecipeRequest {
   servings?: number;
+  mealPlanItemId?: number;
 }

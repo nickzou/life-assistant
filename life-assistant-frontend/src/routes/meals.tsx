@@ -252,6 +252,7 @@ function MealsPage() {
     try {
       await api.post(`/grocy/recipes/${meal.recipe_id}/consume`, {
         servings: meal.recipe_servings || 1,
+        mealPlanItemId: meal.id,
       });
       // Mark as done in Grocy
       await api.patch(`/grocy/meal-plan/${meal.id}/done`, { done: true });
